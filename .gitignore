@@ -1,0 +1,36 @@
+# Angular y Node.js
+node_modules/
+dist/
+.angular/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# .NET
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio y Visual Studio Code
+.vs/
+.vscode/
+
+# Docker, registros y archivos temporales
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+docker-compose.override.yml
+
+# Variables de entorno y configuraciones locales
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+appsettings.*.Local.json
