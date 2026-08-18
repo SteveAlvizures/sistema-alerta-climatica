@@ -37,3 +37,9 @@ README.md
 ```
 
 Esta estructura representa la organización prevista; los proyectos de frontend y backend se incorporarán en etapas posteriores.
+
+## Documentación relacionada
+
+- [Modelo conceptual del dominio](modelo-dominio.md)
+- [Reglas de alertas climáticas](reglas-alertas.md)
+- [Ejecución local con Docker](ejecucion-local.md)
