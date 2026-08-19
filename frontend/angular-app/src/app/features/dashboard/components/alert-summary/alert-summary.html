@@ -1,0 +1,10 @@
+<section class="alert-card" aria-labelledby="alert-title">
+  <div class="alert-card__topline">
+    <span class="alert-card__icon" aria-hidden="true">!</span>
+    <app-status-badge [label]="alert().level + ' · ' + alert().phenomenon" tone="yellow" />
+  </div>
+  <p class="alert-card__eyebrow">Alerta activa</p>
+  <h2 id="alert-title">Vigilancia preventiva activa</h2>
+  <p class="alert-card__message">{{ alert().message }}</p>
+  <time>{{ alert().occurredAt }}</time>
+</section>

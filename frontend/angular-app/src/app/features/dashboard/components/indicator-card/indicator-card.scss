@@ -1,0 +1,6 @@
+.indicator-card { min-height: 8.8rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-soft); }
+.indicator-card__heading { display: flex; align-items: center; justify-content: space-between; color: var(--text-muted); font-size: 0.8125rem; font-weight: 700; }
+.indicator-card__icon { width: 2.15rem; height: 2.15rem; display: grid; place-items: center; border-radius: 0.65rem; background: var(--brand-soft); color: var(--brand-accent); }
+.indicator-card__icon svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.indicator-card strong { display: block; margin-top: 0.75rem; color: var(--text-strong); font-size: clamp(1.35rem, 2vw, 1.7rem); }
+.indicator-card p { margin: 0.35rem 0 0; color: var(--text-subtle); font-size: 0.8125rem; }

@@ -1,0 +1,31 @@
+:root {
+  --page: #f2f6f4; --surface: #ffffff; --surface-muted: #f6f9f7; --header-bg: rgba(255,255,255,.96); --sidebar-bg: #f8fbf9;
+  --text-strong: #173c30; --text: #2b493f; --text-muted: #61736c; --text-subtle: #7b8d86;
+  --border: #dce6e1; --border-soft: #ebf0ed; --brand: #0d5337; --brand-accent: #176b49; --brand-soft: #e2f2ea; --brand-border: #a9cdc0;
+  --info: #17678f; --info-soft: #e6f2f8; --info-border: #b5d7e7; --success: #238357; --success-bright: #65c58f;
+  --warning: #e9ad25; --warning-soft: #fff9e8; --warning-border: #e9d99f; --warning-text: #805d08; --warning-contrast: #3e2c00;
+  --chart-grid: #dfe8e3; --chart-line: #1d7ca4; --chart-fill: rgba(29,124,164,.12);
+  --hero-bg: linear-gradient(120deg, #123f31 0%, #0f5b46 65%, #176b77 120%);
+  --shadow-soft: 0 .4rem 1.5rem rgba(25,66,51,.05); --shadow-header: 0 .2rem 1rem rgba(25,66,51,.04); --shadow-hero: 0 1rem 2.4rem rgba(18,63,49,.16);
+  --radius-md: .9rem; --radius-lg: 1rem;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text); background: var(--page); font-synthesis: none; text-rendering: optimizeLegibility;
+}
+
+:root[data-theme='dark'] {
+  --page: #111c19; --surface: #192723; --surface-muted: #20302b; --header-bg: rgba(20,32,28,.97); --sidebar-bg: #14211d;
+  --text-strong: #edf6f1; --text: #d6e5de; --text-muted: #abc0b7; --text-subtle: #8da59b;
+  --border: #344941; --border-soft: #293d36; --brand: #24865e; --brand-accent: #6bc79b; --brand-soft: #203b31; --brand-border: #3d6b59;
+  --info: #78c5e8; --info-soft: #1d3641; --info-border: #325b6d; --success: #69d19c;
+  --warning: #e8b641; --warning-soft: #352f1d; --warning-border: #65572d; --warning-text: #f1ce76; --warning-contrast: #2e2100;
+  --chart-grid: #30463e; --chart-line: #67c6ed; --chart-fill: rgba(103,198,237,.13);
+  --hero-bg: linear-gradient(120deg, #183f33 0%, #185745 65%, #1d5c66 120%);
+  --shadow-soft: 0 .5rem 1.8rem rgba(0,0,0,.16); --shadow-header: 0 .2rem 1rem rgba(0,0,0,.14); --shadow-hero: 0 1rem 2.4rem rgba(0,0,0,.22);
+}
+
+* { box-sizing: border-box; }
+html, body { width: 100%; min-height: 100%; margin: 0; overflow-x: clip; background: var(--page); }
+body { min-height: 100vh; color: var(--text); background: radial-gradient(circle at 80% 0%, rgba(66,148,128,.08), transparent 28rem), var(--page); }
+button, input, select, textarea { font: inherit; }
+:focus-visible { outline: 3px solid var(--info); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }

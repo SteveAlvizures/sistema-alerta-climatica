@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Vigía Rural</title>
+  <rect width="64" height="64" rx="16" fill="#0d5337" />
+  <path d="M18 37c13 0 23-10 29-24 0 18-5 34-23 34H18Z" fill="#b9ebce" />
+  <path d="M20 43c8-11 15-17 25-23" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="4" />
+  <path d="M12 50c7-4 12 4 19 0s12 4 21 0" fill="none" stroke="#62b9d7" stroke-linecap="round" stroke-width="4" />
+</svg>
