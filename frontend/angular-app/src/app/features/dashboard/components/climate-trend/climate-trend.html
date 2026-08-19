@@ -1,0 +1,55 @@
+<section class="trend-panel" aria-labelledby="trend-title">
+  <div class="trend-panel__header">
+    <div>
+      <p>Evolución reciente</p>
+      <h2 id="trend-title">Tendencias climáticas</h2>
+    </div>
+    <span class="trend-panel__source">Lecturas simuladas</span>
+  </div>
+
+  <div class="trend-panel__tabs" role="group" aria-label="Variable mostrada en el gráfico">
+    @for (option of options; track option.key) {
+      <button
+        type="button"
+        [class.trend-panel__tab--active]="selectedMetric() === option.key"
+        [attr.aria-pressed]="selectedMetric() === option.key"
+        (click)="selectMetric(option.key)"
+      >
+        {{ option.label }}
+      </button>
+    }
+  </div>
+
+  <div class="trend-panel__chart">
+    <svg
+      viewBox="0 0 640 220"
+      role="img"
+      [attr.aria-label]="'Evolución simulada de ' + activeOption().label + ' en ' + activeOption().unit"
+      preserveAspectRatio="none"
+    >
+      <title>Evolución simulada de {{ activeOption().label }}</title>
+      <desc>Serie de las seis lecturas más recientes para la comunidad seleccionada.</desc>
+      <g class="trend-panel__grid" aria-hidden="true">
+        <line x1="32" y1="50" x2="608" y2="50" />
+        <line x1="32" y1="94" x2="608" y2="94" />
+        <line x1="32" y1="138" x2="608" y2="138" />
+        <line x1="32" y1="182" x2="608" y2="182" />
+      </g>
+      <path class="trend-panel__area" [attr.d]="path() + ' L 608 182 L 32 182 Z'" />
+      <path class="trend-panel__line" [attr.d]="path()" />
+      @for (value of values(); track $index) {
+        <circle class="trend-panel__point" [attr.cx]="pointX($index)" [attr.cy]="pointY(value)" r="4" />
+      }
+    </svg>
+    <div class="trend-panel__labels" aria-hidden="true">
+      @for (point of points(); track $index) {
+        <span>{{ point.label }}</span>
+      }
+    </div>
+  </div>
+
+  <div class="trend-panel__legend">
+    <span><i aria-hidden="true"></i>{{ activeOption().label }}</span>
+    <strong>{{ values().at(-1) }} {{ activeOption().unit }}</strong>
+  </div>
+</section>

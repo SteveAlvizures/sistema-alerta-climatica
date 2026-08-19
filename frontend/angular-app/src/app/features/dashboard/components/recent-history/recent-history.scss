@@ -1,0 +1,67 @@
+.history-panel {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.history-panel > div > p {
+  margin: 0 0 0.25rem;
+  color: var(--brand-accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.history-panel h2 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 1.125rem;
+}
+
+.history-panel ol {
+  display: grid;
+  gap: 0;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-panel li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border-soft);
+}
+
+.history-panel__marker {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-top: 0.28rem;
+  border-radius: 50%;
+  background: var(--text-subtle);
+}
+
+.history-panel__marker--green { background: var(--success); }
+.history-panel__marker--yellow { background: var(--warning); }
+
+.history-panel strong {
+  color: var(--text-strong);
+  font-size: 0.875rem;
+}
+
+.history-panel li p {
+  margin: 0.2rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.history-panel time {
+  color: var(--text-subtle);
+  font-size: 0.8125rem;
+}

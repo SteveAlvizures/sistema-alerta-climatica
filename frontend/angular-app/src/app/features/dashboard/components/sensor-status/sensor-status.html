@@ -1,0 +1,39 @@
+<section class="sensor-panel" aria-labelledby="sensor-title">
+  <div class="section-heading">
+    <div>
+      <p class="section-heading__eyebrow">Red de monitoreo</p>
+      <h2 id="sensor-title">Estado de sensores</h2>
+    </div>
+    <span>{{ sensors().length }} dispositivos registrados</span>
+  </div>
+
+  <div class="sensor-table">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Sensor</th>
+          <th scope="col">Medición</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Origen</th>
+          <th scope="col">Última comunicación</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (sensor of sensors(); track sensor.name) {
+          <tr>
+            <td data-label="Sensor"><strong>{{ sensor.name }}</strong></td>
+            <td data-label="Medición">{{ sensor.measurementType }}</td>
+            <td data-label="Estado">
+              <app-status-badge
+                [label]="sensor.status"
+                [tone]="sensor.status === 'Activo' ? 'green' : 'neutral'"
+              />
+            </td>
+            <td data-label="Origen"><span class="origin-tag">{{ originLabels[sensor.origin] }}</span></td>
+            <td data-label="Última comunicación">{{ sensor.lastCommunication }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

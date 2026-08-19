@@ -1,0 +1,144 @@
+.trend-panel {
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.trend-panel__header,
+.trend-panel__legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.trend-panel__header p {
+  margin: 0 0 0.25rem;
+  color: var(--brand-accent);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.trend-panel h2 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 1.125rem;
+}
+
+.trend-panel__source {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.trend-panel__tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin: 1rem 0 0.5rem;
+  overflow-x: auto;
+}
+
+.trend-panel__tabs button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.trend-panel__tabs button.trend-panel__tab--active {
+  border-color: var(--brand-accent);
+  background: var(--brand-soft);
+  color: var(--brand-accent);
+}
+
+.trend-panel__chart {
+  min-width: 0;
+}
+
+.trend-panel svg {
+  width: 100%;
+  height: 14rem;
+  overflow: visible;
+}
+
+.trend-panel__grid line {
+  stroke: var(--chart-grid);
+  stroke-width: 1;
+}
+
+.trend-panel__area {
+  fill: var(--chart-fill);
+}
+
+.trend-panel__line {
+  fill: none;
+  stroke: var(--chart-line);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.trend-panel__point {
+  fill: var(--surface);
+  stroke: var(--chart-line);
+  stroke-width: 3;
+}
+
+.trend-panel__labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.25rem;
+  padding: 0 0.4rem;
+  color: var(--text-subtle);
+  font-size: 0.8125rem;
+}
+
+.trend-panel__legend {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border-soft);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.trend-panel__legend span {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.trend-panel__legend i {
+  width: 1.5rem;
+  height: 0.2rem;
+  border-radius: 999px;
+  background: var(--chart-line);
+}
+
+.trend-panel__legend strong {
+  color: var(--text-strong);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 520px) {
+  .trend-panel__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .trend-panel svg {
+    height: 11rem;
+  }
+
+  .trend-panel__labels span:nth-child(even) {
+    display: none;
+  }
+}

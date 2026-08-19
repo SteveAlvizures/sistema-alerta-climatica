@@ -1,0 +1,7 @@
+.alert-card { height: 100%; padding: 1.25rem; border: 1px solid var(--warning-border); border-radius: var(--radius-lg); background: var(--warning-soft); box-shadow: var(--shadow-soft); }
+.alert-card__topline { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.alert-card__icon { width: 2.25rem; height: 2.25rem; display: grid; place-items: center; border-radius: 0.65rem; background: var(--warning); color: var(--warning-contrast); font-size: 1.15rem; font-weight: 900; }
+.alert-card__eyebrow { margin: 1.1rem 0 0.3rem; color: var(--warning-text); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; }
+.alert-card h2 { margin: 0; color: var(--text-strong); font-size: 1.125rem; }
+.alert-card__message { margin: 0.65rem 0 1rem; color: var(--text-muted); font-size: 0.875rem; line-height: 1.55; }
+.alert-card time { color: var(--text-subtle); font-size: 0.8125rem; }

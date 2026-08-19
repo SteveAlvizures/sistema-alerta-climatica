@@ -1,0 +1,18 @@
+<section class="history-panel" aria-labelledby="history-title">
+  <div>
+    <p>Actividad del sistema</p>
+    <h2 id="history-title">Historial reciente</h2>
+  </div>
+  <ol>
+    @for (event of events(); track event.title + event.occurredAt) {
+      <li>
+        <span [class]="'history-panel__marker history-panel__marker--' + event.tone" aria-hidden="true"></span>
+        <div>
+          <strong>{{ event.title }}</strong>
+          <p>{{ event.detail }}</p>
+        </div>
+        <time>{{ event.occurredAt }}</time>
+      </li>
+    }
+  </ol>
+</section>
