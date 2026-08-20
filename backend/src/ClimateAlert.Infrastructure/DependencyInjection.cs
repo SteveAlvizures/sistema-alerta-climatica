@@ -27,6 +27,9 @@ public static class DependencyInjection
         services.AddScoped<ICommunityRepository, CommunityRepository>();
         services.AddScoped<ISensorRepository, SensorRepository>();
         services.AddScoped<ISensorReadingRepository, SensorReadingRepository>();
+        services.AddScoped<IAlertRuleRepository, AlertRuleRepository>();
+        services.AddScoped<IAlertRepository, AlertRepository>();
+        services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         services.AddHealthChecks()

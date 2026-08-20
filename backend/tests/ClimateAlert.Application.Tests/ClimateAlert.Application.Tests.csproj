@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\ClimateAlert.Api\ClimateAlert.Api.csproj" />
     <ProjectReference Include="..\..\src\ClimateAlert.Application\ClimateAlert.Application.csproj" />
     <ProjectReference Include="..\..\src\ClimateAlert.Domain\ClimateAlert.Domain.csproj" />
   </ItemGroup>

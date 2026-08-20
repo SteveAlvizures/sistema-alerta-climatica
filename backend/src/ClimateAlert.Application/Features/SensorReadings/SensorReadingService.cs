@@ -8,6 +8,7 @@ namespace ClimateAlert.Application.Features.SensorReadings;
 public sealed class SensorReadingService(
     ISensorRepository sensors,
     ISensorReadingRepository readings,
+    IAlertEvaluator alertEvaluator,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider)
 {
@@ -59,6 +60,7 @@ public sealed class SensorReadingService(
         }
 
         readings.Add(reading);
+        await alertEvaluator.EvaluateAsync(reading, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Map(reading);
     }

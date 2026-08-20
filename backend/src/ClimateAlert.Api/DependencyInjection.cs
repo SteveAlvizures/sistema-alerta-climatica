@@ -1,4 +1,7 @@
+using ClimateAlert.Application.Common.Interfaces;
 using ClimateAlert.Application.Features.Communities;
+using ClimateAlert.Application.Features.AlertRules;
+using ClimateAlert.Application.Features.Alerts;
 using ClimateAlert.Application.Features.SensorReadings;
 using ClimateAlert.Application.Features.Sensors;
 
@@ -11,6 +14,9 @@ public static class DependencyInjection
         services.AddScoped<CommunityService>();
         services.AddScoped<SensorService>();
         services.AddScoped<SensorReadingService>();
+        services.AddScoped<AlertRuleService>();
+        services.AddScoped<AlertService>();
+        services.AddScoped<IAlertEvaluator, AlertEvaluator>();
         services.AddSingleton(TimeProvider.System);
         return services;
     }
