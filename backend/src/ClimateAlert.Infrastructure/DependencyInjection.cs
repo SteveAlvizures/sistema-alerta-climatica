@@ -1,3 +1,4 @@
+using ClimateAlert.Application.Common.Interfaces;
 using ClimateAlert.Infrastructure.Health;
 using ClimateAlert.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,11 @@ public static class DependencyInjection
                 sqlServerOptions.MigrationsAssembly(typeof(ClimateAlertDbContext).Assembly.FullName);
                 sqlServerOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(5), null);
             }));
+
+        services.AddScoped<ICommunityRepository, CommunityRepository>();
+        services.AddScoped<ISensorRepository, SensorRepository>();
+        services.AddScoped<ISensorReadingRepository, SensorReadingRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         services.AddHealthChecks()
             .AddCheck<SqlServerHealthCheck>("sqlserver");
