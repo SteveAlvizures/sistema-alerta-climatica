@@ -19,4 +19,17 @@ public class ClimateAlertDbContext : DbContext
     public DbSet<Event> Events => Set<Event>();
     public DbSet<AuditAction> AuditActions => Set<AuditAction>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Las alertas forman parte del historial del sistema.
+        // Evitamos eliminaciones en cascada múltiples en SQL Server.
+        foreach (var foreignKey in modelBuilder.Entity<Alert>()
+                     .Metadata.GetForeignKeys())
+        {
+            foreignKey.DeleteBehavior = DeleteBehavior.NoAction;
+        }
+    }
 }
