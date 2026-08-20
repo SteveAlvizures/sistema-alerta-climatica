@@ -127,6 +127,7 @@
   color: var(--text-strong);
   font-size: 0.875rem;
 }
+.trend-panel__empty { min-height: 14rem; display: grid; align-content: center; justify-items: center; padding: 2rem; color: var(--text-muted); text-align: center; }.trend-panel__empty strong { color: var(--text-strong); }.trend-panel__empty p { max-width: 28rem; margin: 0.45rem 0 0; font-size: 0.875rem; line-height: 1.5; }
 
 @media (max-width: 520px) {
   .trend-panel__header {

@@ -4,6 +4,7 @@
     <h2 id="history-title">Historial reciente</h2>
   </div>
   <ol>
+    @if (events().length === 0) { <li class="history-panel__empty"><div><strong>Sin lecturas recientes</strong><p>Los sensores todavía no tienen lecturas disponibles.</p></div></li> }
     @for (event of events(); track event.title + event.occurredAt) {
       <li>
         <span [class]="'history-panel__marker history-panel__marker--' + event.tone" aria-hidden="true"></span>

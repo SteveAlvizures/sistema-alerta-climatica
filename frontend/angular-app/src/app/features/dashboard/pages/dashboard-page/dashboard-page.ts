@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { DangerLevel } from '../../../../core/models/climate-alert.model';
-import { SimulatedClimateService } from '../../../../core/services/simulated-climate.service';
+import { DashboardDataService } from '../../../../core/services/dashboard-data.service';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import { AlertSummary } from '../../components/alert-summary/alert-summary';
 import { ClimateTrend } from '../../components/climate-trend/climate-trend';
@@ -15,9 +15,13 @@ import { SensorStatus } from '../../components/sensor-status/sensor-status';
   styleUrl: './dashboard-page.scss',
 })
 export class DashboardPage {
-  protected readonly climate = inject(SimulatedClimateService);
+  protected readonly climate = inject(DashboardDataService);
   protected readonly dangerLevels: DangerLevel[] = ['Verde', 'Amarillo', 'Naranja', 'Rojo'];
   protected levelTone(level: DangerLevel): 'green' | 'yellow' | 'orange' | 'red' {
     return { Verde: 'green', Amarillo: 'yellow', Naranja: 'orange', Rojo: 'red' }[level] as 'green' | 'yellow' | 'orange' | 'red';
+  }
+
+  protected selectCommunity(event: Event): void {
+    this.climate.selectCommunity((event.target as HTMLSelectElement).value);
   }
 }

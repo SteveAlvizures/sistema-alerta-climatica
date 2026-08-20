@@ -4,9 +4,10 @@
       <p>Evolución reciente</p>
       <h2 id="trend-title">Tendencias climáticas</h2>
     </div>
-    <span class="trend-panel__source">Lecturas simuladas</span>
+    <span class="trend-panel__source">{{ source() === 'api' ? 'Fuente API' : 'Lecturas simuladas' }}</span>
   </div>
 
+  @if (points().length > 1) {
   <div class="trend-panel__tabs" role="group" aria-label="Variable mostrada en el gráfico">
     @for (option of options; track option.key) {
       <button
@@ -52,4 +53,7 @@
     <span><i aria-hidden="true"></i>{{ activeOption().label }}</span>
     <strong>{{ values().at(-1) }} {{ activeOption().unit }}</strong>
   </div>
+  } @else {
+    <div class="trend-panel__empty"><strong>Sin historial suficiente</strong><p>La API actual aporta la última lectura. Se necesitan varias lecturas para dibujar una tendencia.</p></div>
+  }
 </section>

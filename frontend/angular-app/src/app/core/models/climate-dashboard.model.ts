@@ -13,12 +13,12 @@ export interface ClimateTrendPoint {
 
 export interface ClimateDashboardState {
   communityName: string;
-  level: DangerLevel;
+  level: DangerLevel | null;
   levelMessage: string;
   lastUpdated: Date;
   indicators: ClimateIndicator[];
   sensors: ClimateSensor[];
-  alert: ClimateAlert;
+  alert: ClimateAlert | null;
   recentEvents: RecentClimateEvent[];
   trend: ClimateTrendPoint[];
 }

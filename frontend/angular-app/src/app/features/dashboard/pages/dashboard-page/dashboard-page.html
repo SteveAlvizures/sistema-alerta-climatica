@@ -1,45 +1,48 @@
-@let dashboard = climate.dashboard();
 <div class="dashboard">
   <div class="dashboard__context">
     <div><p>Monitoreo continuo para comunidades rurales</p><h1>Resumen climático</h1></div>
-    <label>Comunidad seleccionada<select aria-label="Seleccionar comunidad"><option>{{ dashboard.communityName }}</option></select></label>
+    @if (climate.source() === 'api') {
+      <label>Comunidad seleccionada
+        <select aria-label="Seleccionar comunidad" [value]="climate.selectedCommunityId() ?? ''" [disabled]="climate.loadState() === 'loading' || climate.communities().length === 0" (change)="selectCommunity($event)">
+          @for (community of climate.communities(); track community.id) { <option [value]="community.id">{{ community.name }} · {{ community.location }}</option> }
+        </select>
+      </label>
+    }
   </div>
 
-  <section class="community-overview" aria-labelledby="community-title">
-    <div class="community-overview__copy">
-      <p class="dashboard__eyebrow">Estado de la comunidad</p>
-      <h2 id="community-title">{{ dashboard.communityName }}</h2>
-      <p class="community-overview__source">Lecturas actuales generadas en modo de simulación</p>
-      <div class="community-overview__message"><app-status-badge label="Precaución" tone="yellow" /><p>{{ dashboard.levelMessage }}</p></div>
-    </div>
-    <div class="danger-scale" [attr.aria-label]="'Nivel general de peligro: ' + dashboard.level">
-      <span class="danger-scale__label">Nivel general</span>
-      <div class="danger-scale__levels">
-        @for (level of dangerLevels; track level) {
-          <div class="danger-scale__level" [class.danger-scale__level--current]="level === dashboard.level"><span [class]="'danger-scale__color danger-scale__color--' + levelTone(level)"></span><span>{{ level }}</span>@if (level === dashboard.level) { <strong>Actual</strong> }</div>
-        }
+  @if (climate.source() === 'api' && climate.loadState() === 'loading') {
+    <section class="dashboard-state" aria-live="polite"><span class="dashboard-state__loader" aria-hidden="true"></span><div><h2>Cargando monitoreo</h2><p>Consultando comunidades, sensores y lecturas recientes.</p></div></section>
+  } @else if (climate.source() === 'api' && climate.loadState() === 'error') {
+    <section class="dashboard-state dashboard-state--error" role="alert"><div><h2>Error de conexión</h2><p>{{ climate.errorMessage() }}</p></div><button type="button" (click)="climate.retry()">Reintentar</button></section>
+  } @else if (climate.source() === 'api' && climate.loadState() === 'no-communities') {
+    <section class="dashboard-state"><div><h2>Sin comunidades</h2><p>La API no tiene comunidades disponibles para mostrar.</p></div><button type="button" (click)="climate.retry()">Volver a consultar</button></section>
+  } @else if (climate.dashboard(); as dashboard) {
+    @if (climate.source() === 'api' && climate.loadState() === 'no-sensors') {
+      <section class="dashboard-state"><div><h2>Comunidad sin sensores</h2><p>{{ dashboard.communityName }} todavía no tiene sensores registrados.</p></div></section>
+    }
+    <section class="community-overview" aria-labelledby="community-title">
+      <div class="community-overview__copy">
+        <p class="dashboard__eyebrow">Estado de la comunidad</p><h2 id="community-title">{{ dashboard.communityName }}</h2>
+        <p class="community-overview__source">{{ climate.source() === 'api' ? 'Datos consultados desde la API' : 'Lecturas actuales generadas en modo de simulación' }}</p>
+        <div class="community-overview__message"><app-status-badge [label]="dashboard.level ? 'Precaución' : 'Sin evaluación'" [tone]="dashboard.level ? 'yellow' : 'neutral'" /><p>{{ dashboard.levelMessage }}</p></div>
+      </div>
+      <div class="danger-scale" [attr.aria-label]="dashboard.level ? 'Nivel general de peligro: ' + dashboard.level : 'Nivel general no disponible'">
+        <span class="danger-scale__label">Nivel general</span><div class="danger-scale__levels">
+          @for (level of dangerLevels; track level) { <div class="danger-scale__level" [class.danger-scale__level--current]="level === dashboard.level"><span [class]="'danger-scale__color danger-scale__color--' + levelTone(level)"></span><span>{{ level }}</span>@if (level === dashboard.level) { <strong>Actual</strong> }</div> }
+        </div>
+      </div>
+    </section>
+    <section class="indicator-section" aria-labelledby="indicator-title">
+      <div class="dashboard__section-heading"><div><p class="dashboard__eyebrow">Condiciones observadas</p><h2 id="indicator-title">Indicadores climáticos</h2></div><span>{{ climate.source() === 'api' ? 'Última lectura disponible por sensor' : 'Valores simulados · sin umbrales oficiales' }}</span></div>
+      <div class="indicator-grid">@for (indicator of dashboard.indicators; track indicator.name) { <app-indicator-card [indicator]="indicator" /> }</div>
+    </section>
+    <div class="dashboard__analysis-grid"><app-climate-trend [points]="dashboard.trend" [source]="climate.source()" /><app-recent-history [events]="dashboard.recentEvents" /></div>
+    <div class="dashboard__detail-grid">
+      <app-sensor-status [sensors]="dashboard.sensors" />
+      <div class="dashboard__aside">
+        @if (dashboard.alert; as alert) { <app-alert-summary [alert]="alert" /> } @else { <section class="alert-unavailable"><h2>Alertas no disponibles</h2><p>La API actual todavía no expone alertas ni niveles de peligro calculados.</p></section> }
+        <section class="future-sensors" aria-labelledby="future-title"><span class="future-sensors__symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 18h8M10 21h4M12 3v3m-5-1 2 3m8-3-2 3M6 13a6 6 0 0 1 12 0c0 2-1 3-2 5H8c-1-2-2-3-2-5Z" /></svg></span><div><h2 id="future-title">Preparado para sensores físicos</h2><p>La infraestructura permitirá integrar dispositivos Arduino o ESP32 mediante servicios especializados en una etapa posterior.</p></div></section>
       </div>
     </div>
-  </section>
-
-  <section class="indicator-section" aria-labelledby="indicator-title">
-    <div class="dashboard__section-heading"><div><p class="dashboard__eyebrow">Condiciones observadas</p><h2 id="indicator-title">Indicadores climáticos</h2></div><span>Valores simulados · sin umbrales oficiales</span></div>
-    <div class="indicator-grid">@for (indicator of dashboard.indicators; track indicator.name) { <app-indicator-card [indicator]="indicator" /> }</div>
-  </section>
-
-  <div class="dashboard__analysis-grid">
-    <app-climate-trend [points]="dashboard.trend" />
-    <app-recent-history [events]="dashboard.recentEvents" />
-  </div>
-
-  <div class="dashboard__detail-grid">
-    <app-sensor-status [sensors]="dashboard.sensors" />
-    <div class="dashboard__aside">
-      <app-alert-summary [alert]="dashboard.alert" />
-      <section class="future-sensors" aria-labelledby="future-title">
-        <span class="future-sensors__symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 18h8M10 21h4M12 3v3m-5-1 2 3m8-3-2 3M6 13a6 6 0 0 1 12 0c0 2-1 3-2 5H8c-1-2-2-3-2-5Z" /></svg></span>
-        <div><h2 id="future-title">Preparado para sensores físicos</h2><p>La infraestructura permitirá integrar dispositivos Arduino o ESP32 mediante servicios especializados en una etapa posterior.</p></div>
-      </section>
-    </div>
-  </div>
+  }
 </div>
