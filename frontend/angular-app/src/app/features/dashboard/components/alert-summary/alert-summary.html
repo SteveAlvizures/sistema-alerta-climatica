@@ -1,10 +1,13 @@
 <section class="alert-card" aria-labelledby="alert-title">
   <div class="alert-card__topline">
     <span class="alert-card__icon" aria-hidden="true">!</span>
-    <app-status-badge [label]="alert().level + ' · ' + alert().phenomenon" tone="yellow" />
+    <app-status-badge [label]="alert().level + ' · ' + alert().phenomenon" [tone]="alert().tone" />
   </div>
-  <p class="alert-card__eyebrow">Alerta activa</p>
-  <h2 id="alert-title">Vigilancia preventiva activa</h2>
+  <p class="alert-card__eyebrow">Estado: {{ alert().status }}</p>
+  <h2 id="alert-title">Alerta climática activa</h2>
   <p class="alert-card__message">{{ alert().message }}</p>
   <time>{{ alert().occurredAt }}</time>
+  @if (alert().hasEvent) {
+    <p class="alert-card__event">Asociada a un evento climático</p>
+  }
 </section>

@@ -11,11 +11,22 @@ import {
   switchMap,
   throwError,
 } from 'rxjs';
-import { CommunityDto, ClimateVariable, SensorDto, SensorReadingDto } from '../models/api.model';
+import {
+  AlertDto,
+  ApiAlertStatus,
+  ApiClimatePhenomenon,
+  ApiDangerLevel,
+  CommunityDto,
+  ClimateVariable,
+  SensorDto,
+  SensorReadingDto,
+} from '../models/api.model';
+import { ClimateAlert, DangerLevel, RecentClimateEvent } from '../models/climate-alert.model';
 import { ClimateDashboardState } from '../models/climate-dashboard.model';
 import { ClimateIndicator } from '../models/climate-indicator.model';
 import { ClimateSensor } from '../models/sensor.model';
 import { CommunityApiService } from './community-api.service';
+import { AlertApiService } from './alert-api.service';
 import { SensorApiService } from './sensor-api.service';
 import { SensorReadingApiService } from './sensor-reading-api.service';
 import { SimulatedClimateService } from './simulated-climate.service';
@@ -53,9 +64,27 @@ const measurementLabels: Record<ClimateVariable, string> = {
   RiverOrReservoirLevel: 'Nivel de río o reservorio',
 };
 
+const dangerLevelLabels: Record<ApiDangerLevel, DangerLevel> = {
+  Green: 'Verde', Yellow: 'Amarillo', Orange: 'Naranja', Red: 'Rojo',
+};
+const dangerLevelPriority: Record<ApiDangerLevel, number> = {
+  Green: 0, Yellow: 1, Orange: 2, Red: 3,
+};
+const dangerLevelTones: Record<ApiDangerLevel, ClimateAlert['tone']> = {
+  Green: 'green', Yellow: 'yellow', Orange: 'orange', Red: 'red',
+};
+const phenomenonLabels: Record<ApiClimatePhenomenon, string> = {
+  Flood: 'Inundación', Drought: 'Sequía', Storm: 'Tormenta',
+  Frost: 'Helada', Wildfire: 'Incendio forestal',
+};
+const alertStatusLabels: Record<ApiAlertStatus, string> = {
+  Open: 'Abierta', Acknowledged: 'Reconocida', Closed: 'Cerrada',
+};
+
 @Injectable({ providedIn: 'root' })
 export class DashboardDataService {
   private readonly communityApi = inject(CommunityApiService);
+  private readonly alertApi = inject(AlertApiService);
   private readonly sensorApi = inject(SensorApiService);
   private readonly readingApi = inject(SensorReadingApiService);
   private readonly simulation = inject(SimulatedClimateService);
@@ -128,12 +157,16 @@ export class DashboardDataService {
   }
 
   private getCommunityOutcome(community: CommunityDto): Observable<LoadOutcome> {
-    return this.sensorApi.getByCommunity(community.id).pipe(
-      switchMap((sensors): Observable<LoadOutcome> => {
+    return forkJoin({
+      sensors: this.sensorApi.getByCommunity(community.id),
+      alerts: this.alertApi.getByCommunity(community.id),
+    }).pipe(
+      switchMap(({ sensors, alerts }): Observable<LoadOutcome> => {
+        const communityAlerts = alerts.filter((alert) => alert.communityId === community.id);
         if (sensors.length === 0) {
           return of({
             state: 'no-sensors',
-            dashboard: this.createApiDashboard(community, []),
+            dashboard: this.createApiDashboard(community, [], communityAlerts),
           });
         }
 
@@ -152,20 +185,21 @@ export class DashboardDataService {
         return forkJoin(latestRequests).pipe(
           map((items) => ({
             state: 'ready' as const,
-            dashboard: this.createApiDashboard(community, items),
+            dashboard: this.createApiDashboard(community, items, communityAlerts),
           })),
           defaultIfEmpty({
             state: 'ready',
             dashboard: this.createApiDashboard(
               community,
               sensors.map((sensor) => ({ sensor, reading: null })),
+              communityAlerts,
             ),
           }),
         );
       }),
       defaultIfEmpty({
         state: 'no-sensors',
-        dashboard: this.createApiDashboard(community, []),
+        dashboard: this.createApiDashboard(community, [], []),
       }),
     );
   }
@@ -214,16 +248,41 @@ export class DashboardDataService {
   private createApiDashboard(
     community: CommunityDto,
     items: SensorWithReading[],
+    alerts: AlertDto[],
   ): ClimateDashboardState {
     const latestReadings = items
       .filter((item): item is SensorWithReading & { reading: SensorReadingDto } => item.reading !== null)
       .sort((left, right) => Date.parse(right.reading.measuredAt) - Date.parse(left.reading.measuredAt));
-    const latestDate = latestReadings[0]?.reading.receivedAt;
+    const openAlerts = alerts
+      .filter((alert) => alert.status === 'Open')
+      .sort((left, right) => dangerLevelPriority[right.level] - dangerLevelPriority[left.level]
+        || Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
+    const highestAlert = openAlerts[0];
+    const mappedHighestAlert = highestAlert ? this.mapAlert(highestAlert) : null;
+    const updateCandidates = [
+      latestReadings[0]?.reading.receivedAt,
+      [...alerts].sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0]?.updatedAt,
+    ].filter((value): value is string => Boolean(value));
+    const latestDate = [...updateCandidates].sort((left, right) => Date.parse(right) - Date.parse(left))[0];
+    const alertEvents: RecentClimateEvent[] = alerts
+      .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
+      .map((alert) => ({
+        title: `Alerta ${dangerLevelLabels[alert.level]}`,
+        detail: `${alert.message} Estado: ${alertStatusLabels[alert.status]}.`,
+        occurredAt: this.formatDateTime(alert.updatedAt),
+        tone: alert.status === 'Closed' ? 'neutral' : dangerLevelTones[alert.level],
+      }));
+    const readingEvents: RecentClimateEvent[] = latestReadings.map(({ sensor, reading }) => ({
+      title: 'Lectura recibida',
+      detail: `${sensor.name}: ${reading.value} ${reading.unit}`,
+      occurredAt: this.formatDateTime(reading.measuredAt),
+      tone: 'green',
+    }));
 
     return {
       communityName: community.name,
-      level: null,
-      levelMessage: 'La API actual no expone una evaluación de peligro ni alertas automáticas.',
+      level: mappedHighestAlert?.level ?? null,
+      levelMessage: mappedHighestAlert?.message ?? 'Sin alertas activas para la comunidad seleccionada.',
       lastUpdated: latestDate ? new Date(latestDate) : new Date(),
       indicators: indicatorDefinitions.map((definition) => {
         const match = latestReadings.find((item) => item.reading.variable === definition.variable);
@@ -235,14 +294,21 @@ export class DashboardDataService {
         };
       }),
       sensors: items.map(({ sensor, reading }) => this.mapSensor(sensor, reading)),
-      alert: null,
-      recentEvents: latestReadings.slice(0, 5).map(({ sensor, reading }) => ({
-        title: 'Lectura recibida',
-        detail: `${sensor.name}: ${reading.value} ${reading.unit}`,
-        occurredAt: this.formatDateTime(reading.measuredAt),
-        tone: 'green' as const,
-      })),
+      alert: mappedHighestAlert,
+      recentEvents: [...alertEvents, ...readingEvents].slice(0, 8),
       trend: [],
+    };
+  }
+
+  private mapAlert(alert: AlertDto): ClimateAlert {
+    return {
+      level: dangerLevelLabels[alert.level],
+      phenomenon: phenomenonLabels[alert.phenomenon],
+      message: alert.message,
+      occurredAt: `Actualizada ${this.formatDateTime(alert.updatedAt)}`,
+      status: alertStatusLabels[alert.status],
+      tone: dangerLevelTones[alert.level],
+      hasEvent: alert.eventId !== null,
     };
   }
 

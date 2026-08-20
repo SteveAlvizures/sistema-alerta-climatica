@@ -48,6 +48,8 @@
 
 .history-panel__marker--green { background: var(--success); }
 .history-panel__marker--yellow { background: var(--warning); }
+.history-panel__marker--orange { background: #ef9145; }
+.history-panel__marker--red { background: #e76058; }
 
 .history-panel strong {
   color: var(--text-strong);

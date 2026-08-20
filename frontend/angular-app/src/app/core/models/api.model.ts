@@ -7,6 +7,9 @@ export type ClimateVariable =
 
 export type ApiSensorOrigin = 'Simulated' | 'Physical';
 export type ApiSensorStatus = 'Active' | 'Inactive';
+export type ApiDangerLevel = 'Green' | 'Yellow' | 'Orange' | 'Red';
+export type ApiAlertStatus = 'Open' | 'Acknowledged' | 'Closed';
+export type ApiClimatePhenomenon = 'Flood' | 'Drought' | 'Storm' | 'Frost' | 'Wildfire';
 
 export interface CommunityDto {
   id: string;
@@ -40,4 +43,19 @@ export interface SensorReadingDto {
   measuredAt: string;
   receivedAt: string;
   origin: ApiSensorOrigin;
+}
+
+export interface AlertDto {
+  id: string;
+  communityId: string;
+  ruleId: string;
+  supportingReadingId: string;
+  eventId: string | null;
+  level: ApiDangerLevel;
+  phenomenon: ApiClimatePhenomenon;
+  status: ApiAlertStatus;
+  message: string;
+  detectedAt: string;
+  updatedAt: string;
+  closedAt: string | null;
 }

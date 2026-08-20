@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { API_BASE_URL } from '../config/api.config';
+import { AlertApiService } from './alert-api.service';
 import { CommunityApiService } from './community-api.service';
 import { SensorApiService } from './sensor-api.service';
 import { SensorReadingApiService } from './sensor-reading-api.service';
@@ -32,6 +33,13 @@ describe('API services', () => {
   it('requests sensors for a community', () => {
     TestBed.inject(SensorApiService).getByCommunity('community-1').subscribe();
     const request = http.expectOne('/api/communities/community-1/sensors');
+    expect(request.request.method).toBe('GET');
+    request.flush([]);
+  });
+
+  it('requests community alerts without duplicating the API prefix', () => {
+    TestBed.inject(AlertApiService).getByCommunity('community-1').subscribe();
+    const request = http.expectOne('/api/communities/community-1/alerts');
     expect(request.request.method).toBe('GET');
     request.flush([]);
   });

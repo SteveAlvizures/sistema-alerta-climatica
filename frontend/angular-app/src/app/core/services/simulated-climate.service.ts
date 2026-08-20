@@ -92,6 +92,9 @@ export class SimulatedClimateService implements OnDestroy {
         phenomenon: 'Inundación',
         message: 'Se mantiene vigilancia preventiva por el comportamiento reciente de la lluvia y del cauce.',
         occurredAt: `Actualizada hoy · ${timeLabel}`,
+        status: 'Abierta',
+        tone: 'yellow',
+        hasEvent: true,
       },
       recentEvents: [
         { title: 'Lecturas recibidas', detail: 'Sensores simulados sincronizados', occurredAt: timeLabel, tone: 'green' },
