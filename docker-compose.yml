@@ -40,6 +40,19 @@ services:
       - climate-alert-network
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ./frontend/angular-app
+      dockerfile: Dockerfile
+    container_name: climate-alert-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - climate-alert-network
+    restart: unless-stopped
+
 volumes:
   climate-alert-sqlserver-data:
     name: climate-alert-sqlserver-data
