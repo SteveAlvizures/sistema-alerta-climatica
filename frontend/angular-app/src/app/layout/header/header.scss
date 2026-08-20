@@ -6,7 +6,8 @@
 .app-header__name { display: block; color: var(--text-strong); font-size: 1.1875rem; font-weight: 850; }
 .app-header p { max-width: 34rem; margin: 0.18rem 0 0; color: var(--text-muted); font-size: 0.8125rem; line-height: 1.35; }
 .app-header__status { flex: 0 0 auto; gap: 0.7rem; }
-.app-header__simulation { padding: 0.4rem 0.65rem; border: 1px solid var(--info-border); border-radius: 0.5rem; background: var(--info-soft); color: var(--info); font-size: 0.75rem; font-weight: 750; }
+.app-header__simulation { padding: 0.4rem 0.65rem; border: 1px solid var(--info-border); border-radius: 0.5rem; background: var(--info-soft); color: var(--info); font-size: 0.75rem; font-weight: 750; cursor: pointer; }
+.app-header__simulation:hover { border-color: var(--brand-accent); }
 .app-header__time { color: var(--text-muted); font-size: 0.8125rem; }
 .theme-toggle { width: 2.5rem; height: 2.5rem; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 0.65rem; background: var(--surface); color: var(--text-strong); cursor: pointer; }
 .theme-toggle:hover { border-color: var(--brand-accent); color: var(--brand-accent); }

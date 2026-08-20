@@ -31,7 +31,7 @@ export class SimulatedClimateService implements OnDestroy {
     clearInterval(this.timerId);
   }
 
-  // Este origen se sustituirá por API y SignalR cuando el backend esté disponible.
+  // La simulación permanece aislada para poder elegir la fuente de datos.
   private advanceScenario(): void {
     this.scenarioIndex = (this.scenarioIndex + 1) % this.scenarios.length;
     const current = this.dashboard();

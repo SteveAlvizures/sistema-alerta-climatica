@@ -14,6 +14,7 @@ interface TrendOption {
 })
 export class ClimateTrend {
   readonly points = input.required<ClimateTrendPoint[]>();
+  readonly source = input<'api' | 'simulation'>('simulation');
   protected readonly selectedMetric = signal<TrendMetric>('temperature');
   protected readonly options: TrendOption[] = [
     { key: 'temperature', label: 'Temperatura', unit: '°C' },
