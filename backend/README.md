@@ -88,7 +88,20 @@ Para ejecutar la API desde la raíz, configura `SQLSERVER_CONNECTION_STRING` loc
 dotnet run --project backend/src/ClimateAlert.Api
 ```
 
-Autenticación, evaluación automática de alertas y SignalR se incorporarán en etapas posteriores.
+Autenticación y SignalR se incorporarán en etapas posteriores.
+
+## Lecturas simuladas automáticas
+
+La API ejecuta un proceso en segundo plano que consulta únicamente sensores activos con origen `Simulated`. Cada lectura generada utiliza el mismo servicio de aplicación que `POST /api/sensor-readings`, por lo que conserva las validaciones, actualiza la última comunicación y evalúa las reglas de alerta configuradas.
+
+El intervalo se configura en segundos mediante `SIMULATED_READING_INTERVAL_SECONDS`. Si la variable no existe o no contiene un entero válido, se utilizan 60 segundos. Un valor igual o menor que cero deshabilita el proceso de forma segura.
+
+```powershell
+$env:SIMULATED_READING_INTERVAL_SECONDS="60"
+dotnet run --project backend/src/ClimateAlert.Api
+```
+
+Los valores y rangos utilizados por este proceso son exclusivamente simulados para desarrollo y demostración. No representan umbrales oficiales de riesgo. El simulador no crea comunidades, sensores ni reglas automáticamente y nunca genera lecturas para sensores físicos.
 
 ## Persistencia
 

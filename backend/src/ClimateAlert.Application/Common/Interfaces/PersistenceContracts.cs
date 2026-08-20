@@ -17,6 +17,7 @@ public interface ISensorRepository
     Task<IReadOnlyList<Sensor>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task<Sensor?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken);
     Task<bool> ExistsAsync(Guid communityId, string code, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Sensor>> GetActiveSimulatedAsync(CancellationToken cancellationToken);
     void Add(Sensor sensor);
 }
 
@@ -63,6 +64,30 @@ public interface IEventRepository
 public interface IAlertEvaluator
 {
     Task EvaluateAsync(SensorReading reading, CancellationToken cancellationToken);
+}
+
+public sealed record SimulatedReadingValue(decimal Value, string Unit);
+
+public interface ISimulatedReadingValueGenerator
+{
+    SimulatedReadingValue Generate(ClimateVariable variable);
+}
+
+public interface ISensorReadingRegistrar
+{
+    Task<ClimateAlert.Application.Features.SensorReadings.SensorReadingResponse> CreateAsync(
+        ClimateAlert.Application.Features.SensorReadings.CreateSensorReadingRequest request,
+        CancellationToken cancellationToken);
+}
+
+public interface ISimulationErrorReporter
+{
+    void ReportSensorFailure(Guid sensorId, Exception exception);
+}
+
+public interface ISimulatedReadingCycle
+{
+    Task RunAsync(CancellationToken cancellationToken);
 }
 
 public interface IUnitOfWork

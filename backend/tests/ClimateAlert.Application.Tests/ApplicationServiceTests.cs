@@ -167,6 +167,7 @@ public sealed class ApplicationServiceTests
         public Task<IReadOnlyList<Sensor>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Sensor>>(_items.Where(item => item.CommunityId == communityId).ToList());
         public Task<Sensor?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken) => Task.FromResult(_items.SingleOrDefault(item => item.Id == id));
         public Task<bool> ExistsAsync(Guid communityId, string code, CancellationToken cancellationToken) => Task.FromResult(_items.Any(item => item.CommunityId == communityId && item.Code == code));
+        public Task<IReadOnlyList<Sensor>> GetActiveSimulatedAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Sensor>>(_items.Where(item => item.Status == SensorStatus.Active && item.Origin == SensorOrigin.Simulated).ToList());
         public void Add(Sensor sensor) => _items.Add(sensor);
     }
 
