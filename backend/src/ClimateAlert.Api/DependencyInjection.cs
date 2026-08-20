@@ -14,6 +14,8 @@ public static class DependencyInjection
         services.AddScoped<CommunityService>();
         services.AddScoped<SensorService>();
         services.AddScoped<SensorReadingService>();
+        services.AddScoped<ISensorReadingRegistrar>(provider =>
+            provider.GetRequiredService<SensorReadingService>());
         services.AddScoped<AlertRuleService>();
         services.AddScoped<AlertService>();
         services.AddScoped<IAlertEvaluator, AlertEvaluator>();

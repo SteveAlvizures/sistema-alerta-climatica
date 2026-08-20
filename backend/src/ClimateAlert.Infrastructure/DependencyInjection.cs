@@ -1,6 +1,8 @@
 using ClimateAlert.Application.Common.Interfaces;
+using ClimateAlert.Application.Features.SensorReadings;
 using ClimateAlert.Infrastructure.Health;
 using ClimateAlert.Infrastructure.Persistence;
+using ClimateAlert.Infrastructure.Simulation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,6 +33,10 @@ public static class DependencyInjection
         services.AddScoped<IAlertRepository, AlertRepository>();
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<ISimulatedReadingCycle, SimulatedReadingCycle>();
+        services.AddScoped<ISimulationErrorReporter, SimulationErrorReporter>();
+        services.AddSingleton<ISimulatedReadingValueGenerator, SimulatedReadingValueGenerator>();
+        services.AddHostedService<SimulatedReadingHostedService>();
 
         services.AddHealthChecks()
             .AddCheck<SqlServerHealthCheck>("sqlserver");

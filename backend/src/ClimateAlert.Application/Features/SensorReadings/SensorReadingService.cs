@@ -10,7 +10,7 @@ public sealed class SensorReadingService(
     ISensorReadingRepository readings,
     IAlertEvaluator alertEvaluator,
     IUnitOfWork unitOfWork,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider) : ISensorReadingRegistrar
 {
     public async Task<IReadOnlyList<SensorReadingResponse>> GetHistoryAsync(
         Guid sensorId, int limit, CancellationToken cancellationToken)
