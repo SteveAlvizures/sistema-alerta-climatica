@@ -1,4 +1,5 @@
 using ClimateAlert.Domain.Entities;
+using ClimateAlert.Domain.Enums;
 
 namespace ClimateAlert.Application.Common.Interfaces;
 
@@ -24,6 +25,44 @@ public interface ISensorReadingRepository
     Task<IReadOnlyList<SensorReading>> GetBySensorAsync(Guid sensorId, int limit, CancellationToken cancellationToken);
     Task<SensorReading?> GetLatestAsync(Guid sensorId, CancellationToken cancellationToken);
     void Add(SensorReading reading);
+}
+
+public interface IAlertRuleRepository
+{
+    Task<IReadOnlyList<AlertRule>> GetAllAsync(CancellationToken cancellationToken);
+    Task<AlertRule?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken);
+    Task<IReadOnlyList<AlertRule>> GetCandidatesAsync(
+        Guid communityId,
+        Guid sensorId,
+        ClimateVariable variable,
+        DateTimeOffset measuredAt,
+        CancellationToken cancellationToken);
+    Task<bool> ExistsAsync(Guid communityId, string code, CancellationToken cancellationToken);
+    void Add(AlertRule rule);
+}
+
+public interface IAlertRepository
+{
+    Task<IReadOnlyList<Alert>> GetAllAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<Alert>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken);
+    Task<Alert?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<Alert?> GetOpenByRuleAsync(Guid ruleId, CancellationToken cancellationToken);
+    Task<bool> ExistsForReadingAsync(Guid readingId, CancellationToken cancellationToken);
+    void Add(Alert alert);
+}
+
+public interface IEventRepository
+{
+    Task<Event?> GetOpenAsync(
+        Guid communityId,
+        ClimatePhenomenon phenomenon,
+        CancellationToken cancellationToken);
+    void Add(Event climateEvent);
+}
+
+public interface IAlertEvaluator
+{
+    Task EvaluateAsync(SensorReading reading, CancellationToken cancellationToken);
 }
 
 public interface IUnitOfWork

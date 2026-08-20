@@ -130,7 +130,7 @@ public sealed class ApplicationServiceTests
             var clock = new FixedTimeProvider(Now);
             Communities = new(_communityRepository, unitOfWork, clock);
             Sensors = new(_sensorRepository, _communityRepository, unitOfWork, clock);
-            Readings = new(_sensorRepository, ReadingRepository, unitOfWork, clock);
+            Readings = new(_sensorRepository, ReadingRepository, new NoopAlertEvaluator(), unitOfWork, clock);
         }
 
         public Community AddCommunity()
@@ -186,6 +186,12 @@ public sealed class ApplicationServiceTests
     private sealed class FakeUnitOfWork : IUnitOfWork
     {
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken) => Task.FromResult(1);
+    }
+
+    private sealed class NoopAlertEvaluator : IAlertEvaluator
+    {
+        public Task EvaluateAsync(SensorReading reading, CancellationToken cancellationToken) =>
+            Task.CompletedTask;
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
