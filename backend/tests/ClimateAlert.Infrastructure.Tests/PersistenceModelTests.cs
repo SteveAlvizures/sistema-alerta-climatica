@@ -79,6 +79,17 @@ public sealed class PersistenceModelTests
     }
 
     [Fact]
+    public void AlertLifecycleUsesExistingPersistentProperties()
+    {
+        IEntityType alert = GetEntityType<Alert>();
+
+        Assert.NotNull(alert.FindProperty(nameof(Alert.Status)));
+        Assert.NotNull(alert.FindProperty(nameof(Alert.UpdatedAt)));
+        Assert.NotNull(alert.FindProperty(nameof(Alert.ClosedAt)));
+        Assert.Null(alert.FindProperty("AcknowledgedAt"));
+    }
+
+    [Fact]
     public void EventAndAuditActionHaveNoRelationship()
     {
         using ClimateAlertDbContext context = CreateContext();

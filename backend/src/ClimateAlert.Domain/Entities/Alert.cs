@@ -95,6 +95,22 @@ public sealed class Alert
         UpdatedAt = updatedAt;
     }
 
+    public void Acknowledge(DateTimeOffset acknowledgedAt)
+    {
+        if (Status != AlertStatus.Open)
+        {
+            throw new InvalidOperationException("Only an open alert can be acknowledged.");
+        }
+
+        if (acknowledgedAt < UpdatedAt)
+        {
+            throw new ArgumentException("Acknowledgement time cannot move backwards.", nameof(acknowledgedAt));
+        }
+
+        Status = AlertStatus.Acknowledged;
+        UpdatedAt = acknowledgedAt;
+    }
+
     public void Close(DateTimeOffset closedAt)
     {
         if (Status == AlertStatus.Closed)

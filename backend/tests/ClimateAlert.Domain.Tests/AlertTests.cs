@@ -59,6 +59,55 @@ public sealed class AlertTests
         Assert.Throws<ArgumentException>(updateEarlier);
     }
 
+    [Fact]
+    public void AcknowledgeChangesOpenAlertAndUpdatesTime()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        Alert alert = CreateAlert(now);
+        DateTimeOffset acknowledgedAt = now.AddMinutes(5);
+
+        alert.Acknowledge(acknowledgedAt);
+
+        Assert.Equal(AlertStatus.Acknowledged, alert.Status);
+        Assert.Equal(acknowledgedAt, alert.UpdatedAt);
+    }
+
+    [Fact]
+    public void AcknowledgeRejectsRepeatedAcknowledgement()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        Alert alert = CreateAlert(now);
+        alert.Acknowledge(now.AddMinutes(5));
+
+        Action acknowledgeAgain = () => alert.Acknowledge(now.AddMinutes(10));
+
+        Assert.Throws<InvalidOperationException>(acknowledgeAgain);
+    }
+
+    [Fact]
+    public void AcknowledgeRejectsClosedAlert()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        Alert alert = CreateAlert(now);
+        alert.Close(now.AddMinutes(5));
+
+        Action acknowledge = () => alert.Acknowledge(now.AddMinutes(10));
+
+        Assert.Throws<InvalidOperationException>(acknowledge);
+    }
+
+    [Fact]
+    public void AcknowledgeRejectsTimeEarlierThanPreviousUpdate()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        Alert alert = CreateAlert(now);
+        alert.Update(DangerLevel.Orange, "Conditions changed.", now.AddMinutes(10));
+
+        Action acknowledgeEarlier = () => alert.Acknowledge(now.AddMinutes(5));
+
+        Assert.Throws<ArgumentException>(acknowledgeEarlier);
+    }
+
     private static Alert CreateAlert(DateTimeOffset now)
     {
         Community community = new("El Pinar", "Guatemala", null, now);

@@ -167,6 +167,7 @@ public sealed class AlertEvaluationTests
         public Task<IReadOnlyList<Alert>> GetAllAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Alert>>(Items);
         public Task<IReadOnlyList<Alert>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Alert>>(Items.Where(item => item.CommunityId == communityId).ToList());
         public Task<Alert?> GetByIdAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(Items.SingleOrDefault(item => item.Id == id));
+        public Task<Alert?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(Items.SingleOrDefault(item => item.Id == id));
         public Task<Alert?> GetOpenByRuleAsync(Guid ruleId, CancellationToken cancellationToken) => Task.FromResult(Items.LastOrDefault(item => item.RuleId == ruleId && item.Status != AlertStatus.Closed));
         public Task<bool> ExistsForReadingAsync(Guid readingId, CancellationToken cancellationToken) => Task.FromResult(Items.Any(item => item.SupportingReadingId == readingId));
         public void Add(Alert alert) => Items.Add(alert);
