@@ -1,0 +1,82 @@
+<section class="page">
+  <div class="page-header">
+    <div>
+      <p>Gestión</p>
+      <h1>Comunidades</h1>
+      <span>Comunidades registradas en el sistema</span>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <h2>Registrar comunidad</h2>
+
+    <form (ngSubmit)="createCommunity()">
+      <label>
+        Nombre
+        <input
+          type="text"
+          name="name"
+          [(ngModel)]="name"
+          required
+          maxlength="100"
+          placeholder="Nombre de la comunidad"
+        />
+      </label>
+
+      <label>
+        Ubicación
+        <input
+          type="text"
+          name="location"
+          [(ngModel)]="location"
+          required
+          maxlength="200"
+          placeholder="Ubicación"
+        />
+      </label>
+
+      <label>
+        Descripción
+        <textarea
+          name="description"
+          [(ngModel)]="description"
+          maxlength="500"
+          placeholder="Descripción"
+        ></textarea>
+      </label>
+
+      <button type="submit" [disabled]="saving">
+        {{ saving ? 'Guardando...' : 'Registrar comunidad' }}
+      </button>
+    </form>
+  </div>
+
+  @if (success) {
+    <p class="message success">{{ success }}</p>
+  }
+
+  @if (loading) {
+    <p class="message">Cargando comunidades...</p>
+  }
+
+  @if (error) {
+    <p class="message error">{{ error }}</p>
+    <button type="button" (click)="loadCommunities()">Reintentar</button>
+  }
+
+  @if (!loading && !error && communities.length === 0) {
+    <p class="message">No hay comunidades registradas.</p>
+  }
+
+  @if (!loading && communities.length > 0) {
+    <div class="community-list">
+      @for (community of communities; track community.id) {
+        <article class="community-card">
+          <h2>{{ community.name }}</h2>
+          <p>{{ community.location }}</p>
+          <p>{{ community.description }}</p>
+        </article>
+      }
+    </div>
+  }
+</section>

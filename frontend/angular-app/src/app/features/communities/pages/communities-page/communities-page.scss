@@ -1,0 +1,65 @@
+.page {
+  padding: 1.5rem;
+}
+
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-header p {
+  margin: 0;
+  color: var(--brand-accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.page-header h1 {
+  margin: 0.25rem 0;
+  color: var(--text-strong);
+}
+
+.page-header span {
+  color: var(--text-muted);
+}
+
+.message {
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.error {
+  color: #b42318;
+}
+
+button {
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.community-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.community-card {
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.community-card h2 {
+  margin: 0 0 0.5rem;
+  color: var(--text-strong);
+}
+
+.community-card p {
+  margin: 0;
+  color: var(--text-muted);
+}
