@@ -23,4 +23,16 @@ public sealed class AlertsController(AlertService service) : ControllerBase
         Guid communityId,
         CancellationToken cancellationToken) =>
         Ok(await service.GetByCommunityAsync(communityId, cancellationToken));
+
+    [HttpPatch("{id:guid}/acknowledge")]
+    public async Task<ActionResult<AlertResponse>> Acknowledge(
+        Guid id,
+        CancellationToken cancellationToken) =>
+        Ok(await service.AcknowledgeAsync(id, cancellationToken));
+
+    [HttpPatch("{id:guid}/resolve")]
+    public async Task<ActionResult<AlertResponse>> Resolve(
+        Guid id,
+        CancellationToken cancellationToken) =>
+        Ok(await service.ResolveAsync(id, cancellationToken));
 }

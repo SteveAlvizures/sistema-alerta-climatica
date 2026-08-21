@@ -47,6 +47,7 @@ public interface IAlertRepository
     Task<IReadOnlyList<Alert>> GetAllAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<Alert>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task<Alert?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<Alert?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken);
     Task<Alert?> GetOpenByRuleAsync(Guid ruleId, CancellationToken cancellationToken);
     Task<bool> ExistsForReadingAsync(Guid readingId, CancellationToken cancellationToken);
     void Add(Alert alert);

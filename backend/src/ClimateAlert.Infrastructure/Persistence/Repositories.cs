@@ -124,6 +124,12 @@ public sealed class AlertRepository(ClimateAlertDbContext dbContext) : IAlertRep
     public Task<Alert?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Alerts.AsNoTracking().SingleOrDefaultAsync(alert => alert.Id == id, cancellationToken);
 
+    public Task<Alert?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken) =>
+        dbContext.Alerts
+            .Include(alert => alert.Event)
+            .ThenInclude(climateEvent => climateEvent!.Alerts)
+            .SingleOrDefaultAsync(alert => alert.Id == id, cancellationToken);
+
     public async Task<Alert?> GetOpenByRuleAsync(Guid ruleId, CancellationToken cancellationToken)
     {
         Alert? local = dbContext.Alerts.Local.FirstOrDefault(
