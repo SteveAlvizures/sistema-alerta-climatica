@@ -33,6 +33,7 @@ import { SimulatedClimateService } from './simulated-climate.service';
 
 export type DashboardSource = 'api' | 'simulation';
 export type DashboardLoadState = 'loading' | 'ready' | 'no-communities' | 'no-sensors' | 'error';
+export type AlertAction = 'acknowledge' | 'resolve';
 
 interface SensorWithReading {
   sensor: SensorDto;
@@ -91,10 +92,13 @@ export class DashboardDataService {
   private readonly apiDashboard = signal<ClimateDashboardState | null>(null);
   private activeRequest: Subscription | null = null;
   private requestVersion = 0;
+  private alertActionVersion = 0;
 
   readonly source = signal<DashboardSource>('api');
   readonly loadState = signal<DashboardLoadState>('loading');
   readonly errorMessage = signal<string | null>(null);
+  readonly alertActionInProgress = signal(false);
+  readonly alertActionError = signal<string | null>(null);
   readonly communities = signal<CommunityDto[]>([]);
   readonly selectedCommunityId = signal<string | null>(null);
   readonly dashboard = computed(() =>
@@ -107,6 +111,7 @@ export class DashboardDataService {
 
   setSource(source: DashboardSource): void {
     if (source === this.source()) return;
+    this.resetAlertAction();
     this.cancelActiveRequest();
     this.source.set(source);
     this.errorMessage.set(null);
@@ -151,9 +156,49 @@ export class DashboardDataService {
   selectCommunity(communityId: string): void {
     const community = this.communities().find((item) => item.id === communityId);
     if (!community) return;
+    this.resetAlertAction();
     this.selectedCommunityId.set(community.id);
     const version = this.beginRequest();
     this.observeOutcome(this.getCommunityOutcome(community), version);
+  }
+
+  updateSelectedAlert(action: AlertAction): void {
+    const alert = this.apiDashboard()?.alert;
+    if (this.source() !== 'api' || !alert?.id || this.alertActionInProgress()) return;
+    if (action === 'acknowledge' && alert.apiStatus !== 'Open') return;
+    if (action === 'resolve' && alert.apiStatus === 'Closed') return;
+
+    this.alertActionInProgress.set(true);
+    this.alertActionError.set(null);
+    const version = ++this.alertActionVersion;
+    const communityId = this.selectedCommunityId();
+    const request$ = action === 'acknowledge'
+      ? this.alertApi.acknowledge(alert.id)
+      : this.alertApi.resolve(alert.id);
+    request$.subscribe({
+      next: () => {
+        if (version !== this.alertActionVersion || this.source() !== 'api') return;
+        this.alertActionInProgress.set(false);
+        if (communityId && communityId === this.selectedCommunityId()) {
+          this.selectCommunity(communityId);
+        }
+      },
+      error: () => {
+        if (version !== this.alertActionVersion || this.source() !== 'api') return;
+        this.alertActionInProgress.set(false);
+        this.alertActionError.set(
+          action === 'acknowledge'
+            ? 'No fue posible reconocer la alerta. Inténtalo de nuevo.'
+            : 'No fue posible resolver la alerta. Inténtalo de nuevo.',
+        );
+      },
+    });
+  }
+
+  private resetAlertAction(): void {
+    this.alertActionVersion += 1;
+    this.alertActionInProgress.set(false);
+    this.alertActionError.set(null);
   }
 
   private getCommunityOutcome(community: CommunityDto): Observable<LoadOutcome> {
@@ -253,11 +298,11 @@ export class DashboardDataService {
     const latestReadings = items
       .filter((item): item is SensorWithReading & { reading: SensorReadingDto } => item.reading !== null)
       .sort((left, right) => Date.parse(right.reading.measuredAt) - Date.parse(left.reading.measuredAt));
-    const openAlerts = alerts
-      .filter((alert) => alert.status === 'Open')
+    const activeAlerts = alerts
+      .filter((alert) => alert.status === 'Open' || alert.status === 'Acknowledged')
       .sort((left, right) => dangerLevelPriority[right.level] - dangerLevelPriority[left.level]
         || Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
-    const highestAlert = openAlerts[0];
+    const highestAlert = activeAlerts[0];
     const mappedHighestAlert = highestAlert ? this.mapAlert(highestAlert) : null;
     const updateCandidates = [
       latestReadings[0]?.reading.receivedAt,
@@ -302,11 +347,13 @@ export class DashboardDataService {
 
   private mapAlert(alert: AlertDto): ClimateAlert {
     return {
+      id: alert.id,
       level: dangerLevelLabels[alert.level],
       phenomenon: phenomenonLabels[alert.phenomenon],
       message: alert.message,
       occurredAt: `Actualizada ${this.formatDateTime(alert.updatedAt)}`,
       status: alertStatusLabels[alert.status],
+      apiStatus: alert.status,
       tone: dangerLevelTones[alert.level],
       hasEvent: alert.eventId !== null,
     };

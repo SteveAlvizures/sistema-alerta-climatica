@@ -14,4 +14,12 @@ export class AlertApiService {
       `${this.baseUrl}/communities/${communityId}/alerts`,
     );
   }
+
+  acknowledge(alertId: string): Observable<AlertDto> {
+    return this.http.patch<AlertDto>(`${this.baseUrl}/alerts/${alertId}/acknowledge`, {});
+  }
+
+  resolve(alertId: string): Observable<AlertDto> {
+    return this.http.patch<AlertDto>(`${this.baseUrl}/alerts/${alertId}/resolve`, {});
+  }
 }
