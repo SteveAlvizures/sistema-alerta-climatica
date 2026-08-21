@@ -24,4 +24,16 @@ export class DashboardPage {
   protected selectCommunity(event: Event): void {
     this.climate.selectCommunity((event.target as HTMLSelectElement).value);
   }
+
+  protected acknowledgeAlert(): void {
+    if (window.confirm('¿Deseas reconocer esta alerta climática?')) {
+      this.climate.updateSelectedAlert('acknowledge');
+    }
+  }
+
+  protected resolveAlert(): void {
+    if (window.confirm('¿Deseas resolver esta alerta climática?')) {
+      this.climate.updateSelectedAlert('resolve');
+    }
+  }
 }

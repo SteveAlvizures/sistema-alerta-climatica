@@ -44,6 +44,20 @@ describe('API services', () => {
     request.flush([]);
   });
 
+  it('acknowledges an alert with the real route', () => {
+    TestBed.inject(AlertApiService).acknowledge('alert-1').subscribe();
+    const request = http.expectOne('/api/alerts/alert-1/acknowledge');
+    expect(request.request.method).toBe('PATCH');
+    request.flush({});
+  });
+
+  it('resolves an alert with the real route', () => {
+    TestBed.inject(AlertApiService).resolve('alert-1').subscribe();
+    const request = http.expectOne('/api/alerts/alert-1/resolve');
+    expect(request.request.method).toBe('PATCH');
+    request.flush({});
+  });
+
   it('requests the latest sensor reading', () => {
     TestBed.inject(SensorReadingApiService).getLatest('sensor-1').subscribe();
     const request = http.expectOne('/api/sensors/sensor-1/readings/latest');

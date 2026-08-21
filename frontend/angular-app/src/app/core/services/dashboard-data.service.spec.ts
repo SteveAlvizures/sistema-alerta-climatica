@@ -193,4 +193,75 @@ describe('DashboardDataService', () => {
     expect(service.source()).toBe('api');
     expect(service.errorMessage()).toContain('No fue posible conectar');
   });
+
+  describe('alert lifecycle', () => {
+    function createLifecycle(
+      status: AlertDto['status'] = 'Open',
+      refreshedStatus: AlertDto['status'] = 'Acknowledged',
+    ) {
+      const alerts = [
+        of([{ ...alert, status }]),
+        of([{ ...alert, status: refreshedStatus }]),
+      ];
+      const acknowledge = jasmine.createSpy().and.returnValue(of({ ...alert, status: 'Acknowledged' }));
+      const resolve = jasmine.createSpy().and.returnValue(of({ ...alert, status: 'Closed' }));
+      const getByCommunity = jasmine.createSpy().and.callFake(() => alerts.shift() ?? of([]));
+      TestBed.configureTestingModule({
+        providers: [
+          DashboardDataService,
+          { provide: CommunityApiService, useValue: { getAll: () => of([community]) } },
+          { provide: AlertApiService, useValue: { getByCommunity, acknowledge, resolve } },
+          { provide: SensorApiService, useValue: { getByCommunity: () => of([]) } },
+          { provide: SensorReadingApiService, useValue: { getLatest: () => EMPTY } },
+          { provide: SimulatedClimateService, useValue: { dashboard: simulated } },
+        ],
+      });
+      return { service: TestBed.inject(DashboardDataService), acknowledge, resolve, getByCommunity };
+    }
+
+    it('acknowledges an Open alert and refreshes the dashboard', () => {
+      const { service, acknowledge, getByCommunity } = createLifecycle();
+      service.updateSelectedAlert('acknowledge');
+
+      expect(acknowledge).toHaveBeenCalledOnceWith('alert-1');
+      expect(getByCommunity).toHaveBeenCalledTimes(2);
+      expect(service.dashboard()?.alert?.apiStatus).toBe('Acknowledged');
+    });
+
+    it('resolves an Open alert and refreshes to no active alert', () => {
+      const { service, resolve } = createLifecycle('Open', 'Closed');
+      service.updateSelectedAlert('resolve');
+
+      expect(resolve).toHaveBeenCalledOnceWith('alert-1');
+      expect(service.dashboard()?.level).toBeNull();
+      expect(service.dashboard()?.alert).toBeNull();
+    });
+
+    it('resolves an Acknowledged alert', () => {
+      const { service, resolve } = createLifecycle('Acknowledged', 'Closed');
+      service.updateSelectedAlert('resolve');
+      expect(resolve).toHaveBeenCalledOnceWith('alert-1');
+    });
+
+    it('keeps real dashboard data and exposes a clear transition error', () => {
+      const { service, acknowledge } = createLifecycle();
+      acknowledge.and.returnValue(throwError(() => new Error('offline')));
+      service.updateSelectedAlert('acknowledge');
+
+      expect(service.dashboard()?.alert?.id).toBe('alert-1');
+      expect(service.alertActionError()).toContain('No fue posible reconocer');
+      expect(service.alertActionInProgress()).toBeFalse();
+    });
+
+    it('prevents duplicate alert requests while one is pending', () => {
+      const pending = new Subject<AlertDto>();
+      const { service, resolve } = createLifecycle();
+      resolve.and.returnValue(pending);
+      service.updateSelectedAlert('resolve');
+      service.updateSelectedAlert('resolve');
+
+      expect(resolve).toHaveBeenCalledTimes(1);
+      expect(service.alertActionInProgress()).toBeTrue();
+    });
+  });
 });

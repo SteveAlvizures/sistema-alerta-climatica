@@ -23,6 +23,8 @@ public sealed class ApiRouteTests
         AssertMethod<AlertsController>(nameof(AlertsController.GetAll), typeof(HttpGetAttribute), null);
         AssertMethod<AlertsController>(nameof(AlertsController.GetById), typeof(HttpGetAttribute), "{id:guid}");
         AssertMethod<AlertsController>(nameof(AlertsController.GetByCommunity), typeof(HttpGetAttribute), "/api/communities/{communityId:guid}/alerts");
+        AssertMethod<AlertsController>(nameof(AlertsController.Acknowledge), typeof(HttpPatchAttribute), "{id:guid}/acknowledge");
+        AssertMethod<AlertsController>(nameof(AlertsController.Resolve), typeof(HttpPatchAttribute), "{id:guid}/resolve");
     }
 
     private static string? RouteOf<TController>() =>
