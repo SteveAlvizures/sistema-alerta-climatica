@@ -1,0 +1,139 @@
+<section class="page">
+  <div class="page-header">
+    <div>
+      <p>Gestión</p>
+      <h1>Sensores</h1>
+      <span>Sensores registrados por comunidad</span>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <h2>Registrar sensor</h2>
+
+    <form (ngSubmit)="createSensor()">
+      <label>
+        Comunidad
+        <select
+          name="community"
+          [(ngModel)]="selectedCommunityId"
+          (change)="loadSensors()"
+          required
+        >
+          <option value="">Selecciona una comunidad</option>
+
+          @for (community of communities; track community.id) {
+            <option [value]="community.id">
+              {{ community.name }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Código
+        <input
+          type="text"
+          name="code"
+          [(ngModel)]="code"
+          required
+          maxlength="50"
+          placeholder="Ej. TEMP-001"
+        />
+      </label>
+
+      <label>
+        Nombre
+        <input
+          type="text"
+          name="name"
+          [(ngModel)]="name"
+          required
+          maxlength="100"
+          placeholder="Nombre del sensor"
+        />
+      </label>
+
+      <label>
+        Tipo de medición
+        <select
+          name="measurementType"
+          [(ngModel)]="measurementType"
+        >
+          <option value="Temperature">Temperatura</option>
+          <option value="RelativeHumidity">Humedad relativa</option>
+          <option value="WindSpeed">Velocidad del viento</option>
+          <option value="RainfallLevel">Nivel de lluvia</option>
+          <option value="RiverOrReservoirLevel">
+            Nivel de río o reservorio
+          </option>
+        </select>
+      </label>
+
+      <label>
+        Origen
+        <select name="origin" [(ngModel)]="origin">
+          <option value="Simulated">Simulado</option>
+          <option value="Physical">Físico</option>
+        </select>
+      </label>
+
+      <label>
+        Ubicación
+        <input
+          type="text"
+          name="location"
+          [(ngModel)]="location"
+          required
+          maxlength="200"
+          placeholder="Ubicación del sensor"
+        />
+      </label>
+
+      <label>
+        Código del dispositivo
+        <input
+          type="text"
+          name="deviceCode"
+          [(ngModel)]="deviceCode"
+          maxlength="100"
+          placeholder="Opcional"
+        />
+      </label>
+
+      <button type="submit" [disabled]="saving">
+        {{ saving ? 'Guardando...' : 'Registrar sensor' }}
+      </button>
+    </form>
+  </div>
+
+  @if (success) {
+    <p class="message success">{{ success }}</p>
+  }
+
+  @if (error) {
+    <p class="message error">{{ error }}</p>
+  }
+
+  @if (loading) {
+    <p class="message">Cargando sensores...</p>
+  }
+
+  @if (!loading && selectedCommunityId && sensors.length === 0) {
+    <p class="message">No hay sensores registrados para esta comunidad.</p>
+  }
+
+  @if (!loading && sensors.length > 0) {
+    <div class="sensor-list">
+      @for (sensor of sensors; track sensor.id) {
+        <article class="sensor-card">
+          <h2>{{ sensor.name }}</h2>
+          <p><strong>Código:</strong> {{ sensor.code }}</p>
+          <p><strong>Tipo:</strong> {{ sensor.measurementType }}</p>
+          <p><strong>Origen:</strong> {{ sensor.origin }}</p>
+          <p><strong>Ubicación:</strong> {{ sensor.location }}</p>
+          <p><strong>Estado:</strong> {{ sensor.status }}</p>
+        </article>
+      }
+    </div>
+  }
+</section>
