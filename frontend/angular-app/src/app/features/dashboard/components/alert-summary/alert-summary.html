@@ -10,4 +10,15 @@
   @if (alert().hasEvent) {
     <p class="alert-card__event">Asociada a un evento climático</p>
   }
+  @if (actionsEnabled() && alert().apiStatus !== 'Closed') {
+    <div class="alert-card__actions">
+      @if (alert().apiStatus === 'Open') {
+        <button type="button" [disabled]="busy()" (click)="acknowledge.emit()">Reconocer</button>
+      }
+      <button type="button" [disabled]="busy()" (click)="resolve.emit()">Resolver</button>
+    </div>
+  }
+  @if (errorMessage(); as error) {
+    <p class="alert-card__error" role="alert">{{ error }}</p>
+  }
 </section>

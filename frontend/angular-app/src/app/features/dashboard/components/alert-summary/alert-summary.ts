@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { ClimateAlert } from '../../../../core/models/climate-alert.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 
@@ -10,4 +10,9 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
 })
 export class AlertSummary {
   readonly alert = input.required<ClimateAlert>();
+  readonly actionsEnabled = input(false);
+  readonly busy = input(false);
+  readonly errorMessage = input<string | null>(null);
+  readonly acknowledge = output<void>();
+  readonly resolve = output<void>();
 }

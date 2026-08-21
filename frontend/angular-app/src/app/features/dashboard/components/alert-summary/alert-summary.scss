@@ -6,3 +6,8 @@
 .alert-card__message { margin: 0.65rem 0 1rem; color: var(--text-muted); font-size: 0.875rem; line-height: 1.55; }
 .alert-card time { color: var(--text-subtle); font-size: 0.8125rem; }
 .alert-card__event { margin: 0.55rem 0 0; color: var(--text-muted); font-size: 0.8125rem; }
+.alert-card__actions { display: flex; flex-wrap: wrap; gap: 0.65rem; margin-top: 1rem; }
+.alert-card__actions button { padding: 0.55rem 0.85rem; border: 1px solid var(--warning-border); border-radius: 0.55rem; background: var(--surface); color: var(--text-strong); font-weight: 750; cursor: pointer; }
+.alert-card__actions button:last-child { background: var(--brand); color: white; }
+.alert-card__actions button:disabled { cursor: wait; opacity: 0.6; }
+.alert-card__error { margin: 0.75rem 0 0; color: var(--warning-text); font-size: 0.8125rem; font-weight: 700; }

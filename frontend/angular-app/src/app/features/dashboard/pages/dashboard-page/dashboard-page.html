@@ -40,7 +40,7 @@
     <div class="dashboard__detail-grid">
       <app-sensor-status [sensors]="dashboard.sensors" />
       <div class="dashboard__aside">
-        @if (dashboard.alert; as alert) { <app-alert-summary [alert]="alert" /> } @else { <section class="alert-unavailable"><h2>Sin alertas activas</h2><p>No hay condiciones de riesgo abiertas para la comunidad seleccionada.</p></section> }
+        @if (dashboard.alert; as alert) { <app-alert-summary [alert]="alert" [actionsEnabled]="climate.source() === 'api'" [busy]="climate.alertActionInProgress()" [errorMessage]="climate.alertActionError()" (acknowledge)="acknowledgeAlert()" (resolve)="resolveAlert()" /> } @else { <section class="alert-unavailable"><h2>Sin alertas activas</h2><p>No hay condiciones de riesgo abiertas para la comunidad seleccionada.</p></section> }
         <section class="future-sensors" aria-labelledby="future-title"><span class="future-sensors__symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 18h8M10 21h4M12 3v3m-5-1 2 3m8-3-2 3M6 13a6 6 0 0 1 12 0c0 2-1 3-2 5H8c-1-2-2-3-2-5Z" /></svg></span><div><h2 id="future-title">Preparado para sensores físicos</h2><p>La infraestructura permitirá integrar dispositivos Arduino o ESP32 mediante servicios especializados en una etapa posterior.</p></div></section>
       </div>
     </div>
