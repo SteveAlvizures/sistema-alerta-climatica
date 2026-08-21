@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+﻿import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommunityApiService } from '../../../../core/services/community-api.service';
 import {
@@ -118,6 +118,28 @@ export class SensorsPage implements OnInit {
       error: () => {
         this.saving = false;
         this.error = 'No se pudo registrar el sensor.';
+      },
+    });
+  }
+
+  changeStatus(sensor: SensorDto): void {
+    this.error = '';
+    this.success = '';
+
+    const isActive = sensor.status !== 'Active';
+
+    this.sensorApi.changeStatus(sensor.id, isActive).subscribe({
+      next: (updatedSensor) => {
+        this.sensors = this.sensors.map((item) =>
+          item.id === updatedSensor.id ? updatedSensor : item,
+        );
+
+        this.success = isActive
+          ? 'Sensor activado correctamente.'
+          : 'Sensor desactivado correctamente.';
+      },
+      error: () => {
+        this.error = 'No se pudo cambiar el estado del sensor.';
       },
     });
   }

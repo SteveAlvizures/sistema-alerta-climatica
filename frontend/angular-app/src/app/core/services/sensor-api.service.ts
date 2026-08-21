@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+﻿import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../config/api.config';
@@ -12,6 +12,10 @@ export interface CreateSensorRequest {
   origin: string;
   location: string;
   deviceCode: string | null;
+}
+
+export interface ChangeSensorStatusRequest {
+  isActive: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -29,6 +33,16 @@ export class SensorApiService {
     return this.http.post<SensorDto>(
       `${this.baseUrl}/sensors`,
       request,
+    );
+  }
+
+  changeStatus(
+    sensorId: string,
+    isActive: boolean,
+  ): Observable<SensorDto> {
+    return this.http.patch<SensorDto>(
+      `${this.baseUrl}/sensors/${sensorId}/status`,
+      { isActive },
     );
   }
 }
