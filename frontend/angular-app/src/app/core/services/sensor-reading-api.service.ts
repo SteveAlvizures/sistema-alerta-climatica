@@ -14,4 +14,13 @@ export class SensorReadingApiService {
       `${this.baseUrl}/sensors/${sensorId}/readings/latest`,
     );
   }
+
+  getHistory(
+    sensorId: string,
+    limit = 50,
+  ): Observable<SensorReadingDto[]> {
+    return this.http.get<SensorReadingDto[]>(
+      `${this.baseUrl}/sensors/${sensorId}/readings?limit=${limit}`,
+    );
+  }
 }

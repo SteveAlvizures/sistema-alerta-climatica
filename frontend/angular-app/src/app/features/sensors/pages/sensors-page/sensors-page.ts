@@ -5,7 +5,8 @@ import {
   CreateSensorRequest,
   SensorApiService,
 } from '../../../../core/services/sensor-api.service';
-import { CommunityDto, SensorDto } from '../../../../core/models/api.model';
+import { CommunityDto, SensorDto, SensorReadingDto } from '../../../../core/models/api.model';
+import { SensorReadingApiService } from '../../../../core/services/sensor-reading-api.service';
 
 @Component({
   selector: 'app-sensors-page',
@@ -16,9 +17,11 @@ import { CommunityDto, SensorDto } from '../../../../core/models/api.model';
 export class SensorsPage implements OnInit {
   private readonly sensorApi = inject(SensorApiService);
   private readonly communityApi = inject(CommunityApiService);
+  private readonly sensorReadingApi = inject(SensorReadingApiService);
 
   communities: CommunityDto[] = [];
   sensors: SensorDto[] = [];
+  latestReadings: Record<string, SensorReadingDto | null> = {};
 
   selectedCommunityId = '';
 
@@ -67,12 +70,27 @@ export class SensorsPage implements OnInit {
     this.sensorApi.getByCommunity(this.selectedCommunityId).subscribe({
       next: (data) => {
         this.sensors = data;
+        this.loadLatestReadings();
         this.loading = false;
       },
       error: () => {
         this.error = 'No se pudieron cargar los sensores.';
         this.loading = false;
       },
+    });
+  }
+
+
+  loadLatestReadings(): void {
+    this.sensors.forEach((sensor) => {
+      this.sensorReadingApi.getLatest(sensor.id).subscribe({
+        next: (reading) => {
+          this.latestReadings[sensor.id] = reading;
+        },
+        error: () => {
+          this.latestReadings[sensor.id] = null;
+        },
+      });
     });
   }
 
@@ -144,3 +162,4 @@ export class SensorsPage implements OnInit {
     });
   }
 }
+

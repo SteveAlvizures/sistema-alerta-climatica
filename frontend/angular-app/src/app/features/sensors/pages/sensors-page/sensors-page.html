@@ -1,7 +1,7 @@
-<section class="page">
+﻿<section class="page">
   <div class="page-header">
     <div>
-      <p>Gesti�n</p>
+      <p>Gestiï¿½n</p>
       <h1>Sensores</h1>
       <span>Sensores registrados por comunidad</span>
     </div>
@@ -30,7 +30,7 @@
       </label>
 
       <label>
-        C�digo
+        Cï¿½digo
         <input
           type="text"
           name="code"
@@ -54,7 +54,7 @@
       </label>
 
       <label>
-        Tipo de medici�n
+        Tipo de mediciï¿½n
         <select
           name="measurementType"
           [(ngModel)]="measurementType"
@@ -64,7 +64,7 @@
           <option value="WindSpeed">Velocidad del viento</option>
           <option value="RainfallLevel">Nivel de lluvia</option>
           <option value="RiverOrReservoirLevel">
-            Nivel de r�o o reservorio
+            Nivel de rï¿½o o reservorio
           </option>
         </select>
       </label>
@@ -73,24 +73,24 @@
         Origen
         <select name="origin" [(ngModel)]="origin">
           <option value="Simulated">Simulado</option>
-          <option value="Physical">F�sico</option>
+          <option value="Physical">Fï¿½sico</option>
         </select>
       </label>
 
       <label>
-        ubicaci�n
+        ubicaciï¿½n
         <input
           type="text"
           name="location"
           [(ngModel)]="location"
           required
           maxlength="200"
-          placeholder="ubicaci�n del sensor"
+          placeholder="ubicaciï¿½n del sensor"
         />
       </label>
 
       <label>
-        C�digo del dispositivo
+        Cï¿½digo del dispositivo
         <input
           type="text"
           name="deviceCode"
@@ -127,11 +127,24 @@
       @for (sensor of sensors; track sensor.id) {
         <article class="sensor-card">
           <h2>{{ sensor.name }}</h2>
-          <p><strong>C�digo:</strong> {{ sensor.code }}</p>
+          <p><strong>Cï¿½digo:</strong> {{ sensor.code }}</p>
           <p><strong>Tipo:</strong> {{ sensor.measurementType }}</p>
           <p><strong>Origen:</strong> {{ sensor.origin }}</p>
-          <p><strong>ubicaci�n:</strong> {{ sensor.location }}</p>
-          <p><strong>Estado:</strong> {{ sensor.status }}</p>`r`n          <button type="button" (click)="changeStatus(sensor)">`r`n            {{ sensor.status === 'Active' ? 'Desactivar' : 'Activar' }}`r`n          </button>
+          <p><strong>ubicaciï¿½n:</strong> {{ sensor.location }}</p>
+          <p><strong>Estado:</strong> {{ sensor.status }}</p>
+
+          @if (latestReadings[sensor.id]; as reading) {
+            <p>
+              <strong>Última lectura:</strong>
+              {{ reading.value }} {{ reading.unit }}
+            </p>
+            <p>
+              <strong>Medida:</strong>
+              {{ reading.variable }}
+            </p>
+          } @else {
+            <p><strong>Última lectura:</strong> Sin lecturas</p>
+          }`r`n          <button type="button" (click)="changeStatus(sensor)">`r`n            {{ sensor.status === 'Active' ? 'Desactivar' : 'Activar' }}`r`n          </button>
           <button
             type="button"
             (click)="changeStatus(sensor)"
@@ -143,3 +156,4 @@
     </div>
   }
 </section>
+

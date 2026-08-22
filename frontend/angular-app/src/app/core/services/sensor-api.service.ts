@@ -46,3 +46,11 @@ export class SensorApiService {
     );
   }
 }
+export interface UpdateSensorRequest {
+  code: string;
+  name: string;
+  measurementType: string;
+  origin: string;
+  location: string;
+  deviceCode: string | null;
+}
