@@ -13,6 +13,8 @@ public sealed record CreateSensorRequest(
 
 public sealed record ChangeSensorStatusRequest(bool IsActive);
 
+public sealed record UpdateSensorRequest(string Code, string Name, string Location, string? DeviceCode);
+
 public sealed record SensorResponse(
     Guid Id,
     Guid CommunityId,

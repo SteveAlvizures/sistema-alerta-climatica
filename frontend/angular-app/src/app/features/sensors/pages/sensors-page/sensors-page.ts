@@ -4,9 +4,11 @@ import { CommunityApiService } from '../../../../core/services/community-api.ser
 import {
   CreateSensorRequest,
   SensorApiService,
+  UpdateSensorRequest,
 } from '../../../../core/services/sensor-api.service';
 import { CommunityDto, SensorDto, SensorReadingDto } from '../../../../core/models/api.model';
 import { SensorReadingApiService } from '../../../../core/services/sensor-reading-api.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-sensors-page',
@@ -18,6 +20,7 @@ export class SensorsPage implements OnInit {
   private readonly sensorApi = inject(SensorApiService);
   private readonly communityApi = inject(CommunityApiService);
   private readonly sensorReadingApi = inject(SensorReadingApiService);
+  protected readonly auth = inject(AuthService);
 
   communities: CommunityDto[] = [];
   sensors: SensorDto[] = [];
@@ -37,6 +40,11 @@ export class SensorsPage implements OnInit {
   origin = 'Simulated';
   location = '';
   deviceCode = '';
+  editingSensor: SensorDto | null = null;
+  editCode = '';
+  editName = '';
+  editLocation = '';
+  editDeviceCode = '';
 
   ngOnInit(): void {
     this.loadCommunities();
@@ -144,7 +152,9 @@ export class SensorsPage implements OnInit {
     this.error = '';
     this.success = '';
 
+    if (!this.canAdminister()) return;
     const isActive = sensor.status !== 'Active';
+    if (!window.confirm(`¿Deseas ${isActive ? 'activar' : 'desactivar'} este sensor?`)) return;
 
     this.sensorApi.changeStatus(sensor.id, isActive).subscribe({
       next: (updatedSensor) => {
@@ -161,5 +171,32 @@ export class SensorsPage implements OnInit {
       },
     });
   }
-}
 
+  canAdminister(): boolean { return this.auth.session()?.role === 'Administrator'; }
+
+  startEdit(sensor: SensorDto): void {
+    if (!this.canAdminister()) return;
+    this.editingSensor = sensor; this.editCode = sensor.code; this.editName = sensor.name;
+    this.editLocation = sensor.location; this.editDeviceCode = sensor.deviceCode ?? '';
+  }
+
+  cancelEdit(): void { this.editingSensor = null; }
+
+  saveEdit(): void {
+    if (!this.editingSensor || !this.editCode.trim() || !this.editName.trim() || !this.editLocation.trim()) return;
+    const request: UpdateSensorRequest = { code: this.editCode.trim(), name: this.editName.trim(), location: this.editLocation.trim(), deviceCode: this.editDeviceCode.trim() || null };
+    this.saving = true; this.error = ''; this.success = '';
+    this.sensorApi.update(this.editingSensor.id, request).subscribe({
+      next: (updated) => { this.sensors = this.sensors.map((item) => item.id === updated.id ? updated : item); this.editingSensor = null; this.saving = false; this.success = 'Sensor actualizado correctamente.'; },
+      error: () => { this.saving = false; this.error = 'No se pudo actualizar el sensor.'; },
+    });
+  }
+
+  restartMonitoring(sensor: SensorDto): void {
+    if (!this.canAdminister() || !window.confirm('¿Deseas reiniciar el monitoreo? El sensor quedará activo y conservará todo su historial.')) return;
+    this.sensorApi.changeStatus(sensor.id, true).subscribe({
+      next: (updated) => { this.sensors = this.sensors.map((item) => item.id === updated.id ? updated : item); this.success = 'Monitoreo reiniciado. El historial se conservó intacto.'; this.error = ''; },
+      error: () => { this.error = 'No se pudo reiniciar el monitoreo.'; },
+    });
+  }
+}

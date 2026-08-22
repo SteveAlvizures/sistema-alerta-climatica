@@ -1,11 +1,5 @@
 import { Component, computed, input, signal } from '@angular/core';
-import { ClimateTrendPoint, TrendMetric } from '../../../../core/models/climate-dashboard.model';
-
-interface TrendOption {
-  key: TrendMetric;
-  label: string;
-  unit: string;
-}
+import { ClimateTrendSeries, TrendMetric } from '../../../../core/models/climate-dashboard.model';
 
 @Component({
   selector: 'app-climate-trend',
@@ -13,21 +7,12 @@ interface TrendOption {
   styleUrl: './climate-trend.scss',
 })
 export class ClimateTrend {
-  readonly points = input.required<ClimateTrendPoint[]>();
+  readonly series = input.required<ClimateTrendSeries[]>();
   readonly source = input<'api' | 'simulation'>('simulation');
   protected readonly selectedMetric = signal<TrendMetric>('temperature');
-  protected readonly options: TrendOption[] = [
-    { key: 'temperature', label: 'Temperatura', unit: '°C' },
-    { key: 'rain', label: 'Lluvia', unit: 'mm' },
-    { key: 'river', label: 'Nivel del río', unit: 'm' },
-  ];
-
-  protected readonly activeOption = computed(
-    () => this.options.find((option) => option.key === this.selectedMetric()) ?? this.options[0],
-  );
-  protected readonly values = computed(() =>
-    this.points().map((point) => point[this.selectedMetric()]),
-  );
+  protected readonly activeSeries = computed(() => this.series().find((item) => item.metric === this.selectedMetric()) ?? this.series()[0]);
+  protected readonly points = computed(() => this.activeSeries()?.points ?? []);
+  protected readonly values = computed(() => this.points().map((point) => point.value));
   protected readonly path = computed(() => {
     const values = this.values();
     if (values.length < 2) return '';

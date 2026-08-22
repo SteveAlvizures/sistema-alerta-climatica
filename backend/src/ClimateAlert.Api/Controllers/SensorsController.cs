@@ -35,4 +35,10 @@ public sealed class SensorsController(SensorService service) : ControllerBase
     public async Task<ActionResult<SensorResponse>> ChangeStatus(
         Guid id, ChangeSensorStatusRequest request, CancellationToken cancellationToken) =>
         Ok(await service.ChangeStatusAsync(id, request, cancellationToken));
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<ActionResult<SensorResponse>> Update(
+        Guid id, UpdateSensorRequest request, CancellationToken cancellationToken) =>
+        Ok(await service.UpdateAsync(id, request, cancellationToken));
 }

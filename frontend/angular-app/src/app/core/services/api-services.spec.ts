@@ -6,6 +6,7 @@ import { AlertApiService } from './alert-api.service';
 import { CommunityApiService } from './community-api.service';
 import { SensorApiService } from './sensor-api.service';
 import { SensorReadingApiService } from './sensor-reading-api.service';
+import { AlertRuleApiService } from './alert-rule-api.service';
 
 describe('API services', () => {
   let http: HttpTestingController;
@@ -35,6 +36,23 @@ describe('API services', () => {
     const request = http.expectOne('/api/communities/community-1/sensors');
     expect(request.request.method).toBe('GET');
     request.flush([]);
+  });
+
+  it('updates administrative sensor data through the protected route', () => {
+    TestBed.inject(SensorApiService).update('sensor-1', { code: 'TEMP-01', name: 'Temperatura', location: 'Centro', deviceCode: null }).subscribe();
+    const request = http.expectOne('/api/sensors/sensor-1');
+    expect(request.request.method).toBe('PUT');
+    request.flush({});
+  });
+
+  it('uses the existing alert-rule routes', () => {
+    const service = TestBed.inject(AlertRuleApiService);
+    service.getAll().subscribe();
+    http.expectOne('/api/alert-rules').flush([]);
+    service.changeStatus('rule-1', false).subscribe();
+    const status = http.expectOne('/api/alert-rules/rule-1/status');
+    expect(status.request.method).toBe('PATCH');
+    status.flush({});
   });
 
   it('requests community alerts without duplicating the API prefix', () => {

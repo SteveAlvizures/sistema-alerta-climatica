@@ -43,6 +43,7 @@ export class Sidebar {
       route: '/history',
       upcoming: false,
     },
+    { label: 'Reglas', symbol: '⚙', route: '/alert-rules', upcoming: false },
     {
       label: 'Comunidades',
       symbol: '◇',

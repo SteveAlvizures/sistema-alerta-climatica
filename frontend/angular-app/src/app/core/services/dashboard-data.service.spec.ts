@@ -41,6 +41,7 @@ describe('DashboardDataService', () => {
       () => new HttpErrorResponse({ status: 404 }),
     ),
     alertsResult: Observable<AlertDto[]> = of([]),
+    historyResult: Observable<SensorReadingDto[]> = of([]),
   ): DashboardDataService {
     TestBed.configureTestingModule({
       providers: [
@@ -48,7 +49,7 @@ describe('DashboardDataService', () => {
         { provide: CommunityApiService, useValue: { getAll: () => communitiesResult } },
         { provide: AlertApiService, useValue: { getByCommunity: () => alertsResult } },
         { provide: SensorApiService, useValue: { getByCommunity: () => sensorsResult } },
-        { provide: SensorReadingApiService, useValue: { getLatest: () => readingResult } },
+        { provide: SensorReadingApiService, useValue: { getLatest: () => readingResult, getHistory: () => historyResult } },
         { provide: SimulatedClimateService, useValue: { dashboard: simulated } },
       ],
     });
@@ -87,6 +88,13 @@ describe('DashboardDataService', () => {
     expect(service.dashboard()?.indicators[0].value).toBe('Sin lectura');
   });
 
+  it('builds a real trend from persisted sensor history', () => {
+    const readings: SensorReadingDto[] = Array.from({ length: 30 }, (_, index) => ({ id: `reading-${index}`, sensorId: sensor.id, variable: 'Temperature', value: 20 + index / 10, unit: '°C', measuredAt: new Date(Date.UTC(2026, 7, 19, index)).toISOString(), receivedAt: new Date(Date.UTC(2026, 7, 19, index)).toISOString(), origin: 'Simulated' }));
+    const service = create(of([community]), of([sensor]), of(readings.at(-1)!), of([]), of(readings));
+    expect(service.dashboard()?.trend[0].metric).toBe('temperature');
+    expect(service.dashboard()?.trend[0].points.length).toBe(30);
+  });
+
   it('finishes loading when a latest-reading request completes without a value', () => {
     const service = create(of([community]), of([sensor]), EMPTY);
     expect(service.loadState()).toBe('ready');
@@ -107,7 +115,7 @@ describe('DashboardDataService', () => {
         { provide: CommunityApiService, useValue: { getAll: () => of([community, secondCommunity]) } },
         { provide: AlertApiService, useValue: { getByCommunity: () => of([]) } },
         { provide: SensorApiService, useValue: { getByCommunity: (id: string) => of([id === community.id ? sensor : secondSensor]) } },
-        { provide: SensorReadingApiService, useValue: { getLatest: (id: string) => id === sensor.id ? firstReading : of(secondReading) } },
+        { provide: SensorReadingApiService, useValue: { getLatest: (id: string) => id === sensor.id ? firstReading : of(secondReading), getHistory: () => of([]) } },
         { provide: SimulatedClimateService, useValue: { dashboard: simulated } },
       ],
     });
@@ -165,7 +173,7 @@ describe('DashboardDataService', () => {
         { provide: CommunityApiService, useValue: { getAll: () => of([community, secondCommunity]) } },
         { provide: AlertApiService, useValue: { getByCommunity: (id: string) => id === community.id ? firstAlerts : of([{ ...alert, id: 'alert-2', communityId: secondCommunity.id, level: 'Red' }]) } },
         { provide: SensorApiService, useValue: { getByCommunity: () => of([]) } },
-        { provide: SensorReadingApiService, useValue: { getLatest: () => EMPTY } },
+        { provide: SensorReadingApiService, useValue: { getLatest: () => EMPTY, getHistory: () => of([]) } },
         { provide: SimulatedClimateService, useValue: { dashboard: simulated } },
       ],
     });
@@ -212,7 +220,7 @@ describe('DashboardDataService', () => {
           { provide: CommunityApiService, useValue: { getAll: () => of([community]) } },
           { provide: AlertApiService, useValue: { getByCommunity, acknowledge, resolve } },
           { provide: SensorApiService, useValue: { getByCommunity: () => of([]) } },
-          { provide: SensorReadingApiService, useValue: { getLatest: () => EMPTY } },
+          { provide: SensorReadingApiService, useValue: { getLatest: () => EMPTY, getHistory: () => of([]) } },
           { provide: SimulatedClimateService, useValue: { dashboard: simulated } },
         ],
       });

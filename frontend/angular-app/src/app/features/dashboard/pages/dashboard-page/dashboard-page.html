@@ -36,7 +36,7 @@
       <div class="dashboard__section-heading"><div><p class="dashboard__eyebrow">Condiciones observadas</p><h2 id="indicator-title">Indicadores climáticos</h2></div><span>{{ climate.source() === 'api' ? 'Última lectura disponible por sensor' : 'Valores simulados · sin umbrales oficiales' }}</span></div>
       <div class="indicator-grid">@for (indicator of dashboard.indicators; track indicator.name) { <app-indicator-card [indicator]="indicator" /> }</div>
     </section>
-    <div class="dashboard__analysis-grid"><app-climate-trend [points]="dashboard.trend" [source]="climate.source()" /><app-recent-history [events]="dashboard.recentEvents" /></div>
+    <div class="dashboard__analysis-grid"><app-climate-trend [series]="dashboard.trend" [source]="climate.source()" /><app-recent-history [events]="dashboard.recentEvents" /></div>
     <div class="dashboard__detail-grid">
       <app-sensor-status [sensors]="dashboard.sensors" />
       <div class="dashboard__aside">

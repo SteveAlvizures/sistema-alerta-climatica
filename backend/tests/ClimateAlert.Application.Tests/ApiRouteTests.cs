@@ -20,6 +20,7 @@ public sealed class ApiRouteTests
         AssertProtected<CommunitiesController>(nameof(CommunitiesController.Create));
         AssertProtected<SensorsController>(nameof(SensorsController.Create));
         AssertProtected<SensorsController>(nameof(SensorsController.ChangeStatus));
+        AssertProtected<SensorsController>(nameof(SensorsController.Update));
         AssertProtected<AlertRulesController>(nameof(AlertRulesController.Create));
         AssertProtected<AlertRulesController>(nameof(AlertRulesController.ChangeStatus));
         AssertProtected<AlertsController>(nameof(AlertsController.Acknowledge));

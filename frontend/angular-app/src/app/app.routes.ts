@@ -50,6 +50,10 @@ export const routes: Routes = [
             (component) => component.HistoryPage,
           ),
       },
+      {
+        path: 'alert-rules',
+        loadComponent: () => import('./features/alert-rules/pages/alert-rules-page/alert-rules-page').then((component) => component.AlertRulesPage),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

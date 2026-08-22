@@ -59,3 +59,5 @@ export interface AlertDto {
   updatedAt: string;
   closedAt: string | null;
 }
+
+export interface AlertRuleDto { id: string; communityId: string; sensorId: string | null; code: string; name: string; phenomenon: ApiClimatePhenomenon; variable: ClimateVariable; dangerLevel: ApiDangerLevel; lowerLimit: number | null; upperLimit: number | null; validFrom: string; validUntil: string | null; isActive: boolean; createdAt: string; }

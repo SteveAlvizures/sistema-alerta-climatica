@@ -2,13 +2,18 @@ import { ClimateAlert, DangerLevel, RecentClimateEvent } from './climate-alert.m
 import { ClimateIndicator } from './climate-indicator.model';
 import { ClimateSensor } from './sensor.model';
 
-export type TrendMetric = 'temperature' | 'rain' | 'river';
+export type TrendMetric = 'temperature' | 'humidity' | 'wind' | 'rain' | 'river';
 
 export interface ClimateTrendPoint {
   label: string;
-  temperature: number;
-  rain: number;
-  river: number;
+  value: number;
+}
+
+export interface ClimateTrendSeries {
+  metric: TrendMetric;
+  label: string;
+  unit: string;
+  points: ClimateTrendPoint[];
 }
 
 export interface ClimateDashboardState {
@@ -20,5 +25,5 @@ export interface ClimateDashboardState {
   sensors: ClimateSensor[];
   alert: ClimateAlert | null;
   recentEvents: RecentClimateEvent[];
-  trend: ClimateTrendPoint[];
+  trend: ClimateTrendSeries[];
 }

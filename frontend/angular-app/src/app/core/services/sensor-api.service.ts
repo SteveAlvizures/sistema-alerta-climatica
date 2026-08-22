@@ -18,6 +18,8 @@ export interface ChangeSensorStatusRequest {
   isActive: boolean;
 }
 
+export interface UpdateSensorRequest { code: string; name: string; location: string; deviceCode: string | null; }
+
 @Injectable({ providedIn: 'root' })
 export class SensorApiService {
   private readonly http = inject(HttpClient);
@@ -45,12 +47,8 @@ export class SensorApiService {
       { isActive },
     );
   }
-}
-export interface UpdateSensorRequest {
-  code: string;
-  name: string;
-  measurementType: string;
-  origin: string;
-  location: string;
-  deviceCode: string | null;
+
+  update(sensorId: string, request: UpdateSensorRequest): Observable<SensorDto> {
+    return this.http.put<SensorDto>(`${this.baseUrl}/sensors/${sensorId}`, request);
+  }
 }

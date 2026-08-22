@@ -22,7 +22,7 @@ import {
   SensorReadingDto,
 } from '../models/api.model';
 import { ClimateAlert, DangerLevel, RecentClimateEvent } from '../models/climate-alert.model';
-import { ClimateDashboardState } from '../models/climate-dashboard.model';
+import { ClimateDashboardState, ClimateTrendSeries, TrendMetric } from '../models/climate-dashboard.model';
 import { ClimateIndicator } from '../models/climate-indicator.model';
 import { ClimateSensor } from '../models/sensor.model';
 import { CommunityApiService } from './community-api.service';
@@ -227,17 +227,20 @@ export class DashboardDataService {
           ),
         );
 
-        return forkJoin(latestRequests).pipe(
-          map((items) => ({
+        const historyRequests = sensors.map((sensor) =>
+          this.readingApi.getHistory(sensor.id, 30).pipe(catchError(() => of([] as SensorReadingDto[]))),
+        );
+        return forkJoin({ items: forkJoin(latestRequests), histories: forkJoin(historyRequests) }).pipe(
+          map(({ items, histories }) => ({
             state: 'ready' as const,
-            dashboard: this.createApiDashboard(community, items, communityAlerts),
+            dashboard: this.createApiDashboard(community, items, communityAlerts, histories.flat()),
           })),
           defaultIfEmpty({
             state: 'ready',
             dashboard: this.createApiDashboard(
               community,
               sensors.map((sensor) => ({ sensor, reading: null })),
-              communityAlerts,
+              communityAlerts, [],
             ),
           }),
         );
@@ -294,6 +297,7 @@ export class DashboardDataService {
     community: CommunityDto,
     items: SensorWithReading[],
     alerts: AlertDto[],
+    history: SensorReadingDto[] = [],
   ): ClimateDashboardState {
     const latestReadings = items
       .filter((item): item is SensorWithReading & { reading: SensorReadingDto } => item.reading !== null)
@@ -341,8 +345,25 @@ export class DashboardDataService {
       sensors: items.map(({ sensor, reading }) => this.mapSensor(sensor, reading)),
       alert: mappedHighestAlert,
       recentEvents: [...alertEvents, ...readingEvents].slice(0, 8),
-      trend: [],
+      trend: this.createTrend(history),
     };
+  }
+
+  private createTrend(readings: SensorReadingDto[]): ClimateTrendSeries[] {
+    const definitions: Array<{ variable: ClimateVariable; metric: TrendMetric; label: string }> = [
+      { variable: 'Temperature', metric: 'temperature', label: 'Temperatura' },
+      { variable: 'RelativeHumidity', metric: 'humidity', label: 'Humedad relativa' },
+      { variable: 'WindSpeed', metric: 'wind', label: 'Velocidad del viento' },
+      { variable: 'RainfallLevel', metric: 'rain', label: 'Nivel de lluvia' },
+      { variable: 'RiverOrReservoirLevel', metric: 'river', label: 'Nivel de río o reservorio' },
+    ];
+    return definitions.flatMap((definition) => {
+      const values = readings.filter((reading) => reading.variable === definition.variable)
+        .sort((left, right) => Date.parse(left.measuredAt) - Date.parse(right.measuredAt)).slice(-30);
+      if (!values.length) return [];
+      return [{ metric: definition.metric, label: definition.label, unit: values.at(-1)!.unit,
+        points: values.map((reading) => ({ label: new Intl.DateTimeFormat('es-GT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(reading.measuredAt)), value: reading.value })) }];
+    });
   }
 
   private mapAlert(alert: AlertDto): ClimateAlert {
