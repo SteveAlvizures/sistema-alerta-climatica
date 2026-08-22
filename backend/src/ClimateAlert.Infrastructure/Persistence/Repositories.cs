@@ -176,6 +176,38 @@ public sealed class EventRepository(ClimateAlertDbContext dbContext) : IEventRep
     public void Add(ClimateAlert.Domain.Entities.Event climateEvent) => dbContext.Events.Add(climateEvent);
 }
 
+public sealed class UserRepository(ClimateAlertDbContext dbContext) : IUserRepository
+{
+    public Task<User?> GetByEmailAsync(string email, bool trackChanges, CancellationToken cancellationToken)
+    {
+        IQueryable<User> query = dbContext.Users;
+        if (!trackChanges) query = query.AsNoTracking();
+        return query.SingleOrDefaultAsync(user => user.Email == email, cancellationToken);
+    }
+
+    public Task<User?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken)
+    {
+        IQueryable<User> query = dbContext.Users;
+        if (!trackChanges) query = query.AsNoTracking();
+        return query.SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
+    }
+
+    public Task<bool> ExistsAsync(string email, CancellationToken cancellationToken) =>
+        dbContext.Users.AsNoTracking().AnyAsync(user => user.Email == email, cancellationToken);
+
+    public void Add(User user) => dbContext.Users.Add(user);
+}
+
+public sealed class RefreshTokenRepository(ClimateAlertDbContext dbContext) : IRefreshTokenRepository
+{
+    public Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken cancellationToken) =>
+        dbContext.RefreshTokens
+            .Include(token => token.User)
+            .SingleOrDefaultAsync(token => token.TokenHash == tokenHash, cancellationToken);
+
+    public void Add(RefreshToken refreshToken) => dbContext.RefreshTokens.Add(refreshToken);
+}
+
 public sealed class UnitOfWork(ClimateAlertDbContext dbContext) : IUnitOfWork
 {
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken)
