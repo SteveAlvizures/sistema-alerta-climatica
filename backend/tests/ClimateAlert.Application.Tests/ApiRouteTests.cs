@@ -48,6 +48,16 @@ public sealed class ApiRouteTests
         AssertMethod<AlertsController>(nameof(AlertsController.Resolve), typeof(HttpPatchAttribute), "{id:guid}/resolve");
     }
 
+    [Fact]
+    public void AuditLogEndpointIsAdministratorOnly()
+    {
+        Assert.Equal("api/audit-actions", RouteOf<AuditActionsController>());
+        AssertMethod<AuditActionsController>(nameof(AuditActionsController.GetRecent), typeof(HttpGetAttribute), null);
+        AuthorizeAttribute attribute = Assert.Single(typeof(AuditActionsController)
+            .GetCustomAttributes(typeof(AuthorizeAttribute), false).Cast<AuthorizeAttribute>());
+        Assert.Equal("Administrator", attribute.Roles);
+    }
+
     private static string? RouteOf<TController>() =>
         typeof(TController).GetCustomAttributes(typeof(RouteAttribute), false)
             .Cast<RouteAttribute>().Single().Template;

@@ -1,12 +1,13 @@
 using ClimateAlert.Application.Features.Alerts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using ClimateAlert.Api.Audit;
 
 namespace ClimateAlert.Api.Controllers;
 
 [ApiController]
 [Route("api/alerts")]
-public sealed class AlertsController(AlertService service) : ControllerBase
+public sealed class AlertsController(AlertService service, AuditActionService audit) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<AlertResponse>>> GetAll(
@@ -29,13 +30,23 @@ public sealed class AlertsController(AlertService service) : ControllerBase
     [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<AlertResponse>> Acknowledge(
         Guid id,
-        CancellationToken cancellationToken) =>
-        Ok(await service.AcknowledgeAsync(id, cancellationToken));
+        CancellationToken cancellationToken)
+    {
+        AlertResponse updated = await service.AcknowledgeAsync(id, cancellationToken);
+        await audit.RecordAsync(User, "AlertaReconocida", "Alert", updated.Id,
+            $"Se reconoció la alerta: {updated.Message}", cancellationToken);
+        return Ok(updated);
+    }
 
     [HttpPatch("{id:guid}/resolve")]
     [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<AlertResponse>> Resolve(
         Guid id,
-        CancellationToken cancellationToken) =>
-        Ok(await service.ResolveAsync(id, cancellationToken));
+        CancellationToken cancellationToken)
+    {
+        AlertResponse updated = await service.ResolveAsync(id, cancellationToken);
+        await audit.RecordAsync(User, "AlertaResuelta", "Alert", updated.Id,
+            $"Se resolvió la alerta: {updated.Message}", cancellationToken);
+        return Ok(updated);
+    }
 }

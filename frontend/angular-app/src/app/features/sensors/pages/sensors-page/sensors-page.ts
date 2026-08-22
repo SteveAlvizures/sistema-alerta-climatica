@@ -173,6 +173,7 @@ export class SensorsPage implements OnInit {
   }
 
   canAdminister(): boolean { return this.auth.session()?.role === 'Administrator'; }
+  variableLabel(value: string): string { return ({ Temperature: 'Temperatura', RelativeHumidity: 'Humedad relativa', WindSpeed: 'Velocidad del viento', RainfallLevel: 'Nivel de lluvia', RiverOrReservoirLevel: 'Nivel de río o reservorio' } as Record<string, string>)[value] ?? value; }
 
   startEdit(sensor: SensorDto): void {
     if (!this.canAdminister()) return;

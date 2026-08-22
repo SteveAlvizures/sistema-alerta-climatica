@@ -30,6 +30,7 @@ import { AlertApiService } from './alert-api.service';
 import { SensorApiService } from './sensor-api.service';
 import { SensorReadingApiService } from './sensor-reading-api.service';
 import { SimulatedClimateService } from './simulated-climate.service';
+import { ActiveAlertsService } from './active-alerts.service';
 
 export type DashboardSource = 'api' | 'simulation';
 export type DashboardLoadState = 'loading' | 'ready' | 'no-communities' | 'no-sensors' | 'error';
@@ -89,6 +90,7 @@ export class DashboardDataService {
   private readonly sensorApi = inject(SensorApiService);
   private readonly readingApi = inject(SensorReadingApiService);
   private readonly simulation = inject(SimulatedClimateService);
+  private readonly activeAlerts = inject(ActiveAlertsService);
   private readonly apiDashboard = signal<ClimateDashboardState | null>(null);
   private activeRequest: Subscription | null = null;
   private requestVersion = 0;
@@ -176,9 +178,10 @@ export class DashboardDataService {
       ? this.alertApi.acknowledge(alert.id)
       : this.alertApi.resolve(alert.id);
     request$.subscribe({
-      next: () => {
+      next: (updated) => {
         if (version !== this.alertActionVersion || this.source() !== 'api') return;
         this.alertActionInProgress.set(false);
+        this.activeAlerts.applyLifecycle(updated);
         if (communityId && communityId === this.selectedCommunityId()) {
           this.selectCommunity(communityId);
         }

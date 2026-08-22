@@ -1,18 +1,21 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
-import { AlertDto, ApiAlertStatus, ApiDangerLevel, CommunityDto } from '../../../../core/models/api.model';
+import { AlertDto, ApiAlertStatus, ApiClimatePhenomenon, ApiDangerLevel, CommunityDto } from '../../../../core/models/api.model';
 import { AlertApiService } from '../../../../core/services/alert-api.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { CommunityApiService } from '../../../../core/services/community-api.service';
+import { ActiveAlertsService } from '../../../../core/services/active-alerts.service';
 
 const levelLabels: Record<ApiDangerLevel, string> = { Green: 'Verde', Yellow: 'Amarillo', Orange: 'Naranja', Red: 'Rojo' };
 const statusLabels: Record<ApiAlertStatus, string> = { Open: 'Abierta', Acknowledged: 'Reconocida', Closed: 'Resuelta' };
+const phenomenonLabels: Record<ApiClimatePhenomenon, string> = { Flood: 'Inundación', Drought: 'Sequía', Storm: 'Tormenta', Frost: 'Helada', Wildfire: 'Incendio forestal' };
 
 @Component({ selector: 'app-alerts-page', imports: [FormsModule], templateUrl: './alerts-page.html', styleUrl: './alerts-page.scss' })
 export class AlertsPage implements OnInit {
   private readonly alertsApi = inject(AlertApiService);
   private readonly communitiesApi = inject(CommunityApiService);
+  private readonly activeAlerts = inject(ActiveAlertsService);
   protected readonly auth = inject(AuthService);
   protected communities: CommunityDto[] = [];
   protected alerts: AlertDto[] = [];
@@ -41,6 +44,7 @@ export class AlertsPage implements OnInit {
   protected communityName(id: string): string { return this.communities.find((item) => item.id === id)?.name ?? 'Comunidad no disponible'; }
   protected levelLabel(level: ApiDangerLevel): string { return levelLabels[level]; }
   protected statusLabel(status: ApiAlertStatus): string { return statusLabels[status]; }
+  protected phenomenonLabel(value: ApiClimatePhenomenon): string { return phenomenonLabels[value]; }
   protected formatDate(value: string): string { return new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
   protected shortId(value: string): string { return value.slice(0, 8).toUpperCase(); }
   protected canAdminister(): boolean { return this.auth.session()?.role === 'Administrator'; }
@@ -69,7 +73,7 @@ export class AlertsPage implements OnInit {
     this.busyAlertIds = new Set(this.busyAlertIds).add(alert.id);
     const request = action === 'acknowledge' ? this.alertsApi.acknowledge(alert.id) : this.alertsApi.resolve(alert.id);
     request.subscribe({
-      next: (updated) => { this.alerts = this.alerts.map((item) => item.id === updated.id ? updated : item); this.finishAction(alert.id); },
+      next: (updated) => { this.alerts = this.alerts.map((item) => item.id === updated.id ? updated : item); this.activeAlerts.applyLifecycle(updated); this.finishAction(alert.id); },
       error: () => { this.actionError = action === 'acknowledge' ? 'No fue posible reconocer la alerta.' : 'No fue posible resolver la alerta.'; this.finishAction(alert.id); },
     });
   }

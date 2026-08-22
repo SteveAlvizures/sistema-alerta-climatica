@@ -7,10 +7,11 @@ import { ClimateTrend } from '../../components/climate-trend/climate-trend';
 import { IndicatorCard } from '../../components/indicator-card/indicator-card';
 import { RecentHistory } from '../../components/recent-history/recent-history';
 import { SensorStatus } from '../../components/sensor-status/sensor-status';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [StatusBadge, AlertSummary, ClimateTrend, IndicatorCard, RecentHistory, SensorStatus],
+  imports: [StatusBadge, AlertSummary, ClimateTrend, IndicatorCard, RecentHistory, SensorStatus, RouterLink],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.scss',
 })

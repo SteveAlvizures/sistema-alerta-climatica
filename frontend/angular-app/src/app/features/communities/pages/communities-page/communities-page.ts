@@ -4,6 +4,7 @@ import {
   CommunityApiService,
   CreateCommunityRequest,
 } from '../../../../core/services/community-api.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-communities-page',
@@ -13,6 +14,7 @@ import {
 })
 export class CommunitiesPage implements OnInit {
   private readonly communityApi = inject(CommunityApiService);
+  protected readonly auth = inject(AuthService);
 
   communities: any[] = [];
 
@@ -25,6 +27,8 @@ export class CommunitiesPage implements OnInit {
   name = '';
   location = '';
   description = '';
+
+  canAdminister(): boolean { return this.auth.session()?.role === 'Administrator'; }
 
   ngOnInit(): void {
     this.loadCommunities();

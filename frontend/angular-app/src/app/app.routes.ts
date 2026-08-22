@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { administratorGuard } from './core/guards/administrator.guard';
 
 export const routes: Routes = [
   {
@@ -53,6 +54,11 @@ export const routes: Routes = [
       {
         path: 'alert-rules',
         loadComponent: () => import('./features/alert-rules/pages/alert-rules-page/alert-rules-page').then((component) => component.AlertRulesPage),
+      },
+      {
+        path: 'audit-log',
+        canActivate: [administratorGuard],
+        loadComponent: () => import('./features/audit-log/pages/audit-log-page/audit-log-page').then((component) => component.AuditLogPage),
       },
     ],
   },

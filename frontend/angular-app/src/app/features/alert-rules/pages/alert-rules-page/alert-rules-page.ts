@@ -7,6 +7,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { CommunityApiService } from '../../../../core/services/community-api.service';
 
 const variables: Record<ClimateVariable, string> = { Temperature:'Temperatura',RelativeHumidity:'Humedad relativa',WindSpeed:'Velocidad del viento',RainfallLevel:'Nivel de lluvia',RiverOrReservoirLevel:'Nivel de río o reservorio' };
+const levels: Record<string, string> = { Green:'Verde',Yellow:'Amarillo',Orange:'Naranja',Red:'Rojo' };
 @Component({selector:'app-alert-rules-page',imports:[FormsModule],templateUrl:'./alert-rules-page.html',styleUrl:'./alert-rules-page.scss'})
 export class AlertRulesPage implements OnInit {
   private readonly api=inject(AlertRuleApiService); private readonly communitiesApi=inject(CommunityApiService); protected readonly auth=inject(AuthService);
@@ -17,6 +18,7 @@ export class AlertRulesPage implements OnInit {
   protected canAdminister():boolean{return this.auth.session()?.role==='Administrator'}
   protected communityName(id:string):string{return this.communities.find(item=>item.id===id)?.name??'Comunidad no disponible'}
   protected variableLabel(value:ClimateVariable):string{return variables[value]}
+  protected levelLabel(value:string):string{return levels[value]??value}
   protected create():void{if(!this.canAdminister()||this.saving||!this.communityId||!this.code.trim()||!this.name.trim()||(this.lowerLimit===null&&this.upperLimit===null)){this.error='Completa comunidad, código, nombre y al menos un límite.';return} const request:CreateAlertRuleRequest={communityId:this.communityId,sensorId:null,code:this.code.trim(),name:this.name.trim(),phenomenon:this.phenomenon as CreateAlertRuleRequest['phenomenon'],variable:this.variable,dangerLevel:this.dangerLevel as CreateAlertRuleRequest['dangerLevel'],lowerLimit:this.lowerLimit,upperLimit:this.upperLimit,validFrom:new Date().toISOString(),validUntil:null};this.saving=true;this.api.create(request).subscribe({next:rule=>{this.rules=[...this.rules,rule];this.code='';this.name='';this.lowerLimit=null;this.upperLimit=null;this.saving=false;this.success='Regla creada correctamente.';this.error=''},error:()=>{this.saving=false;this.error='No fue posible crear la regla.'}})}
   protected toggle(rule:AlertRuleDto):void{if(!this.canAdminister()||!window.confirm(`¿Deseas ${rule.isActive?'desactivar':'activar'} esta regla?`))return;this.api.changeStatus(rule.id,!rule.isActive).subscribe({next:updated=>{this.rules=this.rules.map(item=>item.id===updated.id?updated:item);this.success='Estado de la regla actualizado.';this.error=''},error:()=>this.error='No fue posible cambiar el estado de la regla.'})}
 }

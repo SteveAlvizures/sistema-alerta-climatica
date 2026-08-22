@@ -144,7 +144,7 @@
             <p class="sensor-card__code">{{ sensor.code }}</p>
 
             <dl class="sensor-details">
-              <div><dt>Tipo</dt><dd>{{ sensor.measurementType }}</dd></div>
+              <div><dt>Tipo</dt><dd>{{ variableLabel(sensor.measurementType) }}</dd></div>
               <div><dt>Ubicación</dt><dd>{{ sensor.location }}</dd></div>
               <div><dt>Origen</dt><dd>{{ sensor.origin === 'Simulated' ? 'Simulado' : 'Físico' }}</dd></div>
               <div><dt>Estado</dt><dd>{{ sensor.status === 'Active' ? 'Activo' : 'Inactivo' }}</dd></div>
@@ -154,7 +154,7 @@
               <span class="latest-reading__label">Última lectura</span>
               @if (latestReadings[sensor.id]; as reading) {
                 <strong>{{ reading.value }} <small>{{ reading.unit }}</small></strong>
-                <span>{{ reading.variable }}</span>
+                <span>{{ variableLabel(reading.variable) }}</span>
               } @else {
                 <strong class="latest-reading__empty">Sin lecturas</strong>
                 <span>Esperando datos del sensor</span>

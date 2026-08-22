@@ -1,12 +1,14 @@
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { DashboardDataService } from '../../core/services/dashboard-data.service';
+import { AuthService } from '../../core/services/auth.service';
 
 interface NavigationItem {
   label: string;
   symbol: string;
   route: string | null;
   upcoming: boolean;
+  administratorOnly?: boolean;
 }
 
 @Component({
@@ -16,6 +18,7 @@ interface NavigationItem {
 })
 export class Sidebar {
   protected readonly climate = inject(DashboardDataService);
+  protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
   protected readonly navigation: NavigationItem[] = [
@@ -50,7 +53,12 @@ export class Sidebar {
       route: '/communities',
       upcoming: false,
     },
+    { label: 'Bitácora', symbol: '☷', route: '/audit-log', upcoming: false, administratorOnly: true },
   ];
+
+  protected get visibleNavigation(): NavigationItem[] {
+    return this.navigation.filter((item) => !item.administratorOnly || this.auth.session()?.role === 'Administrator');
+  }
 
   protected navigate(item: NavigationItem): void {
     if (!item.route || item.upcoming) {

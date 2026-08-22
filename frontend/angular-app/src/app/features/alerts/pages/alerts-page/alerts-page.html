@@ -30,7 +30,7 @@
     <div class="alert-list">
       @for (alert of filteredAlerts; track alert.id) {
         <article class="alert-card" [class]="'alert-card alert-card--' + alert.level.toLowerCase()">
-          <div class="alert-card__level"><span>{{ levelLabel(alert.level) }}</span><small>{{ alert.phenomenon }}</small></div>
+          <div class="alert-card__level"><span>{{ levelLabel(alert.level) }}</span><small>{{ phenomenonLabel(alert.phenomenon) }}</small></div>
           <div class="alert-card__content"><div class="alert-card__heading"><div><h3>{{ communityName(alert.communityId) }}</h3><time>{{ formatDate(alert.updatedAt) }}</time></div><span [class]="'status status--' + alert.status.toLowerCase()">{{ statusLabel(alert.status) }}</span></div><p>{{ alert.message }}</p><div class="references"><span>Regla <strong>{{ shortId(alert.ruleId) }}</strong></span><span>Lectura <strong>{{ shortId(alert.supportingReadingId) }}</strong></span></div></div>
           @if (canAdminister() && alert.status !== 'Closed') {
             <div class="alert-card__actions">

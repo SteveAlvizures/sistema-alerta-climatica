@@ -4,6 +4,12 @@
     <div><span class="app-header__name">Vigía Rural</span><p>Sistema Web de Monitoreo y Alerta Temprana para Riesgos Climáticos</p></div>
   </div>
   <div class="app-header__status" aria-label="Estado de actualización del sistema">
+    @if (activeAlerts.count() > 0) {
+      <a class="global-alert" [attr.data-level]="activeAlerts.highestLevel()?.toLowerCase()" routerLink="/alerts" aria-label="Ver alertas climáticas abiertas">
+        <span class="global-alert__icon" aria-hidden="true">!</span>
+        <span><strong>{{ activeAlerts.count() }} {{ activeAlerts.count() === 1 ? 'alerta activa' : 'alertas activas' }}</strong><small>Nivel máximo: {{ levelLabel(activeAlerts.highestLevel()) }}</small></span>
+      </a>
+    }
     <button class="app-header__simulation" type="button" (click)="toggleSource()" [attr.aria-label]="climate.source() === 'api' ? 'Cambiar a modo de simulación' : 'Cambiar a conexión con API'">{{ climate.source() === 'api' ? 'Fuente: API' : 'Fuente: simulación' }}</button>
     @if (climate.dashboard(); as dashboard) { <span class="app-header__time">Actualizado {{ formatTime(dashboard.lastUpdated) }}</span> }
     <app-status-badge [label]="climate.source() === 'api' && climate.loadState() === 'error' ? 'Sin conexión' : 'Monitoreo activo'" [tone]="climate.source() === 'api' && climate.loadState() === 'error' ? 'neutral' : 'green'" />
