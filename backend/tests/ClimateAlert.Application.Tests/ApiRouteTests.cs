@@ -1,11 +1,31 @@
 using ClimateAlert.Api.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ClimateAlert.Application.Tests;
 
 public sealed class ApiRouteTests
 {
+    [Fact]
+    public void AuthenticationEndpointIsExposed()
+    {
+        Assert.Equal("api/auth", RouteOf<AuthController>());
+        AssertMethod<AuthController>(nameof(AuthController.Login), typeof(HttpPostAttribute), "login");
+    }
+
+    [Fact]
+    public void AdministrativeWritesRequireAdministratorRole()
+    {
+        AssertProtected<CommunitiesController>(nameof(CommunitiesController.Create));
+        AssertProtected<SensorsController>(nameof(SensorsController.Create));
+        AssertProtected<SensorsController>(nameof(SensorsController.ChangeStatus));
+        AssertProtected<AlertRulesController>(nameof(AlertRulesController.Create));
+        AssertProtected<AlertRulesController>(nameof(AlertRulesController.ChangeStatus));
+        AssertProtected<AlertsController>(nameof(AlertsController.Acknowledge));
+        AssertProtected<AlertsController>(nameof(AlertsController.Resolve));
+        AssertProtected<SensorReadingsController>(nameof(SensorReadingsController.Create));
+    }
     [Fact]
     public void AlertRuleEndpointsAreExposed()
     {
@@ -36,5 +56,12 @@ public sealed class ApiRouteTests
         object attribute = typeof(TController).GetMethod(name)!
             .GetCustomAttributes(attributeType, false).Single();
         Assert.Equal(template, ((HttpMethodAttribute)attribute).Template);
+    }
+
+    private static void AssertProtected<TController>(string name)
+    {
+        AuthorizeAttribute attribute = Assert.Single(typeof(TController).GetMethod(name)!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), false).Cast<AuthorizeAttribute>());
+        Assert.Equal("Administrator", attribute.Roles);
     }
 }

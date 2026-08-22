@@ -1,0 +1,16 @@
+<main class="login">
+  <section class="login__card" aria-labelledby="login-title">
+    <a class="login__brand" routerLink="/"><span aria-hidden="true">V</span><div><strong>Vigía Rural</strong><small>Sistema de Alerta Climática</small></div></a>
+    <button class="login__theme" type="button" (click)="theme.toggle()">{{ theme.theme() === 'light' ? 'Modo oscuro' : 'Modo claro' }}</button>
+    <div class="login__heading"><p>Acceso administrativo</p><h1 id="login-title">Iniciar sesión</h1><span>Identifícate para gestionar comunidades, sensores, reglas y alertas.</span></div>
+    <form (ngSubmit)="submit()">
+      <label for="username">Correo o usuario</label>
+      <input id="username" name="username" type="email" autocomplete="username" required [(ngModel)]="username" placeholder="administrador@ejemplo.gt" />
+      <label for="password">Contraseña</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required [(ngModel)]="password" />
+      @if (error()) { <p class="login__error" role="alert">{{ error() }}</p> }
+      <button class="login__submit" type="submit" [disabled]="submitting() || !username || !password">{{ submitting() ? 'Iniciando sesión…' : 'Iniciar sesión' }}</button>
+    </form>
+    <a class="login__back" routerLink="/">Volver al dashboard público</a>
+  </section>
+</main>

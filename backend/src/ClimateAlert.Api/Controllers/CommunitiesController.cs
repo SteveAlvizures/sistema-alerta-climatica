@@ -1,5 +1,6 @@
 using ClimateAlert.Application.Features.Communities;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ClimateAlert.Api.Controllers;
 
@@ -19,6 +20,7 @@ public sealed class CommunitiesController(CommunityService service) : Controller
         Ok(await service.GetByIdAsync(id, cancellationToken));
 
     [HttpPost]
+    [Authorize(Roles = "Administrator")]
     [ProducesResponseType<CommunityResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]

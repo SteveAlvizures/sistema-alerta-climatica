@@ -1,5 +1,6 @@
 using ClimateAlert.Application.Features.SensorReadings;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ClimateAlert.Api.Controllers;
 
@@ -17,6 +18,7 @@ public sealed class SensorReadingsController(SensorReadingService service) : Con
         Ok(await service.GetLatestAsync(sensorId, cancellationToken));
 
     [HttpPost("api/sensor-readings")]
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<SensorReadingResponse>> Create(
         CreateSensorReadingRequest request, CancellationToken cancellationToken)
     {

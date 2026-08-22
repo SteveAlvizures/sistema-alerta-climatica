@@ -1,5 +1,6 @@
 using ClimateAlert.Application.Features.Sensors;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ClimateAlert.Api.Controllers;
 
@@ -21,6 +22,7 @@ public sealed class SensorsController(SensorService service) : ControllerBase
         Ok(await service.GetByCommunityAsync(communityId, cancellationToken));
 
     [HttpPost]
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<SensorResponse>> Create(
         CreateSensorRequest request, CancellationToken cancellationToken)
     {
@@ -29,6 +31,7 @@ public sealed class SensorsController(SensorService service) : ControllerBase
     }
 
     [HttpPatch("{id:guid}/status")]
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<SensorResponse>> ChangeStatus(
         Guid id, ChangeSensorStatusRequest request, CancellationToken cancellationToken) =>
         Ok(await service.ChangeStatusAsync(id, request, cancellationToken));

@@ -1,5 +1,6 @@
 using ClimateAlert.Application.Features.AlertRules;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ClimateAlert.Api.Controllers;
 
@@ -19,6 +20,7 @@ public sealed class AlertRulesController(AlertRuleService service) : ControllerB
         Ok(await service.GetByIdAsync(id, cancellationToken));
 
     [HttpPost]
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<AlertRuleResponse>> Create(
         CreateAlertRuleRequest request,
         CancellationToken cancellationToken)
@@ -28,6 +30,7 @@ public sealed class AlertRulesController(AlertRuleService service) : ControllerB
     }
 
     [HttpPatch("{id:guid}/status")]
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<AlertRuleResponse>> ChangeStatus(
         Guid id,
         ChangeAlertRuleStatusRequest request,

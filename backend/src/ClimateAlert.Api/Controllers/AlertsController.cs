@@ -1,5 +1,6 @@
 using ClimateAlert.Application.Features.Alerts;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ClimateAlert.Api.Controllers;
 
@@ -25,12 +26,14 @@ public sealed class AlertsController(AlertService service) : ControllerBase
         Ok(await service.GetByCommunityAsync(communityId, cancellationToken));
 
     [HttpPatch("{id:guid}/acknowledge")]
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<AlertResponse>> Acknowledge(
         Guid id,
         CancellationToken cancellationToken) =>
         Ok(await service.AcknowledgeAsync(id, cancellationToken));
 
     [HttpPatch("{id:guid}/resolve")]
+    [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<AlertResponse>> Resolve(
         Guid id,
         CancellationToken cancellationToken) =>
