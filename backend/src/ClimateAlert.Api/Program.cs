@@ -2,6 +2,8 @@ using System.Text.Json.Serialization;
 using ClimateAlert.Api;
 using ClimateAlert.Api.Errors;
 using ClimateAlert.Infrastructure;
+using ClimateAlert.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +38,14 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.UseCors(developmentCorsPolicy);
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var database = scope.ServiceProvider
+        .GetRequiredService<ClimateAlertDbContext>();
+
+    database.Database.EnsureCreated();
 }
 
 app.UseHttpsRedirection();

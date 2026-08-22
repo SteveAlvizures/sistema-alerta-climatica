@@ -18,6 +18,18 @@ public sealed class ClimateAlertDbContext(DbContextOptions<ClimateAlertDbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ClimateAlertDbContext).Assembly);
+
+        // Refuerza las conversiones necesarias para SQL Server y el dashboard persistente.
+        modelBuilder.Entity<Sensor>().Property(sensor => sensor.MeasurementType).HasConversion<string>();
+        modelBuilder.Entity<Sensor>().Property(sensor => sensor.Origin).HasConversion<string>();
+        modelBuilder.Entity<Sensor>().Property(sensor => sensor.Status).HasConversion<string>();
+        modelBuilder.Entity<SensorReading>().Property(reading => reading.Variable).HasConversion<string>();
+        modelBuilder.Entity<SensorReading>().Property(reading => reading.Origin).HasConversion<string>();
+        modelBuilder.Entity<SensorReading>().Property(reading => reading.Value).HasPrecision(18, 4);
+        modelBuilder.Entity<AlertRule>().Property(rule => rule.LowerLimit).HasPrecision(18, 4);
+        modelBuilder.Entity<AlertRule>().Property(rule => rule.UpperLimit).HasPrecision(18, 4);
+
     }
 }
