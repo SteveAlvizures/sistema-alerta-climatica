@@ -1,82 +1,121 @@
-<section class="page">
-  <div class="page-header">
-    <div>
-      <p>Gestión</p>
-      <h1>Comunidades</h1>
-      <span>Comunidades registradas en el sistema</span>
+<section class="management-page">
+  <header class="page-heading">
+    <p class="page-heading__eyebrow">Gestión</p>
+    <h1>Comunidades</h1>
+    <p class="page-heading__description">
+      Administra las comunidades rurales que forman parte del monitoreo climático.
+    </p>
+  </header>
+
+  <section class="form-panel" aria-labelledby="community-form-title">
+    <div class="section-heading">
+      <div>
+        <p class="section-heading__eyebrow">Nuevo registro</p>
+        <h2 id="community-form-title">Registrar comunidad</h2>
+      </div>
+      <p>Los campos marcados con <span aria-hidden="true">*</span> son obligatorios.</p>
     </div>
-  </div>
 
-  <div class="form-card">
-    <h2>Registrar comunidad</h2>
-
-    <form (ngSubmit)="createCommunity()">
-      <label>
-        Nombre
+    <form class="community-form" (ngSubmit)="createCommunity()">
+      <label class="form-field">
+        <span>Nombre <strong aria-hidden="true">*</strong></span>
         <input
           type="text"
           name="name"
           [(ngModel)]="name"
           required
           maxlength="100"
-          placeholder="Nombre de la comunidad"
+          placeholder="Ej. Comunidad El Pinar"
         />
       </label>
 
-      <label>
-        Ubicación
+      <label class="form-field">
+        <span>Ubicación <strong aria-hidden="true">*</strong></span>
         <input
           type="text"
           name="location"
           [(ngModel)]="location"
           required
           maxlength="200"
-          placeholder="Ubicación"
+          placeholder="Municipio y departamento"
         />
       </label>
 
-      <label>
-        Descripción
+      <label class="form-field form-field--wide">
+        <span>Descripción</span>
         <textarea
           name="description"
           [(ngModel)]="description"
           maxlength="500"
-          placeholder="Descripción"
+          rows="3"
+          placeholder="Describe brevemente la comunidad y su contexto climático"
         ></textarea>
       </label>
 
-      <button type="submit" [disabled]="saving">
-        {{ saving ? 'Guardando...' : 'Registrar comunidad' }}
-      </button>
+      <div class="form-actions form-field--wide">
+        <button class="primary-button" type="submit" [disabled]="saving">
+          {{ saving ? 'Guardando...' : 'Registrar comunidad' }}
+        </button>
+      </div>
     </form>
+  </section>
+
+  <div class="feedback" aria-live="polite">
+    @if (success) {
+      <p class="message message--success">{{ success }}</p>
+    }
+
+    @if (loading) {
+      <p class="message">Cargando comunidades...</p>
+    }
+
+    @if (error) {
+      <div class="message message--error" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" (click)="loadCommunities()">Reintentar</button>
+      </div>
+    }
   </div>
 
-  @if (success) {
-    <p class="message success">{{ success }}</p>
-  }
-
-  @if (loading) {
-    <p class="message">Cargando comunidades...</p>
-  }
-
-  @if (error) {
-    <p class="message error">{{ error }}</p>
-    <button type="button" (click)="loadCommunities()">Reintentar</button>
-  }
-
-  @if (!loading && !error && communities.length === 0) {
-    <p class="message">No hay comunidades registradas.</p>
-  }
-
-  @if (!loading && communities.length > 0) {
-    <div class="community-list">
-      @for (community of communities; track community.id) {
-        <article class="community-card">
-          <h2>{{ community.name }}</h2>
-          <p>{{ community.location }}</p>
-          <p>{{ community.description }}</p>
-        </article>
+  <section class="records-section" aria-labelledby="communities-title">
+    <div class="section-heading section-heading--records">
+      <div>
+        <p class="section-heading__eyebrow">Cobertura de monitoreo</p>
+        <h2 id="communities-title">Comunidades registradas</h2>
+      </div>
+      @if (!loading && communities.length > 0) {
+        <span class="record-count">{{ communities.length }} registradas</span>
       }
     </div>
-  }
+
+    @if (!loading && !error && communities.length === 0) {
+      <div class="empty-state">
+        <span aria-hidden="true">◇</span>
+        <div>
+          <h3>Sin comunidades registradas</h3>
+          <p>Utiliza el formulario para agregar la primera comunidad al monitoreo.</p>
+        </div>
+      </div>
+    }
+
+    @if (!loading && communities.length > 0) {
+      <div class="community-grid">
+        @for (community of communities; track community.id) {
+          <article class="community-card">
+            <div class="community-card__topline">
+              <span class="community-card__icon" aria-hidden="true">◇</span>
+              <span class="community-card__status">Registrada</span>
+            </div>
+            <h3>{{ community.name }}</h3>
+            <p class="community-card__location">
+              <span aria-hidden="true">●</span>{{ community.location }}
+            </p>
+            <p class="community-card__description">
+              {{ community.description || 'Sin descripción registrada.' }}
+            </p>
+          </article>
+        }
+      </div>
+    }
+  </section>
 </section>

@@ -1,9 +1,45 @@
 <nav class="sidebar" aria-label="Navegación principal">
   <p class="sidebar__label">Monitoreo</p>
+
   <ul>
     @for (item of navigation; track item.label) {
-      <li><button type="button" [class.sidebar__item--active]="item.active" [attr.aria-current]="item.active ? 'page' : null"><span class="sidebar__icon" aria-hidden="true">{{ item.symbol }}</span><span>{{ item.label }}</span>@if (item.upcoming) { <small>Próximamente</small> }</button></li>
+      <li>
+        <button
+          type="button"
+          [class.sidebar__item--active]="isActive(item)"
+          [attr.aria-current]="isActive(item) ? 'page' : null"
+          [disabled]="item.upcoming"
+          (click)="navigate(item)"
+        >
+          <span class="sidebar__icon" aria-hidden="true">
+            {{ item.symbol }}
+          </span>
+
+          <span>{{ item.label }}</span>
+
+          @if (item.upcoming) {
+            <small>Próximamente</small>
+          }
+        </button>
+      </li>
     }
   </ul>
-  <aside class="sidebar__note"><span aria-hidden="true">●</span><div><strong>{{ climate.source() === 'api' ? 'Fuente: API' : 'Modo de simulación' }}</strong><p>{{ climate.source() === 'api' ? 'Comunidades, sensores y lecturas consultados desde la API.' : 'Las lecturas visibles son simuladas.' }}</p></div></aside>
+
+  <aside class="sidebar__note">
+    <span aria-hidden="true">●</span>
+
+    <div>
+      <strong>
+        {{ climate.source() === 'api' ? 'Fuente: API' : 'Modo de simulación' }}
+      </strong>
+
+      <p>
+        {{
+          climate.source() === 'api'
+            ? 'Comunidades, sensores y lecturas consultados desde la API.'
+            : 'Las lecturas visibles son simuladas.'
+        }}
+      </p>
+    </div>
+  </aside>
 </nav>

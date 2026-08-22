@@ -1,18 +1,24 @@
-﻿<section class="page">
-  <div class="page-header">
-    <div>
-      <p>Gestiï¿½n</p>
-      <h1>Sensores</h1>
-      <span>Sensores registrados por comunidad</span>
+<section class="management-page">
+  <header class="page-heading">
+    <p class="page-heading__eyebrow">Gestión</p>
+    <h1>Sensores</h1>
+    <p class="page-heading__description">
+      Registra y supervisa los dispositivos que envían información climática por comunidad.
+    </p>
+  </header>
+
+  <section class="form-panel" aria-labelledby="sensor-form-title">
+    <div class="section-heading">
+      <div>
+        <p class="section-heading__eyebrow">Nuevo dispositivo</p>
+        <h2 id="sensor-form-title">Registrar sensor</h2>
+      </div>
+      <p>Completa los datos técnicos para incorporar el sensor al monitoreo.</p>
     </div>
-  </div>
 
-  <div class="form-card">
-    <h2>Registrar sensor</h2>
-
-    <form (ngSubmit)="createSensor()">
-      <label>
-        Comunidad
+    <form class="sensor-form" (ngSubmit)="createSensor()">
+      <label class="form-field">
+        <span>Comunidad <strong aria-hidden="true">*</strong></span>
         <select
           name="community"
           [(ngModel)]="selectedCommunityId"
@@ -20,140 +26,135 @@
           required
         >
           <option value="">Selecciona una comunidad</option>
-
           @for (community of communities; track community.id) {
-            <option [value]="community.id">
-              {{ community.name }}
-            </option>
+            <option [value]="community.id">{{ community.name }}</option>
           }
         </select>
       </label>
 
-      <label>
-        Cï¿½digo
-        <input
-          type="text"
-          name="code"
-          [(ngModel)]="code"
-          required
-          maxlength="50"
-          placeholder="Ej. TEMP-001"
-        />
+      <label class="form-field">
+        <span>Código <strong aria-hidden="true">*</strong></span>
+        <input type="text" name="code" [(ngModel)]="code" required maxlength="50" placeholder="Ej. TEMP-001" />
       </label>
 
-      <label>
-        Nombre
-        <input
-          type="text"
-          name="name"
-          [(ngModel)]="name"
-          required
-          maxlength="100"
-          placeholder="Nombre del sensor"
-        />
+      <label class="form-field">
+        <span>Nombre <strong aria-hidden="true">*</strong></span>
+        <input type="text" name="name" [(ngModel)]="name" required maxlength="100" placeholder="Nombre del sensor" />
       </label>
 
-      <label>
-        Tipo de mediciï¿½n
-        <select
-          name="measurementType"
-          [(ngModel)]="measurementType"
-        >
+      <label class="form-field">
+        <span>Tipo de medición</span>
+        <select name="measurementType" [(ngModel)]="measurementType">
           <option value="Temperature">Temperatura</option>
           <option value="RelativeHumidity">Humedad relativa</option>
           <option value="WindSpeed">Velocidad del viento</option>
           <option value="RainfallLevel">Nivel de lluvia</option>
-          <option value="RiverOrReservoirLevel">
-            Nivel de rï¿½o o reservorio
-          </option>
+          <option value="RiverOrReservoirLevel">Nivel de río o reservorio</option>
         </select>
       </label>
 
-      <label>
-        Origen
+      <label class="form-field">
+        <span>Origen</span>
         <select name="origin" [(ngModel)]="origin">
           <option value="Simulated">Simulado</option>
-          <option value="Physical">Fï¿½sico</option>
+          <option value="Physical">Físico</option>
         </select>
       </label>
 
-      <label>
-        ubicaciï¿½n
-        <input
-          type="text"
-          name="location"
-          [(ngModel)]="location"
-          required
-          maxlength="200"
-          placeholder="ubicaciï¿½n del sensor"
-        />
+      <label class="form-field">
+        <span>Ubicación <strong aria-hidden="true">*</strong></span>
+        <input type="text" name="location" [(ngModel)]="location" required maxlength="200" placeholder="Ubicación del sensor" />
       </label>
 
-      <label>
-        Cï¿½digo del dispositivo
-        <input
-          type="text"
-          name="deviceCode"
-          [(ngModel)]="deviceCode"
-          maxlength="100"
-          placeholder="Opcional"
-        />
+      <label class="form-field form-field--wide">
+        <span>Código del dispositivo <small>Para sensores físicos</small></span>
+        <input type="text" name="deviceCode" [(ngModel)]="deviceCode" maxlength="100" placeholder="Identificador del dispositivo físico (opcional)" />
       </label>
 
-      <button type="submit" [disabled]="saving">
-        {{ saving ? 'Guardando...' : 'Registrar sensor' }}
-      </button>
+      <div class="form-actions form-field--wide">
+        <button class="primary-button" type="submit" [disabled]="saving || communities.length === 0">
+          {{ saving ? 'Guardando...' : 'Registrar sensor' }}
+        </button>
+      </div>
     </form>
+  </section>
+
+  <div class="feedback" aria-live="polite">
+    @if (success) {
+      <p class="message message--success">{{ success }}</p>
+    }
+    @if (error) {
+      <p class="message message--error" role="alert">{{ error }}</p>
+    }
+    @if (loading) {
+      <p class="message">Cargando sensores...</p>
+    }
   </div>
 
-  @if (success) {
-    <p class="message success">{{ success }}</p>
-  }
-
-  @if (error) {
-    <p class="message error">{{ error }}</p>
-  }
-
-  @if (loading) {
-    <p class="message">Cargando sensores...</p>
-  }
-
-  @if (!loading && selectedCommunityId && sensors.length === 0) {
-    <p class="message">No hay sensores registrados para esta comunidad.</p>
-  }
-
-  @if (!loading && sensors.length > 0) {
-    <div class="sensor-list">
-      @for (sensor of sensors; track sensor.id) {
-        <article class="sensor-card">
-          <h2>{{ sensor.name }}</h2>
-          <p><strong>Cï¿½digo:</strong> {{ sensor.code }}</p>
-          <p><strong>Tipo:</strong> {{ sensor.measurementType }}</p>
-          <p><strong>Origen:</strong> {{ sensor.origin }}</p>
-          <p><strong>ubicaciï¿½n:</strong> {{ sensor.location }}</p>
-          <p><strong>Estado:</strong> {{ sensor.status }}</p>
-
-          @if (latestReadings[sensor.id]; as reading) {
-            <p>
-              <strong>Última lectura:</strong>
-              {{ reading.value }} {{ reading.unit }}
-            </p>
-            <p>
-              <strong>Medida:</strong>
-              {{ reading.variable }}
-            </p>
-          } @else {
-            <p><strong>Última lectura:</strong> Sin lecturas</p>
-          }`r`n          <button type="button" (click)="changeStatus(sensor)">`r`n            {{ sensor.status === 'Active' ? 'Desactivar' : 'Activar' }}`r`n          </button>
-          <button
-            type="button"
-            (click)="changeStatus(sensor)"
-          >
-            {{ sensor.status === 'Active' ? 'Desactivar' : 'Activar' }}
-          </button>
-        </article>
+  <section class="records-section" aria-labelledby="sensors-title">
+    <div class="section-heading section-heading--records">
+      <div>
+        <p class="section-heading__eyebrow">Red de monitoreo</p>
+        <h2 id="sensors-title">Sensores registrados</h2>
+      </div>
+      @if (!loading && sensors.length > 0) {
+        <span class="record-count">{{ sensors.length }} en la comunidad</span>
       }
     </div>
-  }
-</section>
 
+    @if (!loading && selectedCommunityId && sensors.length === 0) {
+      <div class="empty-state">
+        <span aria-hidden="true">⌁</span>
+        <div><h3>Sin sensores registrados</h3><p>Agrega el primer dispositivo para esta comunidad.</p></div>
+      </div>
+    }
+
+    @if (!loading && sensors.length > 0) {
+      <div class="sensor-grid">
+        @for (sensor of sensors; track sensor.id) {
+          <article class="sensor-card">
+            <div class="sensor-card__topline">
+              <span class="sensor-card__icon" aria-hidden="true">⌁</span>
+              <div class="sensor-card__badges">
+                <span class="badge" [class.badge--active]="sensor.status === 'Active'" [class.badge--inactive]="sensor.status !== 'Active'">
+                  {{ sensor.status === 'Active' ? 'Activo' : 'Inactivo' }}
+                </span>
+                <span class="badge badge--origin">{{ sensor.origin === 'Simulated' ? 'Simulado' : 'Físico' }}</span>
+              </div>
+            </div>
+
+            <h3>{{ sensor.name }}</h3>
+            <p class="sensor-card__code">{{ sensor.code }}</p>
+
+            <dl class="sensor-details">
+              <div><dt>Tipo</dt><dd>{{ sensor.measurementType }}</dd></div>
+              <div><dt>Ubicación</dt><dd>{{ sensor.location }}</dd></div>
+              <div><dt>Origen</dt><dd>{{ sensor.origin === 'Simulated' ? 'Simulado' : 'Físico' }}</dd></div>
+              <div><dt>Estado</dt><dd>{{ sensor.status === 'Active' ? 'Activo' : 'Inactivo' }}</dd></div>
+            </dl>
+
+            <div class="latest-reading">
+              <span class="latest-reading__label">Última lectura</span>
+              @if (latestReadings[sensor.id]; as reading) {
+                <strong>{{ reading.value }} <small>{{ reading.unit }}</small></strong>
+                <span>{{ reading.variable }}</span>
+              } @else {
+                <strong class="latest-reading__empty">Sin lecturas</strong>
+                <span>Esperando datos del sensor</span>
+              }
+            </div>
+
+            <button
+              class="status-button"
+              [class.status-button--deactivate]="sensor.status === 'Active'"
+              type="button"
+              (click)="changeStatus(sensor)"
+            >
+              {{ sensor.status === 'Active' ? 'Desactivar sensor' : 'Activar sensor' }}
+            </button>
+          </article>
+        }
+      </div>
+    }
+  </section>
+</section>
