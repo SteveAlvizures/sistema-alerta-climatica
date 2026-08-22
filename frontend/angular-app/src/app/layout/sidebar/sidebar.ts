@@ -34,14 +34,14 @@ export class Sidebar {
     {
       label: 'Alertas',
       symbol: '!',
-      route: null,
-      upcoming: true,
+      route: '/alerts',
+      upcoming: false,
     },
     {
       label: 'Historial',
       symbol: '↻',
-      route: null,
-      upcoming: true,
+      route: '/history',
+      upcoming: false,
     },
     {
       label: 'Comunidades',

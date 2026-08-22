@@ -36,6 +36,20 @@ export const routes: Routes = [
             (component) => component.SensorsPage,
           ),
       },
+      {
+        path: 'alerts',
+        loadComponent: () =>
+          import('./features/alerts/pages/alerts-page/alerts-page').then(
+            (component) => component.AlertsPage,
+          ),
+      },
+      {
+        path: 'history',
+        loadComponent: () =>
+          import('./features/history/pages/history-page/history-page').then(
+            (component) => component.HistoryPage,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

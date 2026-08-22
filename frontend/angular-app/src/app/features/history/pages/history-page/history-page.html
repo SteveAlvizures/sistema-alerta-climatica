@@ -1,0 +1,34 @@
+<section class="history-page">
+  <header class="page-heading"><p>Datos persistidos</p><h1>Historial climático</h1><span>Explora cronológicamente las lecturas almacenadas por comunidad y sensor.</span></header>
+
+  <section class="summary-grid" aria-label="Resumen del historial">
+    <article><span>Lecturas mostradas</span><strong>{{ filteredItems.length }}</strong><small>de {{ items.length }} recuperadas</small></article>
+    <article><span>Última lectura</span>@if (lastReading; as item) { <strong>{{ item.reading.value }} <em>{{ item.reading.unit }}</em></strong><small>{{ formatDate(item.reading.measuredAt) }}</small> } @else { <strong>—</strong><small>Sin resultados</small> }</article>
+    <article><span>Variable</span><strong class="summary-text">{{ variableSummary }}</strong><small>Filtro actual</small></article>
+    <article><span>Período</span><strong class="summary-text">{{ periodSummary }}</strong><small>Rango consultado</small></article>
+  </section>
+
+  <section class="filters" aria-label="Filtros del historial">
+    <label><span>Comunidad</span><select [(ngModel)]="selectedCommunityId" (change)="onCommunityChange()">@for (community of communities; track community.id) { <option [value]="community.id">{{ community.name }}</option> }</select></label>
+    <label><span>Sensor</span><select [(ngModel)]="selectedSensorId"><option value="">Todos los sensores</option>@for (sensor of sensors; track sensor.id) { <option [value]="sensor.id">{{ sensor.name }}</option> }</select></label>
+    <label><span>Variable</span><select [(ngModel)]="selectedVariable"><option value="">Todas las variables</option>@for (variable of variables; track variable) { <option [value]="variable">{{ variableLabel(variable) }}</option> }</select></label>
+    <label><span>Desde</span><input type="date" [(ngModel)]="dateFrom" [max]="dateTo || null" /></label>
+    <label><span>Hasta</span><input type="date" [(ngModel)]="dateTo" [min]="dateFrom || null" /></label>
+    <button type="button" (click)="clearFilters()">Limpiar filtros</button>
+  </section>
+
+  @if (error) { <p class="message message--error" role="alert">{{ error }} <button type="button" (click)="ngOnInit()">Reintentar</button></p> }
+  @if (loading) { <p class="message">Consultando lecturas persistidas…</p> }
+  @if (!loading && !error) {
+    <div class="results-heading"><div><h2>{{ selectedCommunity?.name || 'Historial' }}</h2><span>{{ selectedCommunity?.location }}</span></div><strong>{{ filteredItems.length }} resultados</strong></div>
+    @if (!filteredItems.length) { <div class="empty-state"><strong>Sin lecturas para estos filtros</strong><span>Selecciona otro sensor, variable o rango temporal.</span></div> }
+    @if (filteredItems.length) {
+      <div class="history-table" role="table" aria-label="Lecturas climáticas">
+        <div class="history-row history-row--header" role="row"><span>Fecha y hora</span><span>Variable</span><span>Valor</span><span>Sensor</span><span>Comunidad</span><span>Origen</span></div>
+        @for (item of filteredItems; track item.reading.id) {
+          <article class="history-row" role="row"><time>{{ formatDate(item.reading.measuredAt) }}</time><span class="variable"><i [attr.data-variable]="item.reading.variable"></i>{{ variableLabel(item.reading.variable) }}</span><strong>{{ item.reading.value }} <small>{{ item.reading.unit }}</small></strong><span><b>{{ item.sensor.name }}</b><small>{{ item.sensor.code }}</small></span><span>{{ item.community.name }}</span><span class="origin">{{ originLabel(item.reading.origin) }}</span></article>
+        }
+      </div>
+    }
+  }
+</section>

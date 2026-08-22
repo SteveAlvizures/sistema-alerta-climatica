@@ -44,6 +44,20 @@ describe('API services', () => {
     request.flush([]);
   });
 
+  it('requests all alerts from the real route', () => {
+    TestBed.inject(AlertApiService).getAll().subscribe();
+    const request = http.expectOne('/api/alerts');
+    expect(request.request.method).toBe('GET');
+    request.flush([]);
+  });
+
+  it('requests persisted history for a sensor', () => {
+    TestBed.inject(SensorReadingApiService).getHistory('sensor-1', 100).subscribe();
+    const request = http.expectOne('/api/sensors/sensor-1/readings?limit=100');
+    expect(request.request.method).toBe('GET');
+    request.flush([]);
+  });
+
   it('acknowledges an alert with the real route', () => {
     TestBed.inject(AlertApiService).acknowledge('alert-1').subscribe();
     const request = http.expectOne('/api/alerts/alert-1/acknowledge');
