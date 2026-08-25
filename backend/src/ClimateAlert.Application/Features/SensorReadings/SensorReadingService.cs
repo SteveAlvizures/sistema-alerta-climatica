@@ -12,16 +12,20 @@ public sealed class SensorReadingService(
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : ISensorReadingRegistrar
 {
-    public async Task<IReadOnlyList<SensorReadingResponse>> GetHistoryAsync(
-        Guid sensorId, int limit, CancellationToken cancellationToken)
+    public async Task<PagedResponse<SensorReadingResponse>> GetHistoryAsync(
+        Guid sensorId, int pageIndex, int pageSize, CancellationToken cancellationToken)
     {
         if (await sensors.GetByIdAsync(sensorId, false, cancellationToken) is null)
         {
             throw new NotFoundException("El sensor solicitado no existe.");
         }
 
-        int effectiveLimit = limit <= 0 ? 50 : Math.Min(limit, 100);
-        return (await readings.GetBySensorAsync(sensorId, effectiveLimit, cancellationToken)).Select(Map).ToList();
+        if (pageIndex < 1) throw new ValidationException("La página debe ser mayor o igual a 1.");
+        if (pageSize < 1 || pageSize > 100) throw new ValidationException("El tamaño de página debe estar entre 1 y 100.");
+        var result = await readings.GetPageBySensorAsync(sensorId, pageIndex, pageSize, cancellationToken);
+        int totalPages = result.TotalCount == 0 ? 0 : (int)Math.Ceiling(result.TotalCount / (double)pageSize);
+        return new(result.Items.Select(Map).ToList(), pageIndex, pageSize, totalPages, result.TotalCount,
+            pageIndex > 1, pageIndex < totalPages);
     }
 
     public async Task<SensorReadingResponse> GetLatestAsync(Guid sensorId, CancellationToken cancellationToken)

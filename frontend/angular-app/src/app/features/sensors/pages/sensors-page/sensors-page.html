@@ -7,6 +7,7 @@
     </p>
   </header>
 
+  @if (canAdminister()) {
   <section class="form-panel" aria-labelledby="sensor-form-title">
     <div class="section-heading">
       <div>
@@ -78,6 +79,22 @@
       </div>
     </form>
   </section>
+  } @else {
+    <aside class="message">Modo consulta: inicia sesión como administrador para agregar, editar o cambiar el estado de sensores.</aside>
+  }
+
+  @if (editingSensor) {
+    <section class="form-panel edit-panel" aria-labelledby="edit-sensor-title">
+      <div class="section-heading"><div><p class="section-heading__eyebrow">Configuración administrativa</p><h2 id="edit-sensor-title">Editar {{ editingSensor.name }}</h2></div><p>La comunidad, variable, origen y el historial no se modifican.</p></div>
+      <form class="sensor-form" (ngSubmit)="saveEdit()">
+        <label class="form-field"><span>Código</span><input name="editCode" [(ngModel)]="editCode" required /></label>
+        <label class="form-field"><span>Nombre</span><input name="editName" [(ngModel)]="editName" required /></label>
+        <label class="form-field"><span>Ubicación</span><input name="editLocation" [(ngModel)]="editLocation" required /></label>
+        @if (editingSensor.origin === 'Physical') { <label class="form-field form-field--wide"><span>Código del dispositivo</span><input name="editDeviceCode" [(ngModel)]="editDeviceCode" /></label> }
+        <div class="form-actions form-field--wide"><button class="primary-button" type="button" (click)="cancelEdit()">Cancelar</button><button class="primary-button" type="submit" [disabled]="saving">{{ saving ? 'Guardando…' : 'Guardar cambios' }}</button></div>
+      </form>
+    </section>
+  }
 
   <div class="feedback" aria-live="polite">
     @if (success) {
@@ -127,7 +144,7 @@
             <p class="sensor-card__code">{{ sensor.code }}</p>
 
             <dl class="sensor-details">
-              <div><dt>Tipo</dt><dd>{{ sensor.measurementType }}</dd></div>
+              <div><dt>Tipo</dt><dd>{{ variableLabel(sensor.measurementType) }}</dd></div>
               <div><dt>Ubicación</dt><dd>{{ sensor.location }}</dd></div>
               <div><dt>Origen</dt><dd>{{ sensor.origin === 'Simulated' ? 'Simulado' : 'Físico' }}</dd></div>
               <div><dt>Estado</dt><dd>{{ sensor.status === 'Active' ? 'Activo' : 'Inactivo' }}</dd></div>
@@ -137,21 +154,20 @@
               <span class="latest-reading__label">Última lectura</span>
               @if (latestReadings[sensor.id]; as reading) {
                 <strong>{{ reading.value }} <small>{{ reading.unit }}</small></strong>
-                <span>{{ reading.variable }}</span>
+                <span>{{ variableLabel(reading.variable) }}</span>
               } @else {
                 <strong class="latest-reading__empty">Sin lecturas</strong>
                 <span>Esperando datos del sensor</span>
               }
             </div>
 
-            <button
-              class="status-button"
-              [class.status-button--deactivate]="sensor.status === 'Active'"
-              type="button"
-              (click)="changeStatus(sensor)"
-            >
-              {{ sensor.status === 'Active' ? 'Desactivar sensor' : 'Activar sensor' }}
-            </button>
+            @if (canAdminister()) {
+              <div class="sensor-card__actions">
+                <button class="status-button" type="button" (click)="startEdit(sensor)">Editar</button>
+                <button class="status-button" type="button" (click)="restartMonitoring(sensor)">Reiniciar monitoreo</button>
+                <button class="status-button" [class.status-button--deactivate]="sensor.status === 'Active'" type="button" (click)="changeStatus(sensor)">{{ sensor.status === 'Active' ? 'Desactivar' : 'Activar' }}</button>
+              </div>
+            }
           </article>
         }
       </div>

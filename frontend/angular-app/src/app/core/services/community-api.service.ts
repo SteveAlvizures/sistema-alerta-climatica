@@ -9,6 +9,7 @@ export interface CreateCommunityRequest {
   location: string;
   description: string | null;
 }
+export type UpdateCommunityRequest = CreateCommunityRequest;
 
 @Injectable({ providedIn: 'root' })
 export class CommunityApiService {
@@ -24,5 +25,13 @@ export class CommunityApiService {
       `${this.baseUrl}/communities`,
       request,
     );
+  }
+
+  update(id: string, request: UpdateCommunityRequest): Observable<CommunityDto> {
+    return this.http.put<CommunityDto>(`${this.baseUrl}/communities/${id}`, request);
+  }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/communities/${id}`);
   }
 }

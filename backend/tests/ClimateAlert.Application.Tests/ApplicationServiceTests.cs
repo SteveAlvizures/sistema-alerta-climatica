@@ -100,12 +100,64 @@ public sealed class ApplicationServiceTests
     }
 
     [Fact]
-    public async Task CapsHistoryLimitAtOneHundred()
+    public async Task ReturnsFirstHistoryPageWithMetadata()
     {
         TestContext context = new();
         Sensor sensor = context.AddSensor(active: true);
-        await context.Readings.GetHistoryAsync(sensor.Id, 500, default);
-        Assert.Equal(100, context.ReadingRepository.LastRequestedLimit);
+        for (int index = 0; index < 25; index++)
+            await context.Readings.CreateAsync(ReadingRequest(sensor.Id) with { MeasuredAt = Now.AddMinutes(-index) }, default);
+        PagedResponse<SensorReadingResponse> result = await context.Readings.GetHistoryAsync(sensor.Id, 1, 20, default);
+        Assert.Equal(20, result.Data.Count);
+        Assert.Equal(25, result.TotalCount);
+        Assert.Equal(2, result.TotalPages);
+        Assert.False(result.HasPrevious);
+        Assert.True(result.HasNext);
+    }
+
+    [Fact]
+    public async Task ReturnsAnotherHistoryPage()
+    {
+        TestContext context = new();
+        Sensor sensor = context.AddSensor(active: true);
+        for (int index = 0; index < 25; index++)
+            await context.Readings.CreateAsync(ReadingRequest(sensor.Id) with { MeasuredAt = Now.AddMinutes(-index) }, default);
+        PagedResponse<SensorReadingResponse> result = await context.Readings.GetHistoryAsync(sensor.Id, 2, 20, default);
+        Assert.Equal(5, result.Data.Count);
+        Assert.True(result.HasPrevious);
+        Assert.False(result.HasNext);
+        Assert.Equal(2, context.ReadingRepository.LastRequestedPage);
+    }
+
+    [Theory]
+    [InlineData(0, 20)]
+    [InlineData(1, 0)]
+    [InlineData(1, 101)]
+    public async Task RejectsInvalidPagination(int page, int pageSize)
+    {
+        TestContext context = new();
+        Sensor sensor = context.AddSensor(active: true);
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            context.Readings.GetHistoryAsync(sensor.Id, page, pageSize, default));
+    }
+
+    [Fact]
+    public async Task UpdatesAndDeletesEmptyCommunity()
+    {
+        TestContext context = new();
+        Community community = context.AddCommunity();
+        CommunityResponse updated = await context.Communities.UpdateAsync(
+            community.Id, new("El Pinar Nuevo", "Alta Verapaz", "Actualizada"), default);
+        await context.Communities.DeleteAsync(community.Id, default);
+        Assert.Equal("El Pinar Nuevo", updated.Name);
+        await Assert.ThrowsAsync<NotFoundException>(() => context.Communities.GetByIdAsync(community.Id, default));
+    }
+
+    [Fact]
+    public async Task RejectsDeletingCommunityWithDependencies()
+    {
+        TestContext context = new();
+        Sensor sensor = context.AddSensor(active: true);
+        await Assert.ThrowsAsync<ConflictException>(() => context.Communities.DeleteAsync(sensor.CommunityId, default));
     }
 
     private static CreateSensorRequest SensorRequest(Guid communityId) => new(
@@ -147,6 +199,7 @@ public sealed class ApplicationServiceTests
                 ClimateVariable.Temperature, SensorOrigin.Simulated, "Centro", Now);
             if (active) sensor.Activate();
             _sensorRepository.Add(sensor);
+            _communityRepository.MarkDependency(community.Id);
             return sensor;
         }
     }
@@ -154,10 +207,14 @@ public sealed class ApplicationServiceTests
     private sealed class FakeCommunityRepository : ICommunityRepository
     {
         private readonly List<Community> _items = [];
+        private readonly HashSet<Guid> _dependencies = [];
         public Task<IReadOnlyList<Community>> GetAllAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Community>>(_items);
         public Task<Community?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken) => Task.FromResult(_items.SingleOrDefault(item => item.Id == id));
-        public Task<bool> ExistsAsync(string name, string location, CancellationToken cancellationToken) => Task.FromResult(_items.Any(item => item.Name == name && item.Location == location));
+        public Task<bool> ExistsAsync(string name, string location, Guid? excludingId, CancellationToken cancellationToken) => Task.FromResult(_items.Any(item => item.Name == name && item.Location == location && item.Id != excludingId));
+        public Task<bool> HasDependenciesAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(_dependencies.Contains(id));
         public void Add(Community community) => _items.Add(community);
+        public void Remove(Community community) => _items.Remove(community);
+        public void MarkDependency(Guid id) => _dependencies.Add(id);
     }
 
     private sealed class FakeSensorRepository : ISensorRepository
@@ -174,11 +231,12 @@ public sealed class ApplicationServiceTests
     public sealed class FakeReadingRepository : ISensorReadingRepository
     {
         private readonly List<SensorReading> _items = [];
-        public int LastRequestedLimit { get; private set; }
-        public Task<IReadOnlyList<SensorReading>> GetBySensorAsync(Guid sensorId, int limit, CancellationToken cancellationToken)
+        public int LastRequestedPage { get; private set; }
+        public Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageBySensorAsync(Guid sensorId, int pageIndex, int pageSize, CancellationToken cancellationToken)
         {
-            LastRequestedLimit = limit;
-            return Task.FromResult<IReadOnlyList<SensorReading>>(_items.Where(item => item.SensorId == sensorId).OrderByDescending(item => item.MeasuredAt).Take(limit).ToList());
+            LastRequestedPage = pageIndex;
+            List<SensorReading> all = _items.Where(item => item.SensorId == sensorId).OrderByDescending(item => item.MeasuredAt).ThenByDescending(item => item.Id).ToList();
+            return Task.FromResult(((IReadOnlyList<SensorReading>)all.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList(), all.Count));
         }
         public Task<SensorReading?> GetLatestAsync(Guid sensorId, CancellationToken cancellationToken) => Task.FromResult(_items.Where(item => item.SensorId == sensorId).OrderByDescending(item => item.MeasuredAt).FirstOrDefault());
         public void Add(SensorReading reading) => _items.Add(reading);

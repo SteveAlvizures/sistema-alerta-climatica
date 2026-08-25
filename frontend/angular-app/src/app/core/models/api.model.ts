@@ -45,6 +45,16 @@ export interface SensorReadingDto {
   origin: ApiSensorOrigin;
 }
 
+export interface PagedResponse<T> {
+  data: T[];
+  pageIndex: number;
+  pageSize: number;
+  totalPages: number;
+  totalCount: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
 export interface AlertDto {
   id: string;
   communityId: string;
@@ -58,4 +68,16 @@ export interface AlertDto {
   detectedAt: string;
   updatedAt: string;
   closedAt: string | null;
+}
+
+export interface AlertRuleDto { id: string; communityId: string; sensorId: string | null; code: string; name: string; phenomenon: ApiClimatePhenomenon; variable: ClimateVariable; dangerLevel: ApiDangerLevel; lowerLimit: number | null; upperLimit: number | null; validFrom: string; validUntil: string | null; isActive: boolean; createdAt: string; }
+
+export interface AuditActionDto {
+  id: string;
+  occurredAt: string;
+  username: string;
+  action: string;
+  affectedEntity: string;
+  affectedRecordId: string | null;
+  description: string;
 }

@@ -67,6 +67,28 @@ public sealed class SensorService(
         return Map(sensor);
     }
 
+    public async Task<SensorResponse> UpdateAsync(Guid id, UpdateSensorRequest request, CancellationToken cancellationToken)
+    {
+        Sensor sensor = await sensors.GetByIdAsync(id, true, cancellationToken)
+            ?? throw new NotFoundException("El sensor solicitado no existe.");
+        string code = request.Code?.Trim() ?? string.Empty;
+        if (!string.Equals(code, sensor.Code, StringComparison.OrdinalIgnoreCase)
+            && await sensors.ExistsAsync(sensor.CommunityId, code, cancellationToken))
+        {
+            throw new ConflictException("Ya existe un sensor con el mismo código en la comunidad.");
+        }
+        try
+        {
+            sensor.UpdateAdministrativeDetails(code, request.Name, request.Location, request.DeviceCode);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new ValidationException(exception.Message);
+        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Map(sensor);
+    }
+
     private static SensorResponse Map(Sensor sensor) => new(
         sensor.Id, sensor.CommunityId, sensor.Code, sensor.Name, sensor.MeasurementType,
         sensor.Origin, sensor.Status, sensor.Location, sensor.DeviceCode,

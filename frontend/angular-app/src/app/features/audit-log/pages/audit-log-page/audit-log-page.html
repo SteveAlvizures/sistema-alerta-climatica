@@ -1,0 +1,17 @@
+<section class="audit-page">
+  <header class="page-heading"><p>Administración segura</p><h1>Bitácora de actividad</h1><span>Acciones administrativas registradas por Vigía Rural.</span></header>
+  <form class="filters" (ngSubmit)="load()">
+    <label><span>Acción</span><select [(ngModel)]="actionFilter" name="action"><option value="">Todas las acciones</option>@for (option of actionOptions; track option[0]) { <option [value]="option[0]">{{ option[1] }}</option> }</select></label>
+    <label class="filters__search"><span>Buscar</span><input [(ngModel)]="search" name="search" placeholder="Usuario, entidad o descripción" /></label>
+    <button type="submit">Aplicar filtros</button><button class="secondary" type="button" (click)="clear()">Limpiar</button>
+  </form>
+  @if (loading) { <p class="state">Cargando actividad…</p> }
+  @if (error) { <p class="state state--error" role="alert">{{ error }} <button type="button" (click)="load()">Reintentar</button></p> }
+  @if (!loading && !error && actions.length === 0) { <p class="state"><strong>Sin actividad para mostrar</strong><span>No se encontraron eventos con los filtros seleccionados.</span></p> }
+  @if (!loading && !error && actions.length > 0) {
+    <div class="audit-table" role="table" aria-label="Actividad administrativa">
+      <div class="audit-row audit-row--header" role="row"><span>Fecha y hora</span><span>Usuario</span><span>Acción</span><span>Entidad</span><span>Descripción</span></div>
+      @for (item of actions; track item.id) { <article class="audit-row" role="row"><time>{{ formatDate(item.occurredAt) }}</time><strong>{{ item.username }}</strong><span class="action">{{ actionLabel(item.action) }}</span><span>{{ entityLabel(item.affectedEntity) }}</span><p>{{ item.description }}</p></article> }
+    </div>
+  }
+</section>

@@ -6,6 +6,7 @@ import { AlertApiService } from './alert-api.service';
 import { CommunityApiService } from './community-api.service';
 import { SensorApiService } from './sensor-api.service';
 import { SensorReadingApiService } from './sensor-reading-api.service';
+import { AlertRuleApiService } from './alert-rule-api.service';
 
 describe('API services', () => {
   let http: HttpTestingController;
@@ -30,6 +31,20 @@ describe('API services', () => {
     request.flush([]);
   });
 
+  it('updates and deletes communities through the administrative routes', () => {
+    const service = TestBed.inject(CommunityApiService);
+    const payload = { name: 'Temporal', location: 'Guatemala', description: null };
+    service.update('community-1', payload).subscribe();
+    const update = http.expectOne('/api/communities/community-1');
+    expect(update.request.method).toBe('PUT');
+    update.flush({ id: 'community-1', ...payload, isActive: true, createdAt: '2026-08-19T12:00:00Z' });
+
+    service.delete('community-1').subscribe();
+    const deletion = http.expectOne('/api/communities/community-1');
+    expect(deletion.request.method).toBe('DELETE');
+    deletion.flush(null);
+  });
+
   it('requests sensors for a community', () => {
     TestBed.inject(SensorApiService).getByCommunity('community-1').subscribe();
     const request = http.expectOne('/api/communities/community-1/sensors');
@@ -37,11 +52,42 @@ describe('API services', () => {
     request.flush([]);
   });
 
+  it('updates administrative sensor data through the protected route', () => {
+    TestBed.inject(SensorApiService).update('sensor-1', { code: 'TEMP-01', name: 'Temperatura', location: 'Centro', deviceCode: null }).subscribe();
+    const request = http.expectOne('/api/sensors/sensor-1');
+    expect(request.request.method).toBe('PUT');
+    request.flush({});
+  });
+
+  it('uses the existing alert-rule routes', () => {
+    const service = TestBed.inject(AlertRuleApiService);
+    service.getAll().subscribe();
+    http.expectOne('/api/alert-rules').flush([]);
+    service.changeStatus('rule-1', false).subscribe();
+    const status = http.expectOne('/api/alert-rules/rule-1/status');
+    expect(status.request.method).toBe('PATCH');
+    status.flush({});
+  });
+
   it('requests community alerts without duplicating the API prefix', () => {
     TestBed.inject(AlertApiService).getByCommunity('community-1').subscribe();
     const request = http.expectOne('/api/communities/community-1/alerts');
     expect(request.request.method).toBe('GET');
     request.flush([]);
+  });
+
+  it('requests all alerts from the real route', () => {
+    TestBed.inject(AlertApiService).getAll().subscribe();
+    const request = http.expectOne('/api/alerts');
+    expect(request.request.method).toBe('GET');
+    request.flush([]);
+  });
+
+  it('requests persisted history for a sensor', () => {
+    TestBed.inject(SensorReadingApiService).getHistory('sensor-1', 1, 100).subscribe();
+    const request = http.expectOne('/api/sensors/sensor-1/readings?page=1&pageSize=100');
+    expect(request.request.method).toBe('GET');
+    request.flush({ data: [], pageIndex: 1, pageSize: 100, totalPages: 0, totalCount: 0, hasPrevious: false, hasNext: false });
   });
 
   it('acknowledges an alert with the real route', () => {

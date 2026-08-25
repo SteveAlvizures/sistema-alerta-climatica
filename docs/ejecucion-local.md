@@ -1,55 +1,87 @@
 # Ejecución local con Docker
 
-## Requisito
+## Requisitos
 
-Antes de ejecutar los comandos, inicia Docker Desktop y espera a que Docker esté disponible.
+- Docker Desktop con Docker Compose.
+- Puertos 80, 1433 y 8080 disponibles, o configuración equivalente.
+- Para ejecutar sin contenedores: .NET 10 SDK y Node.js compatible con Angular.
 
-## Preparar la configuración
-
-Copia el archivo de ejemplo desde PowerShell:
+## Configuración
 
 ```powershell
 Copy-Item .env.example .env
-```
-
-Edita `.env` y reemplaza los valores demostrativos, especialmente las contraseñas y claves. El archivo `.env` es local y no debe agregarse a Git.
-
-Valida la configuración antes de iniciar los servicios:
-
-```powershell
 docker compose config
 ```
 
-## Administrar SQL Server
+Completa los valores requeridos de `.env`. Este archivo es local, no debe agregarse a Git ni mostrarse en capturas.
 
-Inicia SQL Server en segundo plano:
-
-```powershell
-docker compose up -d sqlserver
-```
-
-Comprueba el estado y el healthcheck:
+## Iniciar la solución
 
 ```powershell
+docker compose up -d --build
 docker compose ps
 ```
 
-Consulta los registros:
+| Servicio | Puerto | Estado esperado |
+|---|---:|---|
+| Frontend Nginx | 80 | `Up` |
+| Backend ASP.NET Core | 8080 | `Up` |
+| SQL Server 2022 | 1433 | `healthy` |
 
 ```powershell
-docker compose logs -f sqlserver
+Invoke-WebRequest http://localhost
+Invoke-RestMethod http://localhost:8080/health
 ```
 
-Detén y elimina el contenedor y la red creados por Compose:
+Respuesta saludable:
+
+```json
+{"status":"Healthy","service":"ClimateAlert.Api"}
+```
+
+## Operación
+
+```powershell
+docker compose logs -f backend
+docker compose logs -f frontend
+docker compose logs -f sqlserver
+docker compose restart backend
+```
+
+Para reconstruir un servicio sin iniciar sus dependencias nuevamente:
+
+```powershell
+docker compose build frontend
+docker compose up -d --no-deps frontend
+```
+
+## Detener sin borrar datos
 
 ```powershell
 docker compose down
 ```
 
-Este comando conserva el volumen y los datos locales de SQL Server. Para eliminar también el volumen, usa:
+El volumen `climate-alert-sqlserver-data` conserva la base. No uses `docker compose down --volumes` salvo autorización expresa para perder esos datos.
+
+## Pruebas
+
+Backend:
 
 ```powershell
-docker compose down --volumes
+dotnet restore backend/ClimateAlert.sln
+dotnet build backend/ClimateAlert.sln -c Release
+dotnet test backend/tests/ClimateAlert.Domain.Tests/ClimateAlert.Domain.Tests.csproj -c Release
+dotnet test backend/tests/ClimateAlert.Application.Tests/ClimateAlert.Application.Tests.csproj -c Release
+dotnet test backend/tests/ClimateAlert.Infrastructure.Tests/ClimateAlert.Infrastructure.Tests.csproj -c Release
 ```
 
-La opción `--volumes` borra permanentemente los datos locales almacenados por SQL Server.
+Frontend:
+
+```powershell
+Set-Location frontend/angular-app
+npm ci
+npm test -- --watch=false --browsers=ChromeHeadless
+npm run build -- --configuration production
+```
+
+Consulta [Validación Linux y Docker](linux-docker.md).

@@ -5,6 +5,7 @@
 .page-heading h1 { margin: 0; color: var(--text-strong); font-size: clamp(1.6rem, 3vw, 2.15rem); letter-spacing: -.03em; }
 .page-heading__description { max-width: 44rem; margin: .45rem 0 0; color: var(--text-muted); font-size: .9rem; line-height: 1.6; }
 .form-panel { padding: clamp(1.2rem, 2.5vw, 1.7rem); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-soft); }
+.form-panel--editing { border-color: var(--brand-accent); box-shadow: 0 0 0 .2rem var(--brand-soft), var(--shadow-soft); }
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1.2rem; }
 .section-heading h2 { margin: 0; color: var(--text-strong); font-size: 1.15rem; }
 .section-heading > p { margin: 0; color: var(--text-subtle); font-size: .75rem; }
@@ -16,8 +17,9 @@
 .form-field textarea { min-height: 5.8rem; resize: vertical; line-height: 1.5; }
 .form-field input::placeholder, .form-field textarea::placeholder { color: var(--text-subtle); }
 .form-field input:focus, .form-field textarea:focus { border-color: var(--brand-accent); background: var(--surface); box-shadow: 0 0 0 .2rem var(--brand-soft); outline: 0; }
-.form-actions { display: flex; justify-content: flex-end; }
-.primary-button, .message button { min-height: 2.65rem; padding: .65rem 1rem; border: 1px solid var(--brand-accent); border-radius: .6rem; background: var(--brand); color: #fff; font-weight: 800; cursor: pointer; transition: transform .18s ease, opacity .18s ease; }
+.form-actions { display: flex; justify-content: flex-end; gap: .6rem; }
+.primary-button, .secondary-button, .message button { min-height: 2.65rem; padding: .65rem 1rem; border: 1px solid var(--brand-accent); border-radius: .6rem; background: var(--brand); color: #fff; font-weight: 800; cursor: pointer; transition: transform .18s ease, opacity .18s ease; }
+.secondary-button { background: var(--surface); color: var(--brand-accent); }
 .primary-button:hover:not(:disabled), .message button:hover { transform: translateY(-1px); }
 .primary-button:disabled { cursor: wait; opacity: .6; }
 .feedback:empty { display: none; }
@@ -30,6 +32,7 @@
 .record-count { padding: .35rem .65rem; border: 1px solid var(--brand-border); border-radius: 999px; background: var(--brand-soft); color: var(--brand-accent); font-size: .75rem; font-weight: 800; }
 .community-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 .community-card { min-width: 0; padding: 1.15rem; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-soft); }
+.community-card--editing { border-color: var(--brand-accent); box-shadow: 0 0 0 .15rem var(--brand-soft), var(--shadow-soft); }
 .community-card__topline { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .community-card__icon { width: 2.2rem; height: 2.2rem; display: grid; place-items: center; border-radius: .65rem; background: var(--brand-soft); color: var(--brand-accent); font-size: 1.2rem; font-weight: 900; }
 .community-card__status { padding: .3rem .55rem; border-radius: 999px; background: var(--brand-soft); color: var(--brand-accent); font-size: .7rem; font-weight: 800; }
@@ -37,6 +40,10 @@
 .community-card__location { display: flex; align-items: center; gap: .4rem; margin: 0; color: var(--brand-accent); font-size: .8rem; font-weight: 750; }
 .community-card__location span { font-size: .45rem; }
 .community-card__description { margin: .75rem 0 0; color: var(--text-muted); font-size: .82rem; line-height: 1.55; }
+.community-card__actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; padding-top: .8rem; border-top: 1px solid var(--border-soft); }
+.community-card__actions button { padding: .45rem .7rem; border: 1px solid var(--brand-border); border-radius: .5rem; background: var(--brand-soft); color: var(--brand-accent); font-weight: 750; cursor: pointer; }
+.community-card__actions .danger-button { border-color: var(--warning-border); background: var(--warning-soft); color: var(--warning-text); }
+.community-card__actions button:disabled { cursor: wait; opacity: .55; }
 .empty-state { display: flex; align-items: center; gap: .9rem; padding: 1.2rem; border: 1px dashed var(--brand-border); border-radius: var(--radius-lg); background: var(--brand-soft); }
 .empty-state > span { width: 2.5rem; height: 2.5rem; display: grid; flex: 0 0 auto; place-items: center; border-radius: .7rem; background: var(--surface); color: var(--brand-accent); font-size: 1.25rem; }
 .empty-state h3 { margin: 0; color: var(--text-strong); font-size: .95rem; }

@@ -2,9 +2,9 @@
 
 ## Flujo de trabajo
 
-- `main` es la rama estable.
-- `steve`, `astrid` y `walter` son ramas personales de trabajo.
-- Los cambios se incorporan a `main` mediante Pull Requests.
+- `main` representa la línea estable y `develop` concentra la integración previa a entrega.
+- Las ramas personales o de funcionalidad deben partir de la rama acordada por el equipo.
+- Los cambios se revisan antes de integrarse mediante el flujo Git acordado.
 - Los commits deben ser cortos e indicar claramente el cambio realizado.
 
 ## Nombres y código

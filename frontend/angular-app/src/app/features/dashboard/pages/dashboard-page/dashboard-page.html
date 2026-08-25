@@ -20,6 +20,11 @@
     @if (climate.source() === 'api' && climate.loadState() === 'no-sensors') {
       <section class="dashboard-state"><div><h2>Comunidad sin sensores</h2><p>{{ dashboard.communityName }} todavía no tiene sensores registrados.</p></div></section>
     }
+    @if (dashboard.alert; as activeAlert) {
+      <aside class="early-warning" [attr.data-level]="activeAlert.tone" role="status">
+        <span class="early-warning__icon" aria-hidden="true">!</span><div><strong>Alerta {{ activeAlert.level }} en {{ dashboard.communityName }}</strong><p>{{ activeAlert.message }}</p></div><a routerLink="/alerts">Ver alertas</a>
+      </aside>
+    }
     <section class="community-overview" aria-labelledby="community-title">
       <div class="community-overview__copy">
         <p class="dashboard__eyebrow">Estado de la comunidad</p><h2 id="community-title">{{ dashboard.communityName }}</h2>
@@ -36,7 +41,7 @@
       <div class="dashboard__section-heading"><div><p class="dashboard__eyebrow">Condiciones observadas</p><h2 id="indicator-title">Indicadores climáticos</h2></div><span>{{ climate.source() === 'api' ? 'Última lectura disponible por sensor' : 'Valores simulados · sin umbrales oficiales' }}</span></div>
       <div class="indicator-grid">@for (indicator of dashboard.indicators; track indicator.name) { <app-indicator-card [indicator]="indicator" /> }</div>
     </section>
-    <div class="dashboard__analysis-grid"><app-climate-trend [points]="dashboard.trend" [source]="climate.source()" /><app-recent-history [events]="dashboard.recentEvents" /></div>
+    <div class="dashboard__analysis-grid"><app-climate-trend [series]="dashboard.trend" [source]="climate.source()" /><app-recent-history [events]="dashboard.recentEvents" /></div>
     <div class="dashboard__detail-grid">
       <app-sensor-status [sensors]="dashboard.sensors" />
       <div class="dashboard__aside">

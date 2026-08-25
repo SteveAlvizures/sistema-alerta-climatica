@@ -58,6 +58,18 @@ public sealed class Sensor
 
     public void Deactivate() => Status = SensorStatus.Inactive;
 
+    public void UpdateAdministrativeDetails(string code, string name, string location, string? deviceCode)
+    {
+        Code = Required(code, nameof(code));
+        Name = Required(name, nameof(name));
+        Location = Required(location, nameof(location));
+        if (Origin == SensorOrigin.Simulated && !string.IsNullOrWhiteSpace(deviceCode))
+        {
+            throw new ArgumentException("Simulated sensors cannot have a device code.", nameof(deviceCode));
+        }
+        DeviceCode = Normalize(deviceCode);
+    }
+
     public void UpdateLastCommunication(DateTimeOffset communicatedAt)
     {
         if (LastCommunicationAt.HasValue && communicatedAt < LastCommunicationAt.Value)

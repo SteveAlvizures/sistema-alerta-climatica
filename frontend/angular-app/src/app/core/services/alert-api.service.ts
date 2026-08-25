@@ -9,6 +9,10 @@ export class AlertApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
 
+  getAll(): Observable<AlertDto[]> {
+    return this.http.get<AlertDto[]>(`${this.baseUrl}/alerts`);
+  }
+
   getByCommunity(communityId: string): Observable<AlertDto[]> {
     return this.http.get<AlertDto[]>(
       `${this.baseUrl}/communities/${communityId}/alerts`,

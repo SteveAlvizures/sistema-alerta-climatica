@@ -15,13 +15,13 @@
 - **Helada:** temperatura, humedad relativa, duración de la condición y ubicación de la comunidad.
 - **Incendio forestal:** temperatura, humedad relativa, velocidad del viento y ausencia o bajo nivel de lluvia.
 
-Estas variables describen posibles criterios de evaluación. Los valores y combinaciones definitivos deberán acordarse con las personas responsables del monitoreo.
+Estas variables describen criterios contemplados por el dominio. Las reglas creadas definen la variable, límites, nivel, comunidad, sensor opcional y periodo de vigencia.
 
 ## Configuración y evaluación
 
-Los umbrales serán configurables y podrán variar por comunidad y tipo de sensor. No deben escribirse directamente dentro de componentes o controladores. La capa de aplicación será responsable de evaluar las reglas y coordinar el resultado.
+Los umbrales son configurables y pueden variar por comunidad y sensor. No se escriben directamente dentro de componentes o Controllers. La capa Application evalúa las reglas y coordina el resultado.
 
-El flujo previsto es:
+El flujo implementado es:
 
 ```text
 Lectura recibida → validación → evaluación de reglas → determinación del nivel → generación o actualización de alerta → creación o actualización del evento asociado → notificación
@@ -33,4 +33,4 @@ Las lecturas con origen `Simulated` y `Physical` seguirán exactamente el mismo 
 
 ## Notificación
 
-El sistema mostrará una notificación visual del nivel determinado. Para los niveles que se definan como relevantes, también podrá emitir un sonido, considerando la configuración y el contexto de uso de la comunidad.
+El sistema muestra notificaciones visuales y estados de peligro. La emisión de avisos mediante canales externos o dispositivos físicos queda como mejora futura.

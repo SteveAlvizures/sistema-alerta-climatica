@@ -7,19 +7,21 @@
     </p>
   </header>
 
-  <section class="form-panel" aria-labelledby="community-form-title">
+  @if (canAdminister()) {
+  <section #communityForm class="form-panel" [class.form-panel--editing]="editingId" aria-labelledby="community-form-title">
     <div class="section-heading">
       <div>
-        <p class="section-heading__eyebrow">Nuevo registro</p>
-        <h2 id="community-form-title">Registrar comunidad</h2>
+        <p class="section-heading__eyebrow">{{ editingId ? 'Edición' : 'Nuevo registro' }}</p>
+        <h2 id="community-form-title">{{ editingId ? 'Editar comunidad' : 'Registrar comunidad' }}</h2>
       </div>
       <p>Los campos marcados con <span aria-hidden="true">*</span> son obligatorios.</p>
     </div>
 
-    <form class="community-form" (ngSubmit)="createCommunity()">
+    <form class="community-form" (ngSubmit)="saveCommunity()">
       <label class="form-field">
         <span>Nombre <strong aria-hidden="true">*</strong></span>
         <input
+          #communityName
           type="text"
           name="name"
           [(ngModel)]="name"
@@ -53,12 +55,16 @@
       </label>
 
       <div class="form-actions form-field--wide">
+        @if (editingId) { <button class="secondary-button" type="button" (click)="cancelEdit()">Cancelar</button> }
         <button class="primary-button" type="submit" [disabled]="saving">
-          {{ saving ? 'Guardando...' : 'Registrar comunidad' }}
+          {{ saving ? 'Guardando...' : (editingId ? 'Guardar cambios' : 'Registrar comunidad') }}
         </button>
       </div>
     </form>
   </section>
+  } @else {
+    <aside class="message">Modo consulta: inicia sesión como administrador para registrar comunidades.</aside>
+  }
 
   <div class="feedback" aria-live="polite">
     @if (success) {
@@ -101,7 +107,7 @@
     @if (!loading && communities.length > 0) {
       <div class="community-grid">
         @for (community of communities; track community.id) {
-          <article class="community-card">
+          <article class="community-card" [class.community-card--editing]="editingId === community.id">
             <div class="community-card__topline">
               <span class="community-card__icon" aria-hidden="true">◇</span>
               <span class="community-card__status">Registrada</span>
@@ -113,6 +119,12 @@
             <p class="community-card__description">
               {{ community.description || 'Sin descripción registrada.' }}
             </p>
+            @if (canAdminister()) {
+              <div class="community-card__actions">
+                <button type="button" (click)="editCommunity(community)">Editar</button>
+                <button type="button" class="danger-button" (click)="deleteCommunity(community)" [disabled]="deletingId === community.id">{{ deletingId === community.id ? 'Eliminando...' : 'Eliminar' }}</button>
+              </div>
+            }
           </article>
         }
       </div>
