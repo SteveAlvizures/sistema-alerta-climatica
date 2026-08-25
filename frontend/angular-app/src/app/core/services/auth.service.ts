@@ -39,7 +39,9 @@ export class AuthService {
     try {
       const value = sessionStorage.getItem(storageKey);
       const session = value ? JSON.parse(value) as AuthSession : null;
-      return session && new Date(session.expiresAt).getTime() > Date.now() ? session : null;
-    } catch { return null; }
+      if (session && new Date(session.expiresAt).getTime() > Date.now()) return session;
+      sessionStorage.removeItem(storageKey);
+      return null;
+    } catch { sessionStorage.removeItem(storageKey); return null; }
   }
 }

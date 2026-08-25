@@ -29,8 +29,8 @@ describe('AlertsPage', () => {
   });
 
   it('allows an administrator to acknowledge an open alert', () => {
-    TestBed.inject(AuthService).login({ username: 'umg2026', password: 'secret' }).subscribe();
-    http.expectOne('/api/auth/login').flush({ accessToken: 'jwt', expiresAt: new Date(Date.now() + 60_000).toISOString(), name: 'Administrador inicial', email: 'umg2026', role: 'Administrator' });
+    TestBed.inject(AuthService).login({ username: 'admin', password: 'admin' }).subscribe();
+    http.expectOne('/api/auth/login').flush({ accessToken: 'jwt', expiresAt: new Date(Date.now() + 60_000).toISOString(), name: 'Administrador', email: 'admin', role: 'Administrator' });
     const alert: AlertDto = { id: 'alert-1', communityId: 'community-1', ruleId: 'rule-1', supportingReadingId: 'reading-1', eventId: null, level: 'Yellow', phenomenon: 'Flood', status: 'Open', message: 'Alerta real', detectedAt: new Date().toISOString(), updatedAt: new Date().toISOString(), closedAt: null };
     Object.assign(fixture.componentInstance, { alerts: [alert] });
     spyOn(window, 'confirm').and.returnValue(true);

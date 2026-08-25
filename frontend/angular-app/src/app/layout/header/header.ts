@@ -18,6 +18,7 @@ export class Header implements OnInit {
   protected formatTime(date: Date): string { return new Intl.DateTimeFormat('es-GT', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date); }
   protected toggleSource(): void { this.climate.setSource(this.climate.source() === 'api' ? 'simulation' : 'api'); }
   protected logout(): void { this.auth.logout(); void this.router.navigateByUrl('/'); }
+  protected sessionLabel(role: string): string { return role === 'Administrator' ? 'Administrador' : 'Usuario'; }
   protected levelLabel(level: ApiDangerLevel | null): string {
     return level ? ({ Green: 'Verde', Yellow: 'Amarillo', Orange: 'Naranja', Red: 'Rojo' }[level]) : '';
   }

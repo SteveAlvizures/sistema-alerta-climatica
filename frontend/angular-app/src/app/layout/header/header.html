@@ -14,12 +14,12 @@
     @if (climate.dashboard(); as dashboard) { <span class="app-header__time">Actualizado {{ formatTime(dashboard.lastUpdated) }}</span> }
     <app-status-badge [label]="climate.source() === 'api' && climate.loadState() === 'error' ? 'Sin conexión' : 'Monitoreo activo'" [tone]="climate.source() === 'api' && climate.loadState() === 'error' ? 'neutral' : 'green'" />
     @if (auth.isAuthenticated() && auth.session(); as session) {
-      <section class="auth-state auth-state--admin" aria-label="Sesión activa como administrador">
+      <section class="auth-state" [class.auth-state--admin]="session.role === 'Administrator'" [class.auth-state--user]="session.role === 'User'" [attr.aria-label]="'Sesión activa como ' + sessionLabel(session.role)">
         <span class="auth-state__icon" aria-hidden="true">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M5.5 20c.5-4 2.7-6 6.5-6s6 2 6.5 6" /></svg>
         </span>
         <span class="auth-state__identity">
-          <small>Administrador</small>
+          <small>{{ sessionLabel(session.role) }}</small>
           <strong>{{ session.email }}</strong>
         </span>
         <button class="auth-state__action" type="button" (click)="logout()">Cerrar sesión</button>

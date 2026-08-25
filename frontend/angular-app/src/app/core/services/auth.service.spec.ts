@@ -31,6 +31,15 @@ describe('AuthService', () => {
     expect(service.isAuthenticated()).toBeTrue();
   });
 
+  it('stores a normal User session without changing its role', () => {
+    service.login({ username: 'user', password: 'user' }).subscribe();
+    http.expectOne('/api/auth/login').flush({ accessToken: 'user-token',
+      expiresAt: new Date(Date.now() + 60_000).toISOString(), name: 'Usuario',
+      email: 'user', role: 'User' });
+    expect(service.session()?.email).toBe('user');
+    expect(service.session()?.role).toBe('User');
+  });
+
   it('adds the bearer token to later API requests', () => {
     service.login({ username: 'admin@example.test', password: 'secret' }).subscribe();
     http.expectOne('/api/auth/login').flush({ accessToken: 'jwt-token',
@@ -47,5 +56,6 @@ describe('AuthService', () => {
       email: 'admin@example.test', role: 'Administrator' });
     service.logout();
     expect(service.token()).toBeNull();
+    expect(sessionStorage.getItem('vigia-rural-session')).toBeNull();
   });
 });

@@ -33,10 +33,12 @@ public sealed class User
 
     public void RegisterAccess(DateTimeOffset occurredAt) => LastAccessAt = occurredAt;
 
-    public void UpdateCredentials(string username, string passwordHash)
+    public void UpdateIdentity(string name, string username, string passwordHash, string role)
     {
+        Name = Required(name, nameof(name));
         Email = Required(username, nameof(username)).ToLowerInvariant();
         PasswordHash = Required(passwordHash, nameof(passwordHash));
+        Role = Required(role, nameof(role));
     }
 
     internal void AddRefreshToken(RefreshToken refreshToken) => _refreshTokens.Add(refreshToken);

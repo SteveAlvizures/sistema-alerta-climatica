@@ -1,12 +1,14 @@
 # Endpoints de la API
 
-Base local: `http://localhost:8080`. Las respuestas usan JSON. **Público** significa que no requiere token; **Administrator** requiere `Authorization: Bearer <token>` con ese rol.
+Base local: `http://localhost:8080`. Las respuestas usan JSON. **Público** permite visitantes sin JWT y usuarios autenticados con rol `User` o `Administrator`; **Administrator** requiere `Authorization: Bearer <token>` con ese rol. Un endpoint protegido responde `401` si falta un token válido y `403` si el JWT es válido pero tiene rol `User`.
 
 ## Autenticación
 
 | Verbo y ruta | Propósito | Acceso | Códigos relevantes |
 |---|---|---|---|
 | `POST /api/auth/login` | Validar credenciales y emitir una sesión JWT. | Público | `200`, `400`, `401` |
+
+En la demostración académica local, `user` / `user` emite rol `User` y `admin` / `admin` emite rol `Administrator`. Estas credenciales deben sustituirse fuera del entorno académico.
 
 ## Comunidades
 

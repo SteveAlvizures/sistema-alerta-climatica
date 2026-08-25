@@ -158,6 +158,14 @@ Con `PasswordHasher<User>`. Se persiste un hash verificable, no la contraseña e
 
 Angular lo conserva en `sessionStorage` y el interceptor agrega `Authorization: Bearer <token>`.
 
+### ¿Cuáles son los niveles de acceso?
+
+El visitante consulta sin cuenta ni JWT. El usuario autenticado recibe el rol `User` y mantiene acceso de consulta. El administrador recibe `Administrator` y además puede operar CRUD, administrar sensores y reglas, atender alertas y consultar la bitácora.
+
+### ¿Qué ocurre al cerrar sesión?
+
+Angular elimina la sesión de `sessionStorage` y navega a `/`, por lo que la interfaz vuelve inmediatamente al estado de visitante.
+
 ## Docker y Linux
 
 ### ¿Qué es Docker?
@@ -205,8 +213,11 @@ Porque SQL Server devuelve solo la página. La memoria y la transferencia no cre
 ## Demostración sugerida
 
 1. Abrir Dashboard y explicar Angular → API → SQL Server.
-2. Mostrar GET público de comunidades.
-3. Iniciar sesión y editar solo una comunidad temporal mediante PUT.
-4. Mostrar Historial y cambiar de página para evidenciar la query string.
-5. Explicar `401`, `403`, `404` y el `409` de una comunidad con sensores sin eliminarla.
-6. Mostrar `docker compose ps`, `/health` y resultados de pruebas.
+2. Mostrar GET público de comunidades como visitante.
+3. Iniciar con `user` / `user`, confirmar la etiqueta Usuario y comprobar que no aparecen controles administrativos.
+4. Cerrar sesión, iniciar con `admin` / `admin` y editar solo una comunidad temporal mediante PUT.
+5. Mostrar Historial y cambiar de página para evidenciar la query string.
+6. Explicar `401`, `403`, `404` y el `409` de una comunidad con sensores sin eliminarla.
+7. Mostrar `docker compose ps`, `/health` y resultados de pruebas.
+
+Las credenciales anteriores son solo para la demostración académica local; en cualquier despliegue deben cambiarse por secretos robustos.

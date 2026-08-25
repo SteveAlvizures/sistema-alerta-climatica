@@ -6,5 +6,5 @@ export const administratorGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   return auth.isAuthenticated() && auth.session()?.role === 'Administrator'
     ? true
-    : inject(Router).createUrlTree(['/login']);
+    : inject(Router).createUrlTree(['/']);
 };

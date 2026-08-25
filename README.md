@@ -52,9 +52,11 @@ Los Controllers exponen la API; los servicios de aplicación coordinan las opera
 
 ## Seguridad
 
-Las consultas principales son públicas; las operaciones administrativas requieren un JWT con rol `Administrator`. Angular conserva la sesión en `sessionStorage`, adjunta el token con un interceptor y utiliza guards para mejorar la navegación. La autorización efectiva también se aplica en el backend mediante `[Authorize(Roles = "Administrator")]`.
+El sistema distingue tres niveles: visitante sin sesión, usuario autenticado con rol `User` y administrador con rol `Administrator`. Los tres pueden consultar la información pública; solo `Administrator` puede ejecutar operaciones administrativas y consultar la bitácora. Angular conserva la sesión en `sessionStorage`, adjunta el JWT con un interceptor y oculta o protege controles según el rol. La autorización efectiva se aplica en el backend mediante `[Authorize(Roles = "Administrator")]`.
 
-No se almacenan contraseñas reales en la documentación ni en archivos versionados. Consulta [Seguridad](docs/seguridad.md).
+Para la demostración académica local, `.env` configura `user` / `user` y `admin` / `admin`. Estas credenciales son únicamente de demostración y deben sustituirse por secretos robustos fuera del entorno académico. Cerrar sesión elimina el token y vuelve a `/`.
+
+No se almacenan secretos de entornos reales en la documentación ni en archivos versionados. Consulta [Seguridad](docs/seguridad.md).
 
 ## Base de datos y datos demostrativos
 
@@ -77,10 +79,10 @@ EF Core ejecuta `CountAsync`, `Skip` y `Take` sobre `IQueryable` antes de `ToLis
 | Suite | Resultado |
 |---|---:|
 | Domain | 26/26 |
-| Application | 52/52 |
+| Application | 56/56 |
 | Infrastructure | 14/14 |
-| Backend total | 92/92 |
-| Angular | 47/47 |
+| Backend total | 96/96 |
+| Angular | 57/57 |
 
 El build Release del backend finaliza con 0 errores y 0 advertencias; el build de producción de Angular finaliza correctamente.
 
