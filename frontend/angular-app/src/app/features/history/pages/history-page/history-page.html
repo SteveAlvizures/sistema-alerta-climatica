@@ -2,7 +2,7 @@
   <header class="page-heading"><p>Datos persistidos</p><h1>Historial climático</h1><span>Explora cronológicamente las lecturas almacenadas por comunidad y sensor.</span></header>
 
   <section class="summary-grid" aria-label="Resumen del historial">
-    <article><span>Lecturas mostradas</span><strong>{{ filteredItems.length }}</strong><small>de {{ items.length }} recuperadas</small></article>
+    <article><span>Lecturas mostradas</span><strong>{{ filteredItems.length }}</strong><small>de {{ totalCount }} registros</small></article>
     <article><span>Última lectura</span>@if (lastReading; as item) { <strong>{{ item.reading.value }} <em>{{ item.reading.unit }}</em></strong><small>{{ formatDate(item.reading.measuredAt) }}</small> } @else { <strong>—</strong><small>Sin resultados</small> }</article>
     <article><span>Variable</span><strong class="summary-text">{{ variableSummary }}</strong><small>Filtro actual</small></article>
     <article><span>Período</span><strong class="summary-text">{{ periodSummary }}</strong><small>Rango consultado</small></article>
@@ -10,10 +10,11 @@
 
   <section class="filters" aria-label="Filtros del historial">
     <label><span>Comunidad</span><select [(ngModel)]="selectedCommunityId" (change)="onCommunityChange()">@for (community of communities; track community.id) { <option [value]="community.id">{{ community.name }}</option> }</select></label>
-    <label><span>Sensor</span><select [(ngModel)]="selectedSensorId"><option value="">Todos los sensores</option>@for (sensor of sensors; track sensor.id) { <option [value]="sensor.id">{{ sensor.name }}</option> }</select></label>
+    <label><span>Sensor</span><select [(ngModel)]="selectedSensorId" (change)="onSensorChange()">@for (sensor of sensors; track sensor.id) { <option [value]="sensor.id">{{ sensor.name }}</option> }</select></label>
     <label><span>Variable</span><select [(ngModel)]="selectedVariable"><option value="">Todas las variables</option>@for (variable of variables; track variable) { <option [value]="variable">{{ variableLabel(variable) }}</option> }</select></label>
     <label><span>Desde</span><input type="date" [(ngModel)]="dateFrom" [max]="dateTo || null" /></label>
     <label><span>Hasta</span><input type="date" [(ngModel)]="dateTo" [min]="dateFrom || null" /></label>
+    <label><span>Por página</span><select [(ngModel)]="pageSize" (change)="onPageSizeChange()">@for (size of pageSizes; track size) { <option [ngValue]="size">{{ size }}</option> }</select></label>
     <button type="button" (click)="clearFilters()">Limpiar filtros</button>
   </section>
 
@@ -29,6 +30,7 @@
           <article class="history-row" role="row"><time>{{ formatDate(item.reading.measuredAt) }}</time><span class="variable"><i [attr.data-variable]="item.reading.variable"></i>{{ variableLabel(item.reading.variable) }}</span><strong>{{ item.reading.value }} <small>{{ item.reading.unit }}</small></strong><span><b>{{ item.sensor.name }}</b><small>{{ item.sensor.code }}</small></span><span>{{ item.community.name }}</span><span class="origin">{{ originLabel(item.reading.origin) }}</span></article>
         }
       </div>
+      <nav class="pagination" aria-label="Paginación del historial"><span>Página {{ pageIndex }} de {{ totalPages || 1 }} · {{ totalCount }} registros</span><div><button type="button" (click)="previousPage()" [disabled]="!hasPrevious || loading">Anterior</button><button type="button" (click)="nextPage()" [disabled]="!hasNext || loading">Siguiente</button></div></nav>
     }
   }
 </section>

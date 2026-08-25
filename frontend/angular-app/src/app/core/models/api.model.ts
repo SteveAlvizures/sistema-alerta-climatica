@@ -45,6 +45,16 @@ export interface SensorReadingDto {
   origin: ApiSensorOrigin;
 }
 
+export interface PagedResponse<T> {
+  data: T[];
+  pageIndex: number;
+  pageSize: number;
+  totalPages: number;
+  totalCount: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
 export interface AlertDto {
   id: string;
   communityId: string;

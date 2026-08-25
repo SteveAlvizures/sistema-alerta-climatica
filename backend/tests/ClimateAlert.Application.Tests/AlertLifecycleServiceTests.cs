@@ -195,8 +195,10 @@ public sealed class AlertLifecycleServiceTests
     {
         public Task<IReadOnlyList<Community>> GetAllAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Community>>([]);
         public Task<Community?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken) => Task.FromResult<Community?>(null);
-        public Task<bool> ExistsAsync(string name, string location, CancellationToken cancellationToken) => Task.FromResult(false);
+        public Task<bool> ExistsAsync(string name, string location, Guid? excludingId, CancellationToken cancellationToken) => Task.FromResult(false);
+        public Task<bool> HasDependenciesAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(false);
         public void Add(Community community) { }
+        public void Remove(Community community) { }
     }
 
     public sealed class CountingUnitOfWork : IUnitOfWork

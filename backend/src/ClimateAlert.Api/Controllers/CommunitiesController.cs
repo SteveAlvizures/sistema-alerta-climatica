@@ -30,4 +30,25 @@ public sealed class CommunitiesController(CommunityService service) : Controller
         CommunityResponse created = await service.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Administrator")]
+    [ProducesResponseType<CommunityResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<CommunityResponse>> Update(
+        Guid id, UpdateCommunityRequest request, CancellationToken cancellationToken) =>
+        Ok(await service.UpdateAsync(id, request, cancellationToken));
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Administrator")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        await service.DeleteAsync(id, cancellationToken);
+        return NoContent();
+    }
 }

@@ -18,6 +18,8 @@ public sealed class ApiRouteTests
     public void AdministrativeWritesRequireAdministratorRole()
     {
         AssertProtected<CommunitiesController>(nameof(CommunitiesController.Create));
+        AssertProtected<CommunitiesController>(nameof(CommunitiesController.Update));
+        AssertProtected<CommunitiesController>(nameof(CommunitiesController.Delete));
         AssertProtected<SensorsController>(nameof(SensorsController.Create));
         AssertProtected<SensorsController>(nameof(SensorsController.ChangeStatus));
         AssertProtected<SensorsController>(nameof(SensorsController.Update));
@@ -26,6 +28,17 @@ public sealed class ApiRouteTests
         AssertProtected<AlertsController>(nameof(AlertsController.Acknowledge));
         AssertProtected<AlertsController>(nameof(AlertsController.Resolve));
         AssertProtected<SensorReadingsController>(nameof(SensorReadingsController.Create));
+    }
+
+    [Fact]
+    public void CommunityCrudEndpointsAreExposed()
+    {
+        Assert.Equal("api/communities", RouteOf<CommunitiesController>());
+        AssertMethod<CommunitiesController>(nameof(CommunitiesController.GetAll), typeof(HttpGetAttribute), null);
+        AssertMethod<CommunitiesController>(nameof(CommunitiesController.GetById), typeof(HttpGetAttribute), "{id:guid}");
+        AssertMethod<CommunitiesController>(nameof(CommunitiesController.Create), typeof(HttpPostAttribute), null);
+        AssertMethod<CommunitiesController>(nameof(CommunitiesController.Update), typeof(HttpPutAttribute), "{id:guid}");
+        AssertMethod<CommunitiesController>(nameof(CommunitiesController.Delete), typeof(HttpDeleteAttribute), "{id:guid}");
     }
     [Fact]
     public void AlertRuleEndpointsAreExposed()

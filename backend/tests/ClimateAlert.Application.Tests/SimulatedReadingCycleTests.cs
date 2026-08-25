@@ -182,7 +182,7 @@ public sealed class SimulatedReadingCycleTests
     private sealed class FakeReadingRepository : ISensorReadingRepository
     {
         public List<SensorReading> Items { get; } = [];
-        public Task<IReadOnlyList<SensorReading>> GetBySensorAsync(Guid sensorId, int limit, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<SensorReading>>(Items);
+        public Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageBySensorAsync(Guid sensorId, int pageIndex, int pageSize, CancellationToken cancellationToken) => Task.FromResult(((IReadOnlyList<SensorReading>)Items, Items.Count));
         public Task<SensorReading?> GetLatestAsync(Guid sensorId, CancellationToken cancellationToken) => Task.FromResult(Items.LastOrDefault());
         public void Add(SensorReading reading) => Items.Add(reading);
     }

@@ -31,6 +31,20 @@ describe('API services', () => {
     request.flush([]);
   });
 
+  it('updates and deletes communities through the administrative routes', () => {
+    const service = TestBed.inject(CommunityApiService);
+    const payload = { name: 'Temporal', location: 'Guatemala', description: null };
+    service.update('community-1', payload).subscribe();
+    const update = http.expectOne('/api/communities/community-1');
+    expect(update.request.method).toBe('PUT');
+    update.flush({ id: 'community-1', ...payload, isActive: true, createdAt: '2026-08-19T12:00:00Z' });
+
+    service.delete('community-1').subscribe();
+    const deletion = http.expectOne('/api/communities/community-1');
+    expect(deletion.request.method).toBe('DELETE');
+    deletion.flush(null);
+  });
+
   it('requests sensors for a community', () => {
     TestBed.inject(SensorApiService).getByCommunity('community-1').subscribe();
     const request = http.expectOne('/api/communities/community-1/sensors');
@@ -70,10 +84,10 @@ describe('API services', () => {
   });
 
   it('requests persisted history for a sensor', () => {
-    TestBed.inject(SensorReadingApiService).getHistory('sensor-1', 100).subscribe();
-    const request = http.expectOne('/api/sensors/sensor-1/readings?limit=100');
+    TestBed.inject(SensorReadingApiService).getHistory('sensor-1', 1, 100).subscribe();
+    const request = http.expectOne('/api/sensors/sensor-1/readings?page=1&pageSize=100');
     expect(request.request.method).toBe('GET');
-    request.flush([]);
+    request.flush({ data: [], pageIndex: 1, pageSize: 100, totalPages: 0, totalCount: 0, hasPrevious: false, hasNext: false });
   });
 
   it('acknowledges an alert with the real route', () => {

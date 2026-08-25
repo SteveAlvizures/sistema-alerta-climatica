@@ -231,7 +231,10 @@ export class DashboardDataService {
         );
 
         const historyRequests = sensors.map((sensor) =>
-          this.readingApi.getHistory(sensor.id, 30).pipe(catchError(() => of([] as SensorReadingDto[]))),
+          this.readingApi.getHistory(sensor.id, 1, 30).pipe(
+            map((response) => response.data),
+            catchError(() => of([] as SensorReadingDto[])),
+          ),
         );
         return forkJoin({ items: forkJoin(latestRequests), histories: forkJoin(historyRequests) }).pipe(
           map(({ items, histories }) => ({

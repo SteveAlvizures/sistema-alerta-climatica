@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { EMPTY, Observable, of, Subject, throwError } from 'rxjs';
-import { AlertDto, CommunityDto, SensorDto, SensorReadingDto } from '../models/api.model';
+import { AlertDto, CommunityDto, PagedResponse, SensorDto, SensorReadingDto } from '../models/api.model';
 import { ClimateDashboardState } from '../models/climate-dashboard.model';
 import { CommunityApiService } from './community-api.service';
 import { AlertApiService } from './alert-api.service';
@@ -32,6 +32,7 @@ const simulated = signal<ClimateDashboardState>({
   communityName: 'Simulada', level: 'Verde', levelMessage: 'Simulación', lastUpdated: new Date(),
   indicators: [], sensors: [], alert: null, recentEvents: [], trend: [],
 });
+const page = (data: SensorReadingDto[]): PagedResponse<SensorReadingDto> => ({ data, pageIndex: 1, pageSize: 30, totalPages: data.length ? 1 : 0, totalCount: data.length, hasPrevious: false, hasNext: false });
 
 describe('DashboardDataService', () => {
   function create(
@@ -41,7 +42,7 @@ describe('DashboardDataService', () => {
       () => new HttpErrorResponse({ status: 404 }),
     ),
     alertsResult: Observable<AlertDto[]> = of([]),
-    historyResult: Observable<SensorReadingDto[]> = of([]),
+    historyResult: Observable<PagedResponse<SensorReadingDto>> = of(page([])),
   ): DashboardDataService {
     TestBed.configureTestingModule({
       providers: [
@@ -90,7 +91,7 @@ describe('DashboardDataService', () => {
 
   it('builds a real trend from persisted sensor history', () => {
     const readings: SensorReadingDto[] = Array.from({ length: 30 }, (_, index) => ({ id: `reading-${index}`, sensorId: sensor.id, variable: 'Temperature', value: 20 + index / 10, unit: '°C', measuredAt: new Date(Date.UTC(2026, 7, 19, index)).toISOString(), receivedAt: new Date(Date.UTC(2026, 7, 19, index)).toISOString(), origin: 'Simulated' }));
-    const service = create(of([community]), of([sensor]), of(readings.at(-1)!), of([]), of(readings));
+    const service = create(of([community]), of([sensor]), of(readings.at(-1)!), of([]), of(page(readings)));
     expect(service.dashboard()?.trend[0].metric).toBe('temperature');
     expect(service.dashboard()?.trend[0].points.length).toBe(30);
   });
@@ -115,7 +116,7 @@ describe('DashboardDataService', () => {
         { provide: CommunityApiService, useValue: { getAll: () => of([community, secondCommunity]) } },
         { provide: AlertApiService, useValue: { getByCommunity: () => of([]) } },
         { provide: SensorApiService, useValue: { getByCommunity: (id: string) => of([id === community.id ? sensor : secondSensor]) } },
-        { provide: SensorReadingApiService, useValue: { getLatest: (id: string) => id === sensor.id ? firstReading : of(secondReading), getHistory: () => of([]) } },
+        { provide: SensorReadingApiService, useValue: { getLatest: (id: string) => id === sensor.id ? firstReading : of(secondReading), getHistory: () => of(page([])) } },
         { provide: SimulatedClimateService, useValue: { dashboard: simulated } },
       ],
     });
@@ -173,7 +174,7 @@ describe('DashboardDataService', () => {
         { provide: CommunityApiService, useValue: { getAll: () => of([community, secondCommunity]) } },
         { provide: AlertApiService, useValue: { getByCommunity: (id: string) => id === community.id ? firstAlerts : of([{ ...alert, id: 'alert-2', communityId: secondCommunity.id, level: 'Red' }]) } },
         { provide: SensorApiService, useValue: { getByCommunity: () => of([]) } },
-        { provide: SensorReadingApiService, useValue: { getLatest: () => EMPTY, getHistory: () => of([]) } },
+        { provide: SensorReadingApiService, useValue: { getLatest: () => EMPTY, getHistory: () => of(page([])) } },
         { provide: SimulatedClimateService, useValue: { dashboard: simulated } },
       ],
     });
@@ -220,7 +221,7 @@ describe('DashboardDataService', () => {
           { provide: CommunityApiService, useValue: { getAll: () => of([community]) } },
           { provide: AlertApiService, useValue: { getByCommunity, acknowledge, resolve } },
           { provide: SensorApiService, useValue: { getByCommunity: () => of([]) } },
-          { provide: SensorReadingApiService, useValue: { getLatest: () => EMPTY, getHistory: () => of([]) } },
+          { provide: SensorReadingApiService, useValue: { getLatest: () => EMPTY, getHistory: () => of(page([])) } },
           { provide: SimulatedClimateService, useValue: { dashboard: simulated } },
         ],
       });

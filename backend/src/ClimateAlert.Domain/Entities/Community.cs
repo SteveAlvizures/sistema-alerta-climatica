@@ -42,6 +42,15 @@ public sealed class Community
     public IReadOnlyCollection<Alert> Alerts => _alerts.AsReadOnly();
     public IReadOnlyCollection<Event> Events => _events.AsReadOnly();
 
+    public void Update(string name, string location, string? description)
+    {
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Community name is required.", nameof(name));
+        if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("Community location is required.", nameof(location));
+        Name = name.Trim();
+        Location = location.Trim();
+        Description = description?.Trim();
+    }
+
     internal void AddSensor(Sensor sensor) => _sensors.Add(sensor);
     internal void AddAlertRule(AlertRule alertRule) => _alertRules.Add(alertRule);
     internal void AddAlert(Alert alert) => _alerts.Add(alert);

@@ -19,11 +19,21 @@ public sealed class CommunityRepository(ClimateAlertDbContext dbContext) : IComm
         return query.SingleOrDefaultAsync(community => community.Id == id, cancellationToken);
     }
 
-    public Task<bool> ExistsAsync(string name, string location, CancellationToken cancellationToken) =>
+    public Task<bool> ExistsAsync(string name, string location, Guid? excludingId, CancellationToken cancellationToken) =>
         dbContext.Communities.AsNoTracking().AnyAsync(
-            community => community.Name == name && community.Location == location, cancellationToken);
+            community => community.Name == name && community.Location == location
+                && (!excludingId.HasValue || community.Id != excludingId.Value), cancellationToken);
+
+    public async Task<bool> HasDependenciesAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await dbContext.Sensors.AsNoTracking().AnyAsync(sensor => sensor.CommunityId == id, cancellationToken)
+            || await dbContext.AlertRules.AsNoTracking().AnyAsync(rule => rule.CommunityId == id, cancellationToken)
+            || await dbContext.Alerts.AsNoTracking().AnyAsync(alert => alert.CommunityId == id, cancellationToken)
+            || await dbContext.Events.AsNoTracking().AnyAsync(climateEvent => climateEvent.CommunityId == id, cancellationToken);
+    }
 
     public void Add(Community community) => dbContext.Communities.Add(community);
+    public void Remove(Community community) => dbContext.Communities.Remove(community);
 }
 
 public sealed class SensorRepository(ClimateAlertDbContext dbContext) : ISensorRepository
@@ -59,10 +69,20 @@ public sealed class SensorRepository(ClimateAlertDbContext dbContext) : ISensorR
 
 public sealed class SensorReadingRepository(ClimateAlertDbContext dbContext) : ISensorReadingRepository
 {
-    public async Task<IReadOnlyList<SensorReading>> GetBySensorAsync(
-        Guid sensorId, int limit, CancellationToken cancellationToken) =>
-        await dbContext.SensorReadings.AsNoTracking().Where(reading => reading.SensorId == sensorId)
-            .OrderByDescending(reading => reading.MeasuredAt).Take(limit).ToListAsync(cancellationToken);
+    public async Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageBySensorAsync(
+        Guid sensorId, int pageIndex, int pageSize, CancellationToken cancellationToken)
+    {
+        IQueryable<SensorReading> query = dbContext.SensorReadings.AsNoTracking()
+            .Where(reading => reading.SensorId == sensorId);
+        int totalCount = await query.CountAsync(cancellationToken);
+        IReadOnlyList<SensorReading> items = await query
+            .OrderByDescending(reading => reading.MeasuredAt)
+            .ThenByDescending(reading => reading.Id)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return (items, totalCount);
+    }
 
     public Task<SensorReading?> GetLatestAsync(Guid sensorId, CancellationToken cancellationToken) =>
         dbContext.SensorReadings.AsNoTracking().Where(reading => reading.SensorId == sensorId)

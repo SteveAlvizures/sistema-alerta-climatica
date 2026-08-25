@@ -19,3 +19,12 @@ public sealed record SensorReadingResponse(
     DateTimeOffset MeasuredAt,
     DateTimeOffset ReceivedAt,
     SensorOrigin Origin);
+
+public sealed record PagedResponse<T>(
+    IReadOnlyList<T> Data,
+    int PageIndex,
+    int PageSize,
+    int TotalPages,
+    int TotalCount,
+    bool HasPrevious,
+    bool HasNext);

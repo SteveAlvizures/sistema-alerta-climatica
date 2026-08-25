@@ -7,8 +7,10 @@ public interface ICommunityRepository
 {
     Task<IReadOnlyList<Community>> GetAllAsync(CancellationToken cancellationToken);
     Task<Community?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken);
-    Task<bool> ExistsAsync(string name, string location, CancellationToken cancellationToken);
+    Task<bool> ExistsAsync(string name, string location, Guid? excludingId, CancellationToken cancellationToken);
+    Task<bool> HasDependenciesAsync(Guid id, CancellationToken cancellationToken);
     void Add(Community community);
+    void Remove(Community community);
 }
 
 public interface ISensorRepository
@@ -23,7 +25,8 @@ public interface ISensorRepository
 
 public interface ISensorReadingRepository
 {
-    Task<IReadOnlyList<SensorReading>> GetBySensorAsync(Guid sensorId, int limit, CancellationToken cancellationToken);
+    Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageBySensorAsync(
+        Guid sensorId, int pageIndex, int pageSize, CancellationToken cancellationToken);
     Task<SensorReading?> GetLatestAsync(Guid sensorId, CancellationToken cancellationToken);
     void Add(SensorReading reading);
 }

@@ -1,6 +1,5 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { catchError, forkJoin, of } from 'rxjs';
 import { ClimateVariable, CommunityDto, SensorDto, SensorReadingDto } from '../../../../core/models/api.model';
 import { CommunityApiService } from '../../../../core/services/community-api.service';
 import { SensorApiService } from '../../../../core/services/sensor-api.service';
@@ -24,49 +23,67 @@ export class HistoryPage implements OnInit {
   protected dateTo = '';
   protected loading = true;
   protected error = '';
+  protected pageIndex = 1;
+  protected pageSize = 20;
+  protected totalPages = 0;
+  protected totalCount = 0;
+  protected hasPrevious = false;
+  protected hasNext = false;
+  protected readonly pageSizes = [10, 20, 50];
   protected readonly variables = Object.keys(variableLabels) as ClimateVariable[];
 
   ngOnInit(): void { this.loadCommunities(); }
   protected get filteredItems(): HistoryItem[] {
     const from = this.dateFrom ? new Date(`${this.dateFrom}T00:00:00`).getTime() : -Infinity;
     const to = this.dateTo ? new Date(`${this.dateTo}T23:59:59.999`).getTime() : Infinity;
-    return this.items.filter(({ reading, sensor }) =>
-      (!this.selectedSensorId || sensor.id === this.selectedSensorId) &&
-      (!this.selectedVariable || reading.variable === this.selectedVariable) &&
-      Date.parse(reading.measuredAt) >= from && Date.parse(reading.measuredAt) <= to,
-    ).sort((a, b) => Date.parse(b.reading.measuredAt) - Date.parse(a.reading.measuredAt));
+    return this.items.filter(({ reading }) => (!this.selectedVariable || reading.variable === this.selectedVariable) && Date.parse(reading.measuredAt) >= from && Date.parse(reading.measuredAt) <= to);
   }
   protected get selectedCommunity(): CommunityDto | undefined { return this.communities.find((item) => item.id === this.selectedCommunityId); }
   protected get lastReading(): HistoryItem | undefined { return this.filteredItems[0]; }
   protected get variableSummary(): string { return this.selectedVariable ? this.variableLabel(this.selectedVariable as ClimateVariable) : 'Todas'; }
-  protected get periodSummary(): string { if (!this.dateFrom && !this.dateTo) return 'Últimas 100 por sensor'; return `${this.dateFrom || 'Inicio'} – ${this.dateTo || 'Hoy'}`; }
+  protected get periodSummary(): string { return !this.dateFrom && !this.dateTo ? `Página ${this.pageIndex}` : `${this.dateFrom || 'Inicio'} – ${this.dateTo || 'Hoy'}`; }
   protected variableLabel(variable: ClimateVariable): string { return variableLabels[variable]; }
   protected originLabel(origin: string): string { return origin === 'Simulated' ? 'Simulado' : 'Físico'; }
   protected formatDate(value: string): string { return new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
-  protected onCommunityChange(): void { this.selectedSensorId = ''; this.selectedVariable = ''; this.loadCommunityHistory(); }
-  protected clearFilters(): void { this.selectedSensorId = ''; this.selectedVariable = ''; this.dateFrom = ''; this.dateTo = ''; }
+  protected onCommunityChange(): void { this.selectedSensorId = ''; this.selectedVariable = ''; this.pageIndex = 1; this.loadCommunitySensors(); }
+  protected onSensorChange(): void { this.pageIndex = 1; this.loadHistory(); }
+  protected onPageSizeChange(): void { this.pageIndex = 1; this.loadHistory(); }
+  protected previousPage(): void { if (this.hasPrevious) { this.pageIndex--; this.loadHistory(); } }
+  protected nextPage(): void { if (this.hasNext) { this.pageIndex++; this.loadHistory(); } }
+  protected clearFilters(): void { this.selectedVariable = ''; this.dateFrom = ''; this.dateTo = ''; }
 
   private loadCommunities(): void {
     this.loading = true; this.error = '';
     this.communitiesApi.getAll().subscribe({
-      next: (communities) => { this.communities = communities; if (communities.length) { this.selectedCommunityId = communities[0].id; this.loadCommunityHistory(); } else { this.loading = false; } },
+      next: (communities) => { this.communities = communities; if (communities.length) { this.selectedCommunityId = communities[0].id; this.loadCommunitySensors(); } else { this.loading = false; } },
       error: () => { this.error = 'No fue posible cargar las comunidades.'; this.loading = false; },
     });
   }
-  private loadCommunityHistory(): void {
+  private loadCommunitySensors(): void {
     if (!this.selectedCommunityId) { this.sensors = []; this.items = []; this.loading = false; return; }
     this.loading = true; this.error = '';
     this.sensorsApi.getByCommunity(this.selectedCommunityId).subscribe({
       next: (sensors) => {
         this.sensors = sensors;
-        const community = this.selectedCommunity;
-        if (!sensors.length || !community) { this.items = []; this.loading = false; return; }
-        forkJoin(sensors.map((sensor) => this.readingsApi.getHistory(sensor.id, 100).pipe(catchError(() => of([] as SensorReadingDto[]))))).subscribe({
-          next: (groups) => { this.items = groups.flatMap((readings, index) => readings.map((reading) => ({ reading, sensor: sensors[index], community }))); this.loading = false; },
-          error: () => { this.error = 'No fue posible cargar el historial de lecturas.'; this.loading = false; },
-        });
+        if (!sensors.length) { this.items = []; this.totalCount = 0; this.totalPages = 0; this.loading = false; return; }
+        this.selectedSensorId = sensors[0].id;
+        this.loadHistory();
       },
       error: () => { this.error = 'No fue posible cargar los sensores de la comunidad.'; this.loading = false; },
+    });
+  }
+  private loadHistory(): void {
+    const sensor = this.sensors.find((item) => item.id === this.selectedSensorId);
+    const community = this.selectedCommunity;
+    if (!sensor || !community) { this.items = []; this.loading = false; return; }
+    this.loading = true; this.error = '';
+    this.readingsApi.getHistory(sensor.id, this.pageIndex, this.pageSize).subscribe({
+      next: (result) => {
+        this.items = result.data.map((reading) => ({ reading, sensor, community }));
+        this.pageIndex = result.pageIndex; this.pageSize = result.pageSize; this.totalPages = result.totalPages; this.totalCount = result.totalCount;
+        this.hasPrevious = result.hasPrevious; this.hasNext = result.hasNext; this.loading = false;
+      },
+      error: () => { this.error = 'No fue posible cargar el historial de lecturas.'; this.loading = false; },
     });
   }
 }
