@@ -1,31 +1,43 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
-import { ThemeService } from '../../../../core/services/theme.service';
 
-@Component({ selector: 'app-login-page', imports: [FormsModule, RouterLink], templateUrl: './login-page.html', styleUrl: './login-page.scss' })
+@Component({
+  selector: 'app-login-page',
+  imports: [FormsModule],
+  templateUrl: './login-page.html',
+  styleUrl: './login-page.scss',
+})
 export class LoginPage {
-  private readonly auth = inject(AuthService);
+  private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  protected readonly theme = inject(ThemeService);
-  protected readonly submitting = signal(false);
-  protected readonly error = signal('');
-  protected username = '';
+
+  protected email = '';
   protected password = '';
+  protected readonly submitting = signal(false);
+  protected readonly errorMessage = signal<string | null>(null);
 
   protected submit(): void {
     if (this.submitting()) return;
-    this.error.set(''); this.submitting.set(true);
-    this.auth.login({ username: this.username, password: this.password }).pipe(
-      finalize(() => this.submitting.set(false)),
-    ).subscribe({
-      next: () => void this.router.navigateByUrl('/'),
-      error: (response: HttpErrorResponse) => this.error.set(response.status === 401
-        ? 'El usuario o la contraseña no son correctos.'
-        : 'No fue posible iniciar sesión. Comprueba la conexión e inténtalo de nuevo.'),
+
+    this.submitting.set(true);
+    this.errorMessage.set(null);
+
+    this.authService.login({ email: this.email.trim(), password: this.password }).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        void this.router.navigateByUrl('/');
+      },
+      error: (error: HttpErrorResponse) => {
+        this.submitting.set(false);
+        this.errorMessage.set(
+          error.status === 401
+            ? 'Correo o contraseña incorrectos.'
+            : 'No fue posible iniciar sesión. Verifica tu conexión e inténtalo de nuevo.',
+        );
+      },
     });
   }
 }

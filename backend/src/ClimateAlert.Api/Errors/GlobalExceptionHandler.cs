@@ -17,6 +17,7 @@ public sealed class GlobalExceptionHandler(
         {
             ValidationException or ArgumentException => StatusCodes.Status400BadRequest,
             NotFoundException => StatusCodes.Status404NotFound,
+            AuthenticationFailedException => StatusCodes.Status401Unauthorized,
             ConflictException or InvalidOperationException => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status500InternalServerError
         };
@@ -48,6 +49,7 @@ public sealed class GlobalExceptionHandler(
     {
         StatusCodes.Status400BadRequest => "Solicitud inválida",
         StatusCodes.Status404NotFound => "Recurso no encontrado",
+        StatusCodes.Status401Unauthorized => "No autorizado",
         StatusCodes.Status409Conflict => "Conflicto",
         _ => "Error interno"
     };

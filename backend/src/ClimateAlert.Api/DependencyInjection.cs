@@ -1,4 +1,5 @@
 using ClimateAlert.Application.Common.Interfaces;
+using ClimateAlert.Application.Features.Authentication;
 using ClimateAlert.Application.Features.Communities;
 using ClimateAlert.Application.Features.AlertRules;
 using ClimateAlert.Application.Features.Alerts;
@@ -14,6 +15,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<AuthenticationService>();
         services.AddScoped<CommunityService>();
         services.AddScoped<SensorService>();
         services.AddScoped<SensorReadingService>();

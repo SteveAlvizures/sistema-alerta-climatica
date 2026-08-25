@@ -1,4 +1,5 @@
-using ClimateAlert.Api.Authentication;
+using System.Security.Claims;
+using ClimateAlert.Application.Features.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,15 +7,43 @@ namespace ClimateAlert.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(AuthService authService) : ControllerBase
+public sealed class AuthController(AuthenticationService service) : ControllerBase
 {
-    [AllowAnonymous]
     [HttpPost("login")]
-    [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<LoginResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthenticationResponse>> Login(
+        [FromBody] LoginRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await service.LoginAsync(request, cancellationToken));
+
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthenticationResponse>> Refresh(
+        [FromBody] RefreshTokenRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await service.RefreshAsync(request, cancellationToken));
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Logout(
+        [FromBody] RefreshTokenRequest request,
+        CancellationToken cancellationToken)
     {
-        LoginResponse? response = await authService.LoginAsync(request, cancellationToken);
-        return response is null ? Unauthorized(new { message = "Usuario o contraseña incorrectos." }) : Ok(response);
+        await service.LogoutAsync(request, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<ActionResult<AuthenticatedUserResponse>> Me(CancellationToken cancellationToken)
+    {
+        string? subject = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (subject is null || !Guid.TryParse(subject, out Guid userId))
+        {
+            return Unauthorized();
+        }
+
+        return Ok(await service.GetCurrentUserAsync(userId, cancellationToken));
     }
 }

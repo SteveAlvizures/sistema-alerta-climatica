@@ -1,13 +1,14 @@
 using System.Text.Json.Serialization;
-using System.Text;
 using ClimateAlert.Api;
 using ClimateAlert.Api.Authentication;
 using ClimateAlert.Api.Errors;
+using ClimateAlert.Application.Common.Interfaces;
 using ClimateAlert.Infrastructure;
 using ClimateAlert.Infrastructure.Persistence;
+using ClimateAlert.Infrastructure.Security;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,25 +20,23 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-JwtOptions jwt = builder.Configuration.GetJwtOptions();
-builder.Services.AddSingleton(jwt);
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+const string bearerScheme = "Bearer";
+
+builder.Services
+    .AddAuthentication(options =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = jwt.Issuer,
-            ValidateAudience = true,
-            ValidAudience = jwt.Audience,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(jwt.SigningKey),
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(1)
-        };
-    });
-builder.Services.AddAuthorization();
-builder.Services.AddScoped<AuthService>();
+        options.DefaultAuthenticateScheme = bearerScheme;
+        options.DefaultChallengeScheme = bearerScheme;
+    })
+    .AddScheme<AuthenticationSchemeOptions, JwtAuthenticationHandler>(bearerScheme, _ => { });
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 const string developmentCorsPolicy = "DevelopmentFrontend";
 
@@ -60,7 +59,7 @@ app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi().AllowAnonymous();
     app.UseCors(developmentCorsPolicy);
 }
 
@@ -70,8 +69,12 @@ using (var scope = app.Services.CreateScope())
         .GetRequiredService<ClimateAlertDbContext>();
 
     database.Database.EnsureCreated();
-    await InitialAdminSeeder.SeedAsync(scope.ServiceProvider);
-    await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
+
+    await AdminUserSeeder.SeedAsync(
+        database,
+        scope.ServiceProvider.GetRequiredService<IPasswordHasher>(),
+        scope.ServiceProvider.GetRequiredService<IConfiguration>(),
+        CancellationToken.None);
 }
 
 app.UseHttpsRedirection();
