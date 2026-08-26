@@ -11,10 +11,10 @@
   <section class="form-panel" aria-labelledby="sensor-form-title">
     <div class="section-heading">
       <div>
-        <p class="section-heading__eyebrow">Nuevo dispositivo</p>
-        <h2 id="sensor-form-title">Registrar sensor</h2>
+        <p class="section-heading__eyebrow">Nuevo sensor</p>
+        <h2 id="sensor-form-title">Crear sensor</h2>
       </div>
-      <p>Completa los datos técnicos para incorporar el sensor al monitoreo.</p>
+      <p>Selecciona la comunidad, la variable y una referencia fácil de reconocer.</p>
     </div>
 
     <form class="sensor-form" (ngSubmit)="createSensor()">
@@ -34,17 +34,7 @@
       </label>
 
       <label class="form-field">
-        <span>Código <strong aria-hidden="true">*</strong></span>
-        <input type="text" name="code" [(ngModel)]="code" required maxlength="50" placeholder="Ej. TEMP-001" />
-      </label>
-
-      <label class="form-field">
-        <span>Nombre <strong aria-hidden="true">*</strong></span>
-        <input type="text" name="name" [(ngModel)]="name" required maxlength="100" placeholder="Nombre del sensor" />
-      </label>
-
-      <label class="form-field">
-        <span>Tipo de medición</span>
+        <span>Variable</span>
         <select name="measurementType" [(ngModel)]="measurementType">
           <option value="Temperature">Temperatura</option>
           <option value="RelativeHumidity">Humedad relativa</option>
@@ -55,26 +45,27 @@
       </label>
 
       <label class="form-field">
-        <span>Origen</span>
-        <select name="origin" [(ngModel)]="origin">
-          <option value="Simulated">Simulado</option>
-          <option value="Physical">Físico</option>
-        </select>
+        <span>Ubicación o referencia <strong aria-hidden="true">*</strong></span>
+        <input type="text" name="location" [(ngModel)]="location" required minlength="3" maxlength="200" placeholder="Ej. Entrada principal" />
       </label>
 
       <label class="form-field">
-        <span>Ubicación <strong aria-hidden="true">*</strong></span>
-        <input type="text" name="location" [(ngModel)]="location" required maxlength="200" placeholder="Ubicación del sensor" />
+        <span>Estado inicial</span>
+        <select name="initialActive" [(ngModel)]="initialActive">
+          <option [ngValue]="true">Activo</option>
+          <option [ngValue]="false">Inactivo</option>
+        </select>
       </label>
 
-      <label class="form-field form-field--wide">
-        <span>Código del dispositivo <small>Para sensores físicos</small></span>
-        <input type="text" name="deviceCode" [(ngModel)]="deviceCode" maxlength="100" placeholder="Identificador del dispositivo físico (opcional)" />
-      </label>
+      <aside class="generated-preview form-field--wide">
+        <span>Nombre generado</span><strong>{{ generatedName() }}</strong>
+        <span>Código estimado</span><strong>{{ estimatedCode() }}</strong>
+        <small>La secuencia definitiva se asigna al guardar.</small>
+      </aside>
 
       <div class="form-actions form-field--wide">
         <button class="primary-button" type="submit" [disabled]="saving || communities.length === 0">
-          {{ saving ? 'Guardando...' : 'Registrar sensor' }}
+          {{ saving ? 'Guardando...' : 'Crear sensor' }}
         </button>
       </div>
     </form>
@@ -85,13 +76,26 @@
 
   @if (editingSensor) {
     <section class="form-panel edit-panel" aria-labelledby="edit-sensor-title">
-      <div class="section-heading"><div><p class="section-heading__eyebrow">Configuración administrativa</p><h2 id="edit-sensor-title">Editar {{ editingSensor.name }}</h2></div><p>La comunidad, variable, origen y el historial no se modifican.</p></div>
+      <div class="section-heading"><div><p class="section-heading__eyebrow">Configuración administrativa</p><h2 id="edit-sensor-title">Editar sensor</h2></div><p>El código, la variable, el origen y el historial se conservan.</p></div>
       <form class="sensor-form" (ngSubmit)="saveEdit()">
-        <label class="form-field"><span>Código</span><input name="editCode" [(ngModel)]="editCode" required /></label>
-        <label class="form-field"><span>Nombre</span><input name="editName" [(ngModel)]="editName" required /></label>
-        <label class="form-field"><span>Ubicación</span><input name="editLocation" [(ngModel)]="editLocation" required /></label>
-        @if (editingSensor.origin === 'Physical') { <label class="form-field form-field--wide"><span>Código del dispositivo</span><input name="editDeviceCode" [(ngModel)]="editDeviceCode" /></label> }
+        <div class="readonly-detail"><span>Sensor</span><strong>{{ editingSensor.name }}</strong></div>
+        <div class="readonly-detail"><span>Código</span><strong>{{ editingSensor.code }}</strong></div>
+        <label class="form-field"><span>Ubicación o referencia</span><input #editLocationInput name="editLocation" [(ngModel)]="editLocation" required minlength="3" maxlength="200" /></label>
         <div class="form-actions form-field--wide"><button class="primary-button" type="button" (click)="cancelEdit()">Cancelar</button><button class="primary-button" type="submit" [disabled]="saving">{{ saving ? 'Guardando…' : 'Guardar cambios' }}</button></div>
+      </form>
+    </section>
+  }
+
+  @if (readingSensor) {
+    <section class="form-panel edit-panel" aria-labelledby="manual-reading-title">
+      <div class="section-heading"><div><p class="section-heading__eyebrow">Nueva medición</p><h2 id="manual-reading-title">Registrar lectura manual</h2></div><p>La lectura se guardará en el historial y atravesará las reglas activas.</p></div>
+      <form class="sensor-form" (ngSubmit)="registerManualReading()">
+        <div class="readonly-detail"><span>Sensor</span><strong>{{ readingSensor.name }}</strong></div>
+        <div class="readonly-detail"><span>Comunidad</span><strong>{{ communityName(readingSensor) }}</strong></div>
+        <div class="readonly-detail"><span>Variable</span><strong>{{ variableLabel(readingSensor.measurementType) }}</strong></div>
+        <div class="readonly-detail"><span>Unidad</span><strong>{{ unitFor(readingSensor.measurementType) }}</strong></div>
+        <label class="form-field form-field--wide"><span>Valor <strong aria-hidden="true">*</strong></span><input type="number" step="any" name="manualValue" [(ngModel)]="manualValue" required autofocus /></label>
+        <div class="form-actions form-field--wide"><button class="primary-button" type="button" (click)="cancelManualReading()">Cancelar</button><button class="primary-button" type="submit" [disabled]="saving || manualValue === null">{{ saving ? 'Registrando…' : 'Registrar lectura' }}</button></div>
       </form>
     </section>
   }
@@ -129,7 +133,7 @@
     @if (!loading && sensors.length > 0) {
       <div class="sensor-grid">
         @for (sensor of sensors; track sensor.id) {
-          <article class="sensor-card">
+          <article class="sensor-card" [class.sensor-card--selected]="editingSensor?.id === sensor.id || readingSensor?.id === sensor.id">
             <div class="sensor-card__topline">
               <span class="sensor-card__icon" aria-hidden="true">⌁</span>
               <div class="sensor-card__badges">
@@ -164,6 +168,7 @@
             @if (canAdminister()) {
               <div class="sensor-card__actions">
                 <button class="status-button" type="button" (click)="startEdit(sensor)">Editar</button>
+                <button class="status-button status-button--secondary" type="button" (click)="startManualReading(sensor)" [disabled]="sensor.status !== 'Active'">Registrar lectura</button>
                 <button class="status-button" type="button" (click)="restartMonitoring(sensor)">Reiniciar monitoreo</button>
                 <button class="status-button" [class.status-button--deactivate]="sensor.status === 'Active'" type="button" (click)="changeStatus(sensor)">{{ sensor.status === 'Active' ? 'Desactivar' : 'Activar' }}</button>
               </div>

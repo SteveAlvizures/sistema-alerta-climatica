@@ -53,7 +53,7 @@ describe('API services', () => {
   });
 
   it('updates administrative sensor data through the protected route', () => {
-    TestBed.inject(SensorApiService).update('sensor-1', { code: 'TEMP-01', name: 'Temperatura', location: 'Centro', deviceCode: null }).subscribe();
+    TestBed.inject(SensorApiService).update('sensor-1', { location: 'Centro' }).subscribe();
     const request = http.expectOne('/api/sensors/sensor-1');
     expect(request.request.method).toBe('PUT');
     request.flush({});
@@ -88,6 +88,14 @@ describe('API services', () => {
     const request = http.expectOne('/api/sensors/sensor-1/readings?page=1&pageSize=100');
     expect(request.request.method).toBe('GET');
     request.flush({ data: [], pageIndex: 1, pageSize: 100, totalPages: 0, totalCount: 0, hasPrevious: false, hasNext: false });
+  });
+
+  it('posts a manual reading through the existing protected route', () => {
+    TestBed.inject(SensorReadingApiService).createManual('sensor-1', 31.5).subscribe();
+    const request = http.expectOne('/api/sensor-readings');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ sensorId: 'sensor-1', value: 31.5 });
+    request.flush({});
   });
 
   it('acknowledges an alert with the real route', () => {

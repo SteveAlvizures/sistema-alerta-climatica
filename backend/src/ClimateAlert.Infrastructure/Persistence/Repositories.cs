@@ -56,6 +56,13 @@ public sealed class SensorRepository(ClimateAlertDbContext dbContext) : ISensorR
         dbContext.Sensors.AsNoTracking().AnyAsync(
             sensor => sensor.CommunityId == communityId && sensor.Code == code, cancellationToken);
 
+    public async Task<IReadOnlyList<string>> GetCodesAsync(
+        Guid communityId, string prefix, CancellationToken cancellationToken) =>
+        await dbContext.Sensors.AsNoTracking()
+            .Where(sensor => sensor.CommunityId == communityId && sensor.Code.StartsWith(prefix))
+            .Select(sensor => sensor.Code)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Sensor>> GetActiveSimulatedAsync(CancellationToken cancellationToken) =>
         await dbContext.Sensors.AsNoTracking()
             .Where(sensor =>

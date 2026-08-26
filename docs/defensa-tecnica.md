@@ -194,6 +194,14 @@ Los archivos de la base entre recreaciones de contenedores. `docker compose down
 
 El simulador o POST crea un request → Application valida sensor y lectura → EF Core agrega la lectura → el evaluador revisa reglas → se guardan cambios → Angular consulta el resultado.
 
+### ¿Cómo se crea un sensor sin pedir datos técnicos?
+
+El administrador elige comunidad, variable, ubicación o referencia y estado. Application genera un nombre legible y calcula el siguiente código `SEN-{COMUNIDAD}-{VARIABLE}-{SECUENCIA}`. La restricción única de SQL Server actúa como protección final contra colisiones.
+
+### ¿Cómo funciona una lectura manual?
+
+Angular envía únicamente sensor y valor. El backend deriva variable, unidad, fecha y origen, y reutiliza `SensorReadingService`, igual que el simulador. Se crea otra fila, se evalúan reglas, se actualizan historial, tendencias y Dashboard, y se registra `CreateManualReading` en Bitácora.
+
 ### ¿Cómo una regla genera una alerta?
 
 El evaluador busca reglas activas, vigentes y compatibles con comunidad, sensor y variable. Si el valor cumple límites, abre o actualiza una alerta con la lectura como evidencia y puede asociarla a un evento.

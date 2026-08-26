@@ -41,7 +41,7 @@ Los Controllers exponen la API; los servicios de aplicación coordinan las opera
 
 - Dashboard comunitario con indicadores y resumen de riesgo.
 - Comunidades con consulta pública y CRUD administrativo.
-- Sensores con consulta, registro, edición y cambio de estado.
+- Sensores con creación guiada, edición de ubicación, cambio de estado y lecturas manuales administrativas.
 - Historial de lecturas con paginación real en la base de datos.
 - Alertas con consulta, reconocimiento y resolución.
 - Reglas de alerta configurables y activación administrativa.
@@ -62,6 +62,8 @@ No se almacenan secretos de entornos reales en la documentación ni en archivos 
 
 SQL Server almacena comunidades, sensores, lecturas, reglas, alertas, eventos, usuarios, sesiones y bitácora. El dataset académico incluye seis comunidades reales de Guatemala, cinco sensores simulados por comunidad y lecturas históricas. Las localidades son reales, pero las mediciones no representan datos meteorológicos reales.
 
+Al crear un sensor, el administrador selecciona comunidad, variable, ubicación o referencia y estado. El backend genera el nombre legible y un código secuencial único; `DeviceCode` queda reservado para integraciones físicas y no se solicita para los sensores simulados creados desde la interfaz. Las lecturas manuales se registran como nuevas mediciones y atraviesan el mismo flujo de persistencia, evaluación de reglas y generación de alertas que las lecturas simuladas.
+
 El volumen `climate-alert-sqlserver-data` conserva los datos entre recreaciones de contenedores. Consulta [Datos de demostración](docs/datos-demostracion.md).
 
 ## Paginación
@@ -79,10 +81,10 @@ EF Core ejecuta `CountAsync`, `Skip` y `Take` sobre `IQueryable` antes de `ToLis
 | Suite | Resultado |
 |---|---:|
 | Domain | 26/26 |
-| Application | 56/56 |
+| Application | 60/60 |
 | Infrastructure | 14/14 |
-| Backend total | 96/96 |
-| Angular | 57/57 |
+| Backend total | 100/100 |
+| Angular | 65/65 |
 
 El build Release del backend finaliza con 0 errores y 0 advertencias; el build de producción de Angular finaliza correctamente.
 

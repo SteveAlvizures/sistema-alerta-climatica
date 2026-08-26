@@ -10,6 +10,8 @@ public sealed record CreateSensorReadingRequest(
     DateTimeOffset MeasuredAt,
     SensorOrigin Origin);
 
+public sealed record CreateManualSensorReadingRequest(Guid SensorId, decimal? Value);
+
 public sealed record SensorReadingResponse(
     Guid Id,
     Guid SensorId,

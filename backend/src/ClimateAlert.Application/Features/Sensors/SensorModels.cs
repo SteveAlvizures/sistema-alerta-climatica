@@ -4,16 +4,13 @@ namespace ClimateAlert.Application.Features.Sensors;
 
 public sealed record CreateSensorRequest(
     Guid CommunityId,
-    string Code,
-    string Name,
     ClimateVariable MeasurementType,
-    SensorOrigin Origin,
     string Location,
-    string? DeviceCode);
+    bool IsActive = true);
 
 public sealed record ChangeSensorStatusRequest(bool IsActive);
 
-public sealed record UpdateSensorRequest(string Code, string Name, string Location, string? DeviceCode);
+public sealed record UpdateSensorRequest(string Location);
 
 public sealed record SensorResponse(
     Guid Id,

@@ -31,13 +31,17 @@ En la demostración académica local, `user` / `user` emite rol `User` y `admin`
 | `PUT /api/sensors/{id}` | Editar los campos permitidos. | Administrator | `200`, `400`, `401`, `403`, `404`, `409` |
 | `PATCH /api/sensors/{id}/status` | Activar o desactivar un sensor. | Administrator | `200`, `401`, `403`, `404` |
 
+`POST /api/sensors` recibe `communityId`, `measurementType`, `location` e `isActive`. El backend deriva el nombre y genera `SEN-{COMUNIDAD}-{VARIABLE}-{SECUENCIA}`. `PUT` recibe únicamente la nueva ubicación; actualiza el nombre derivado y conserva el código.
+
 ## Lecturas
 
 | Verbo y ruta | Propósito | Acceso | Códigos relevantes |
 |---|---|---|---|
 | `GET /api/sensors/{id}/readings?page=1&pageSize=20` | Obtener historial paginado. | Público | `200`, `400`, `404` |
 | `GET /api/sensors/{id}/readings/latest` | Obtener la lectura más reciente. | Público | `200`, `404` |
-| `POST /api/sensor-readings` | Registrar y evaluar una lectura. | Administrator | `201`, `400`, `401`, `403`, `404`, `409` |
+| `POST /api/sensor-readings` | Registrar y evaluar una lectura manual con `sensorId` y `value`. | Administrator | `201`, `400`, `401`, `403`, `404`, `409` |
+
+La API obtiene del sensor su variable, unidad y origen. Un `409` indica, entre otros conflictos de estado, que el sensor está inactivo. La medición se agrega al historial y se audita; no reemplaza lecturas anteriores.
 
 `pageSize` admite de 1 a 100. El parámetro heredado `limit` se acepta como alternativa de compatibilidad cuando no se proporciona `pageSize`.
 

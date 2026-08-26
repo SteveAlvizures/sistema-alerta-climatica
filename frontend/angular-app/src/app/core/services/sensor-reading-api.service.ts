@@ -24,4 +24,8 @@ export class SensorReadingApiService {
       `${this.baseUrl}/sensors/${sensorId}/readings?page=${page}&pageSize=${pageSize}`,
     );
   }
+
+  createManual(sensorId: string, value: number): Observable<SensorReadingDto> {
+    return this.http.post<SensorReadingDto>(`${this.baseUrl}/sensor-readings`, { sensorId, value });
+  }
 }

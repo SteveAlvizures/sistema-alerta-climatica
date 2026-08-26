@@ -13,6 +13,8 @@ El conjunto oficial incluye:
 
 Cada comunidad oficial tiene cinco sensores activos. El seed inicial incorpora doce lecturas históricas por sensor, aunque el simulador puede aumentar posteriormente ese conteo. También se crean reglas y escenarios académicos para demostrar alertas.
 
+El administrador puede registrar una lectura manual sobre un sensor activo para demostrar umbrales. Esta operación agrega una medición al historial, participa en tendencias y Dashboard, evalúa las reglas normales y queda identificada en la Bitácora. No edita ni elimina lecturas anteriores.
+
 ## Comportamiento del seed
 
 El inicio normal no elimina información. El seeder reconoce comunidades, códigos de sensores y reglas existentes, por lo que puede ejecutarse nuevamente sin duplicar el dataset oficial.

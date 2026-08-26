@@ -1,6 +1,9 @@
 using ClimateAlert.Application.Common.Exceptions;
 using ClimateAlert.Application.Common.Interfaces;
 using ClimateAlert.Domain.Entities;
+using ClimateAlert.Domain.Enums;
+using System.Globalization;
+using System.Text;
 
 namespace ClimateAlert.Application.Features.Sensors;
 
@@ -35,17 +38,19 @@ public sealed class SensorService(
         Community community = await communities.GetByIdAsync(request.CommunityId, true, cancellationToken)
             ?? throw new NotFoundException("La comunidad solicitada no existe.");
 
-        string code = request.Code?.Trim() ?? string.Empty;
-        if (await sensors.ExistsAsync(request.CommunityId, code, cancellationToken))
-        {
-            throw new ConflictException("Ya existe un sensor con el mismo código en la comunidad.");
-        }
+        string location = ValidateLocation(request.Location);
+        string name = BuildName(request.MeasurementType, location);
+        string prefix = $"SEN-{CommunityAbbreviation(community.Name)}-{VariableAbbreviation(request.MeasurementType)}-";
+        IReadOnlyList<string> existingCodes = await sensors.GetCodesAsync(request.CommunityId, prefix, cancellationToken);
+        int sequence = existingCodes.Select(code => ParseSequence(code, prefix)).DefaultIfEmpty(0).Max() + 1;
+        string code = $"{prefix}{sequence:00}";
 
         Sensor sensor;
         try
         {
-            sensor = new Sensor(community, code, request.Name, request.MeasurementType,
-                request.Origin, request.Location, timeProvider.GetUtcNow(), request.DeviceCode);
+            sensor = new Sensor(community, code, name, request.MeasurementType,
+                SensorOrigin.Simulated, location, timeProvider.GetUtcNow());
+            if (request.IsActive) sensor.Activate();
         }
         catch (ArgumentException exception)
         {
@@ -71,15 +76,10 @@ public sealed class SensorService(
     {
         Sensor sensor = await sensors.GetByIdAsync(id, true, cancellationToken)
             ?? throw new NotFoundException("El sensor solicitado no existe.");
-        string code = request.Code?.Trim() ?? string.Empty;
-        if (!string.Equals(code, sensor.Code, StringComparison.OrdinalIgnoreCase)
-            && await sensors.ExistsAsync(sensor.CommunityId, code, cancellationToken))
-        {
-            throw new ConflictException("Ya existe un sensor con el mismo código en la comunidad.");
-        }
         try
         {
-            sensor.UpdateAdministrativeDetails(code, request.Name, request.Location, request.DeviceCode);
+            string location = ValidateLocation(request.Location);
+            sensor.UpdateLocation(BuildName(sensor.MeasurementType, location), location);
         }
         catch (ArgumentException exception)
         {
@@ -87,6 +87,57 @@ public sealed class SensorService(
         }
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Map(sensor);
+    }
+
+    public static string BuildName(ClimateVariable variable, string location) =>
+        $"Sensor de {VariableLabel(variable).ToLowerInvariant()} - {location.Trim()}";
+
+    public static string VariableLabel(ClimateVariable variable) => variable switch
+    {
+        ClimateVariable.Temperature => "Temperatura",
+        ClimateVariable.RelativeHumidity => "Humedad relativa",
+        ClimateVariable.WindSpeed => "Velocidad del viento",
+        ClimateVariable.RainfallLevel => "Nivel de lluvia",
+        ClimateVariable.RiverOrReservoirLevel => "Nivel de río o reservorio",
+        _ => throw new ValidationException("La variable climática no es válida.")
+    };
+
+    private static string VariableAbbreviation(ClimateVariable variable) => variable switch
+    {
+        ClimateVariable.Temperature => "TEMP",
+        ClimateVariable.RelativeHumidity => "HUM",
+        ClimateVariable.WindSpeed => "WIND",
+        ClimateVariable.RainfallLevel => "RAIN",
+        ClimateVariable.RiverOrReservoirLevel => "RIVER",
+        _ => throw new ValidationException("La variable climática no es válida.")
+    };
+
+    private static string CommunityAbbreviation(string name)
+    {
+        Dictionary<string, string> official = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Lanquín"] = "LAN", ["Livingston"] = "LIV", ["San Juan La Laguna"] = "SJL",
+            ["Santa Catarina Palopó"] = "SCP", ["San Juan Chamelco"] = "SJC",
+            ["Todos Santos Cuchumatán"] = "TSC"
+        };
+        if (official.TryGetValue(name, out string? abbreviation)) return abbreviation;
+        string normalized = name.Normalize(NormalizationForm.FormD);
+        string[] words = new string(normalized.Where(character =>
+            CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark).ToArray())
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return string.Concat(words.Take(3).Select(word => char.ToUpperInvariant(word[0])));
+    }
+
+    private static int ParseSequence(string code, string prefix) =>
+        code.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+        && int.TryParse(code[prefix.Length..], out int sequence) ? sequence : 0;
+
+    private static string ValidateLocation(string? location)
+    {
+        string value = location?.Trim() ?? string.Empty;
+        if (value.Length < 3 || value.Length > 200)
+            throw new ValidationException("La ubicación o referencia debe contener entre 3 y 200 caracteres.");
+        return value;
     }
 
     private static SensorResponse Map(Sensor sensor) => new(

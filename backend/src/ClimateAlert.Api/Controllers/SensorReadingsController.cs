@@ -1,11 +1,16 @@
 using ClimateAlert.Application.Features.SensorReadings;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using ClimateAlert.Api.Audit;
+using ClimateAlert.Application.Features.Sensors;
 
 namespace ClimateAlert.Api.Controllers;
 
 [ApiController]
-public sealed class SensorReadingsController(SensorReadingService service) : ControllerBase
+public sealed class SensorReadingsController(
+    SensorReadingService service,
+    SensorService sensorService,
+    AuditActionService audit) : ControllerBase
 {
     [HttpGet("api/sensors/{sensorId:guid}/readings")]
     public async Task<ActionResult<PagedResponse<SensorReadingResponse>>> GetHistory(
@@ -21,9 +26,13 @@ public sealed class SensorReadingsController(SensorReadingService service) : Con
     [HttpPost("api/sensor-readings")]
     [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<SensorReadingResponse>> Create(
-        CreateSensorReadingRequest request, CancellationToken cancellationToken)
+        CreateManualSensorReadingRequest request, CancellationToken cancellationToken)
     {
-        SensorReadingResponse created = await service.CreateAsync(request, cancellationToken);
+        SensorReadingResponse created = await service.CreateManualAsync(request, cancellationToken);
+        SensorResponse sensor = await sensorService.GetByIdAsync(created.SensorId, cancellationToken);
+        await audit.RecordAsync(User, "CreateManualReading", "SensorReading", created.Id,
+            $"Lectura manual registrada para sensor {sensor.Code} con valor {created.Value} {created.Unit}.",
+            cancellationToken);
         return CreatedAtAction(nameof(GetLatest), new { sensorId = created.SensorId }, created);
     }
 }

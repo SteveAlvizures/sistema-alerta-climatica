@@ -19,6 +19,7 @@ public interface ISensorRepository
     Task<IReadOnlyList<Sensor>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task<Sensor?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken);
     Task<bool> ExistsAsync(Guid communityId, string code, CancellationToken cancellationToken);
+    Task<IReadOnlyList<string>> GetCodesAsync(Guid communityId, string prefix, CancellationToken cancellationToken);
     Task<IReadOnlyList<Sensor>> GetActiveSimulatedAsync(CancellationToken cancellationToken);
     void Add(Sensor sensor);
 }

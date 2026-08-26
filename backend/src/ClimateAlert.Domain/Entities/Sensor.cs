@@ -80,6 +80,12 @@ public sealed class Sensor
         LastCommunicationAt = communicatedAt;
     }
 
+    public void UpdateLocation(string name, string location)
+    {
+        Name = Required(name, nameof(name));
+        Location = Required(location, nameof(location));
+    }
+
     public void RegisterDeviceCode(string deviceCode)
     {
         if (Origin != SensorOrigin.Physical)

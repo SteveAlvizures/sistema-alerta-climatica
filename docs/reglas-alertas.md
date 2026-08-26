@@ -21,6 +21,8 @@ Estas variables describen criterios contemplados por el dominio. Las reglas crea
 
 Los umbrales son configurables y pueden variar por comunidad y sensor. No se escriben directamente dentro de componentes o Controllers. La capa Application evalúa las reglas y coordina el resultado.
 
+Una lectura manual no omite este proceso: se persiste como una nueva `SensorReading` y pasa por el mismo evaluador que una lectura simulada. Por ello puede abrir o actualizar una alerta mediante la estrategia existente, sin una lógica paralela de duplicados.
+
 El flujo implementado es:
 
 ```text

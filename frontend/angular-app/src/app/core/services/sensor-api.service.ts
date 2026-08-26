@@ -6,19 +6,16 @@ import { SensorDto } from '../models/api.model';
 
 export interface CreateSensorRequest {
   communityId: string;
-  code: string;
-  name: string;
   measurementType: string;
-  origin: string;
   location: string;
-  deviceCode: string | null;
+  isActive: boolean;
 }
 
 export interface ChangeSensorStatusRequest {
   isActive: boolean;
 }
 
-export interface UpdateSensorRequest { code: string; name: string; location: string; deviceCode: string | null; }
+export interface UpdateSensorRequest { location: string; }
 
 @Injectable({ providedIn: 'root' })
 export class SensorApiService {

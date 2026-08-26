@@ -69,6 +69,29 @@ public sealed class SensorReadingService(
         return Map(reading);
     }
 
+    public async Task<SensorReadingResponse> CreateManualAsync(
+        CreateManualSensorReadingRequest request, CancellationToken cancellationToken)
+    {
+        Sensor sensor = await sensors.GetByIdAsync(request.SensorId, false, cancellationToken)
+            ?? throw new NotFoundException("El sensor solicitado no existe.");
+        if (!request.Value.HasValue)
+            throw new ValidationException("El valor de la lectura es obligatorio.");
+        DateTimeOffset measuredAt = timeProvider.GetUtcNow();
+        return await CreateAsync(new CreateSensorReadingRequest(
+            sensor.Id, sensor.MeasurementType, request.Value.Value, UnitFor(sensor.MeasurementType),
+            measuredAt, sensor.Origin), cancellationToken);
+    }
+
+    public static string UnitFor(ClimateVariable variable) => variable switch
+    {
+        ClimateVariable.Temperature => "°C",
+        ClimateVariable.RelativeHumidity => "%",
+        ClimateVariable.WindSpeed => "km/h",
+        ClimateVariable.RainfallLevel => "mm",
+        ClimateVariable.RiverOrReservoirLevel => "m",
+        _ => throw new ValidationException("La variable climática no es válida.")
+    };
+
     private static SensorReadingResponse Map(SensorReading reading) => new(
         reading.Id, reading.SensorId, reading.Variable, reading.Value, reading.Unit,
         reading.MeasuredAt, reading.ReceivedAt, reading.Origin);

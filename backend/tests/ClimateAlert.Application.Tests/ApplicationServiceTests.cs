@@ -36,17 +36,33 @@ public sealed class ApplicationServiceTests
         TestContext context = new();
         Community community = context.AddCommunity();
         SensorResponse result = await context.Sensors.CreateAsync(SensorRequest(community.Id), default);
-        Assert.Equal(SensorStatus.Inactive, result.Status);
+        Assert.Equal(SensorStatus.Active, result.Status);
+        Assert.Equal("Sensor de temperatura - Centro comunitario", result.Name);
+        Assert.Equal("SEN-EP-TEMP-01", result.Code);
+        Assert.Null(result.DeviceCode);
     }
 
     [Fact]
-    public async Task RejectsDuplicateSensor()
+    public async Task GeneratesNextUniqueSensorCode()
     {
         TestContext context = new();
         Community community = context.AddCommunity();
-        await context.Sensors.CreateAsync(SensorRequest(community.Id), default);
-        await Assert.ThrowsAsync<ConflictException>(() =>
-            context.Sensors.CreateAsync(SensorRequest(community.Id), default));
+        SensorResponse first = await context.Sensors.CreateAsync(SensorRequest(community.Id), default);
+        SensorResponse second = await context.Sensors.CreateAsync(SensorRequest(community.Id), default);
+        Assert.Equal("SEN-EP-TEMP-01", first.Code);
+        Assert.Equal("SEN-EP-TEMP-02", second.Code);
+
+    }
+
+    [Fact]
+    public async Task EditingLocationUpdatesDerivedNameAndPreservesCode()
+    {
+        TestContext context = new();
+        Community community = context.AddCommunity();
+        SensorResponse created = await context.Sensors.CreateAsync(SensorRequest(community.Id), default);
+        SensorResponse updated = await context.Sensors.UpdateAsync(created.Id, new("Sector norte"), default);
+        Assert.Equal(created.Code, updated.Code);
+        Assert.Equal("Sensor de temperatura - Sector norte", updated.Name);
     }
 
     [Fact]
@@ -71,12 +87,43 @@ public sealed class ApplicationServiceTests
     }
 
     [Fact]
+    public async Task ManualReadingUsesSensorMetadataAndAddsNewHistoryItem()
+    {
+        TestContext context = new();
+        Sensor sensor = context.AddSensor(active: true);
+        await context.Readings.CreateAsync(ReadingRequest(sensor.Id) with { MeasuredAt = Now.AddMinutes(-1) }, default);
+        SensorReadingResponse manual = await context.Readings.CreateManualAsync(new(sensor.Id, 31.5m), default);
+        PagedResponse<SensorReadingResponse> history = await context.Readings.GetHistoryAsync(sensor.Id, 1, 20, default);
+        Assert.Equal(2, history.TotalCount);
+        Assert.Equal(31.5m, manual.Value);
+        Assert.Equal("°C", manual.Unit);
+        Assert.Equal(2, context.AlertEvaluator.EvaluationCount);
+    }
+
+    [Fact]
     public async Task RejectsReadingForInactiveSensor()
     {
         TestContext context = new();
         Sensor sensor = context.AddSensor(active: false);
         await Assert.ThrowsAsync<ConflictException>(() =>
-            context.Readings.CreateAsync(ReadingRequest(sensor.Id), default));
+            context.Readings.CreateManualAsync(new(sensor.Id, 20m), default));
+    }
+
+    [Fact]
+    public async Task RejectsManualReadingWithoutValue()
+    {
+        TestContext context = new();
+        Sensor sensor = context.AddSensor(active: true);
+        await Assert.ThrowsAsync<ValidationException>(() =>
+            context.Readings.CreateManualAsync(new(sensor.Id, null), default));
+    }
+
+    [Fact]
+    public async Task RejectsManualReadingForMissingSensor()
+    {
+        TestContext context = new();
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            context.Readings.CreateManualAsync(new(Guid.NewGuid(), 20m), default));
     }
 
     [Fact]
@@ -161,8 +208,7 @@ public sealed class ApplicationServiceTests
     }
 
     private static CreateSensorRequest SensorRequest(Guid communityId) => new(
-        communityId, "TEMP-01", "Temperatura central", ClimateVariable.Temperature,
-        SensorOrigin.Simulated, "Centro comunitario", null);
+        communityId, ClimateVariable.Temperature, "Centro comunitario", true);
 
     private static CreateSensorReadingRequest ReadingRequest(Guid sensorId) => new(
         sensorId, ClimateVariable.Temperature, 24.5m, "°C", Now, SensorOrigin.Simulated);
@@ -172,6 +218,7 @@ public sealed class ApplicationServiceTests
         private readonly FakeCommunityRepository _communityRepository = new();
         private readonly FakeSensorRepository _sensorRepository = new();
         public FakeReadingRepository ReadingRepository { get; } = new();
+        public RecordingAlertEvaluator AlertEvaluator { get; } = new();
         public CommunityService Communities { get; }
         public SensorService Sensors { get; }
         public SensorReadingService Readings { get; }
@@ -182,7 +229,7 @@ public sealed class ApplicationServiceTests
             var clock = new FixedTimeProvider(Now);
             Communities = new(_communityRepository, unitOfWork, clock);
             Sensors = new(_sensorRepository, _communityRepository, unitOfWork, clock);
-            Readings = new(_sensorRepository, ReadingRepository, new NoopAlertEvaluator(), unitOfWork, clock);
+            Readings = new(_sensorRepository, ReadingRepository, AlertEvaluator, unitOfWork, clock);
         }
 
         public Community AddCommunity()
@@ -224,6 +271,7 @@ public sealed class ApplicationServiceTests
         public Task<IReadOnlyList<Sensor>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Sensor>>(_items.Where(item => item.CommunityId == communityId).ToList());
         public Task<Sensor?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken) => Task.FromResult(_items.SingleOrDefault(item => item.Id == id));
         public Task<bool> ExistsAsync(Guid communityId, string code, CancellationToken cancellationToken) => Task.FromResult(_items.Any(item => item.CommunityId == communityId && item.Code == code));
+        public Task<IReadOnlyList<string>> GetCodesAsync(Guid communityId, string prefix, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<string>>(_items.Where(item => item.CommunityId == communityId && item.Code.StartsWith(prefix)).Select(item => item.Code).ToList());
         public Task<IReadOnlyList<Sensor>> GetActiveSimulatedAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Sensor>>(_items.Where(item => item.Status == SensorStatus.Active && item.Origin == SensorOrigin.Simulated).ToList());
         public void Add(Sensor sensor) => _items.Add(sensor);
     }
@@ -247,10 +295,14 @@ public sealed class ApplicationServiceTests
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken) => Task.FromResult(1);
     }
 
-    private sealed class NoopAlertEvaluator : IAlertEvaluator
+    public sealed class RecordingAlertEvaluator : IAlertEvaluator
     {
-        public Task EvaluateAsync(SensorReading reading, CancellationToken cancellationToken) =>
-            Task.CompletedTask;
+        public int EvaluationCount { get; private set; }
+        public Task EvaluateAsync(SensorReading reading, CancellationToken cancellationToken)
+        {
+            EvaluationCount++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider

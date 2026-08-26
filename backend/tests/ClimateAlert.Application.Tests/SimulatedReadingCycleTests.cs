@@ -152,6 +152,7 @@ public sealed class SimulatedReadingCycleTests
         public Task<IReadOnlyList<Sensor>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Sensor>>(Items.Where(item => item.CommunityId == communityId).ToList());
         public Task<Sensor?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken) => Task.FromResult(Items.SingleOrDefault(item => item.Id == id));
         public Task<bool> ExistsAsync(Guid communityId, string code, CancellationToken cancellationToken) => Task.FromResult(false);
+        public Task<IReadOnlyList<string>> GetCodesAsync(Guid communityId, string prefix, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<string>>([]);
         public void Add(Sensor sensor) => Items.Add(sensor);
     }
 
