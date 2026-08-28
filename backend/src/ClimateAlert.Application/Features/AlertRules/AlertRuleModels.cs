@@ -6,14 +6,16 @@ public sealed record CreateAlertRuleRequest(
     Guid CommunityId,
     Guid? SensorId,
     string Code,
-    string Name,
+    string? Name,
     ClimatePhenomenon Phenomenon,
     ClimateVariable Variable,
     DangerLevel DangerLevel,
     decimal? LowerLimit,
     decimal? UpperLimit,
     DateTimeOffset ValidFrom,
-    DateTimeOffset? ValidUntil);
+    DateTimeOffset? ValidUntil,
+    string? Condition = null,
+    decimal? ActivationPoint = null);
 
 public sealed record ChangeAlertRuleStatusRequest(bool IsActive);
 
@@ -31,4 +33,7 @@ public sealed record AlertRuleResponse(
     DateTimeOffset ValidFrom,
     DateTimeOffset? ValidUntil,
     bool IsActive,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string ComparisonOperator,
+    decimal ActivationPoint,
+    string Unit);

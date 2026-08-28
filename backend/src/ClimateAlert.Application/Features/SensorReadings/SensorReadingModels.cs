@@ -22,6 +22,11 @@ public sealed record SensorReadingResponse(
     DateTimeOffset ReceivedAt,
     SensorOrigin Origin);
 
+public sealed record HistoryReadingResponse(
+    Guid Id, Guid SensorId, Guid CommunityId, string SensorName, string SensorCode,
+    string CommunityName, ClimateVariable Variable, decimal Value, string Unit,
+    DateTimeOffset MeasuredAt, DateTimeOffset ReceivedAt, SensorOrigin Origin);
+
 public sealed record PagedResponse<T>(
     IReadOnlyList<T> Data,
     int PageIndex,

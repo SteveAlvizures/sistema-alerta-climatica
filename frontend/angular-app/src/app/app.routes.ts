@@ -38,6 +38,11 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'sensors/:id',
+        loadComponent: () => import('./features/sensors/pages/sensor-detail-page/sensor-detail-page').then(
+          (component) => component.SensorDetailPage),
+      },
+      {
         path: 'alerts',
         loadComponent: () =>
           import('./features/alerts/pages/alerts-page/alerts-page').then(

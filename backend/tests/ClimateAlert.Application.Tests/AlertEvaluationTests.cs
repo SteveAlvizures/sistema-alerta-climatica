@@ -96,7 +96,33 @@ public sealed class AlertEvaluationTests
         await context.EvaluateAsync(context.CreateReading(25m));
         ClimateEvent climateEvent = Assert.Single(context.Events.Items);
         Assert.Equal(DangerLevel.Red, climateEvent.HighestLevel);
-        Assert.Equal(2, climateEvent.Alerts.Count);
+        Assert.Single(climateEvent.Alerts);
+        Assert.Single(context.Alerts.Items);
+        Assert.Equal(DangerLevel.Red, context.Alerts.Items[0].Level);
+    }
+
+    [Fact]
+    public async Task AlertEscalatesDeescalatesAndClosesWithoutDuplicates()
+    {
+        EvaluationContext context = new();
+        context.AddRule(30m, level: DangerLevel.Yellow, code: "TEMP-YELLOW");
+        context.AddRule(35m, level: DangerLevel.Orange, code: "TEMP-ORANGE");
+        context.AddRule(40m, level: DangerLevel.Red, code: "TEMP-RED");
+
+        await context.EvaluateAsync(context.CreateReading(31m, Now));
+        Assert.Equal(DangerLevel.Yellow, Assert.Single(context.Alerts.Items).Level);
+        await context.EvaluateAsync(context.CreateReading(36m, Now.AddMinutes(1)));
+        Assert.Equal(DangerLevel.Orange, Assert.Single(context.Alerts.Items).Level);
+        await context.EvaluateAsync(context.CreateReading(41m, Now.AddMinutes(2)));
+        Assert.Equal(DangerLevel.Red, Assert.Single(context.Alerts.Items).Level);
+        await context.EvaluateAsync(context.CreateReading(32m, Now.AddMinutes(3)));
+        Assert.Equal(DangerLevel.Yellow, Assert.Single(context.Alerts.Items).Level);
+        await context.EvaluateAsync(context.CreateReading(28m, Now.AddMinutes(4)));
+        Assert.Equal(AlertStatus.Closed, Assert.Single(context.Alerts.Items).Status);
+        ClimateEvent climateEvent = Assert.Single(context.Events.Items);
+        Assert.Equal(EventStatus.Closed, climateEvent.Status);
+        Assert.Equal(Now.AddMinutes(4), climateEvent.EndedAt);
+        Assert.Single(climateEvent.Alerts);
     }
 
     [Fact]

@@ -1,45 +1,22 @@
 <section class="alerts-page">
-  <header class="page-heading"><p>Monitoreo preventivo</p><h1>Alertas climáticas</h1><span>Consulta y gestiona los eventos detectados por las reglas del sistema.</span></header>
-
-  <section class="summary-grid" aria-label="Resumen de alertas">
-    <article><span>Total</span><strong>{{ alerts.length }}</strong><small>Alertas registradas</small></article>
-    <article class="summary--open"><span>Abiertas</span><strong>{{ openCount }}</strong><small>Requieren atención</small></article>
-    <article class="summary--ack"><span>Reconocidas</span><strong>{{ acknowledgedCount }}</strong><small>En seguimiento</small></article>
-    <article><span>Resueltas</span><strong>{{ closedCount }}</strong><small>Ciclo finalizado</small></article>
-  </section>
-
-  <section class="level-strip" aria-label="Distribución por nivel">
-    @for (level of levels; track level) { <span [class]="'level level--' + level.toLowerCase()"><i></i>{{ levelLabel(level) }} <strong>{{ countLevel(level) }}</strong></span> }
-  </section>
-
+  <header class="page-heading"><p>Monitoreo preventivo</p><h1>Alertas climáticas</h1><span>Consulta el historial detectado por las reglas del sistema.</span></header>
   <section class="filters" aria-label="Filtros de alertas">
     <label><span>Comunidad</span><select [(ngModel)]="communityFilter"><option value="">Todas las comunidades</option>@for (community of communities; track community.id) { <option [value]="community.id">{{ community.name }}</option> }</select></label>
-    <label><span>Nivel</span><select [(ngModel)]="levelFilter"><option value="">Todos los niveles</option>@for (level of levels; track level) { <option [value]="level">{{ levelLabel(level) }}</option> }</select></label>
-    <label><span>Estado</span><select [(ngModel)]="statusFilter"><option value="">Todos los estados</option><option value="Open">Abierta</option><option value="Acknowledged">Reconocida</option><option value="Closed">Resuelta</option></select></label>
-    <button type="button" (click)="resetFilters()">Limpiar filtros</button>
+    <label><span>Variable</span><select [(ngModel)]="variableFilter"><option value="">Todas las variables</option>@for (variable of variables; track variable) { <option [value]="variable">{{ variableLabel(variable) }}</option> }</select></label>
+    <label><span>Nivel de alerta</span><select [(ngModel)]="levelFilter"><option value="">Todos</option>@for (level of levels; track level) { <option [value]="level">{{ levelLabel(level) }}</option> }</select></label>
+    <label><span>Por página</span><select [(ngModel)]="pageSize" (change)="changePageSize()">@for (size of pageSizes; track size) { <option [ngValue]="size">{{ size }}</option> }</select></label>
+    <div class="filters__actions"><button class="primary" type="button" (click)="applyFilters()">Aplicar filtros</button><button type="button" (click)="clearFilters()">Limpiar filtros</button></div>
   </section>
-
-  @if (!canAdminister()) { <aside class="visitor-note"><span aria-hidden="true">ⓘ</span><p><strong>Consulta pública</strong> Inicia sesión como administrador para reconocer o resolver alertas.</p></aside> }
-  @if (actionError) { <p class="message message--error" role="alert">{{ actionError }}</p> }
-  @if (error) { <p class="message message--error" role="alert">{{ error }} <button type="button" (click)="ngOnInit()">Reintentar</button></p> }
-  @if (loading) { <p class="message">Cargando alertas reales…</p> }
-
-  @if (!loading && !error) {
-    <div class="results-heading"><h2>Registro de alertas</h2><span>{{ filteredAlerts.length }} resultados</span></div>
-    @if (filteredAlerts.length === 0) { <div class="empty-state"><strong>Sin alertas para estos filtros</strong><span>Ajusta los criterios para consultar otros registros.</span></div> }
-    <div class="alert-list">
-      @for (alert of filteredAlerts; track alert.id) {
-        <article class="alert-card" [class]="'alert-card alert-card--' + alert.level.toLowerCase()">
-          <div class="alert-card__level"><span>{{ levelLabel(alert.level) }}</span><small>{{ phenomenonLabel(alert.phenomenon) }}</small></div>
-          <div class="alert-card__content"><div class="alert-card__heading"><div><h3>{{ communityName(alert.communityId) }}</h3><time>{{ formatDate(alert.updatedAt) }}</time></div><span [class]="'status status--' + alert.status.toLowerCase()">{{ statusLabel(alert.status) }}</span></div><p>{{ alert.message }}</p><div class="references"><span>Regla <strong>{{ shortId(alert.ruleId) }}</strong></span><span>Lectura <strong>{{ shortId(alert.supportingReadingId) }}</strong></span></div></div>
-          @if (canAdminister() && alert.status !== 'Closed') {
-            <div class="alert-card__actions">
-              @if (alert.status === 'Open') { <button type="button" [disabled]="busyAlertIds.has(alert.id)" (click)="acknowledge(alert)">{{ busyAlertIds.has(alert.id) ? 'Procesando…' : 'Reconocer' }}</button> }
-              <button class="resolve" type="button" [disabled]="busyAlertIds.has(alert.id)" (click)="resolve(alert)">{{ busyAlertIds.has(alert.id) ? 'Procesando…' : 'Resolver' }}</button>
-            </div>
-          }
-        </article>
-      }
-    </div>
+  @if (error) { <p class="message message--error" role="alert">{{ error }}</p> }
+  @if (!applied) { <div class="empty-state initial-state"><strong>Consulta de alertas</strong><span>Seleccione los filtros y presione Aplicar filtros para consultar las alertas.</span></div> }
+  @if (applied && loading) { <p class="message" aria-live="polite">Consultando alertas…</p> }
+  @if (applied && !loading && !error) {
+    <section class="summary-grid" aria-label="Resumen del resultado"><article><span>Total de alertas</span><strong>{{ totalCount }}</strong></article>@for (level of levels; track level) { <article [class]="'summary--' + level.toLowerCase()"><span>{{ levelLabel(level) }}s</span><strong>{{ countLevel(level) }}</strong><small>En esta página</small></article> }</section>
+    @if (alerts.length === 0) { <div class="empty-state"><strong>Sin coincidencias</strong><span>No se encontraron alertas para los filtros seleccionados.</span></div> }
+    @if (alerts.length > 0) {
+      <div class="results-heading"><h2>Registro de alertas</h2><span>Mostrando {{ firstItem }}–{{ lastItem }} de {{ totalCount }} alertas</span></div>
+      <div class="alert-list">@for (alert of alerts; track alert.id) { <article [class]="'alert-card alert-card--' + alert.level.toLowerCase()"><div class="alert-card__level"><span>{{ levelLabel(alert.level) }}</span></div><div class="alert-card__content"><div class="alert-card__heading"><div><h3>{{ communityName(alert.communityId) }}</h3><time>{{ formatDate(alert.updatedAt) }}</time></div></div><p>{{ alert.message }}</p><div class="references"><span>Sensor <strong>{{ alert.sensorId }}</strong></span><span>Variable <strong>{{ variableLabel(alert.variable) }}</strong></span><span>Valor registrado <strong>{{ alert.detectedValue }} {{ alert.unit }}</strong></span><span>Punto de activación <strong>{{ alert.activationPoint }} {{ alert.unit }}</strong></span><a [routerLink]="['/sensors', alert.sensorId]">Ver sensor</a></div></div></article> }</div>
+      <nav class="pagination" aria-label="Paginación de alertas"><span>Página {{ pageIndex }} de {{ totalPages }} · {{ totalCount }} alertas</span><div><button type="button" [disabled]="!hasPrevious" (click)="previous()">Anterior</button><button type="button" [disabled]="!hasNext" (click)="next()">Siguiente</button></div></nav>
+    }
   }
 </section>

@@ -12,6 +12,15 @@ public sealed class SensorReadingsController(
     SensorService sensorService,
     AuditActionService audit) : ControllerBase
 {
+    [HttpGet("api/sensor-readings")]
+    public async Task<ActionResult<PagedResponse<HistoryReadingResponse>>> GetHistoryPage(
+        [FromQuery] Guid? communityId = null, [FromQuery] Guid? sensorId = null,
+        [FromQuery] ClimateAlert.Domain.Enums.ClimateVariable? variable = null,
+        [FromQuery] DateTimeOffset? dateFrom = null, [FromQuery] DateTimeOffset? dateTo = null,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default) =>
+        Ok(await service.GetHistoryPageAsync(communityId, sensorId, variable, dateFrom, dateTo, page, pageSize, cancellationToken));
+
     [HttpGet("api/sensors/{sensorId:guid}/readings")]
     public async Task<ActionResult<PagedResponse<SensorReadingResponse>>> GetHistory(
         Guid sensorId, [FromQuery] int page = 1, [FromQuery] int? pageSize = null,

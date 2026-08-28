@@ -54,7 +54,7 @@ public sealed class ApiRouteTests
     public void AlertEndpointsAreExposed()
     {
         Assert.Equal("api/alerts", RouteOf<AlertsController>());
-        AssertMethod<AlertsController>(nameof(AlertsController.GetAll), typeof(HttpGetAttribute), null);
+        AssertMethod<AlertsController>(nameof(AlertsController.GetPage), typeof(HttpGetAttribute), null);
         AssertMethod<AlertsController>(nameof(AlertsController.GetById), typeof(HttpGetAttribute), "{id:guid}");
         AssertMethod<AlertsController>(nameof(AlertsController.GetByCommunity), typeof(HttpGetAttribute), "/api/communities/{communityId:guid}/alerts");
         AssertMethod<AlertsController>(nameof(AlertsController.Acknowledge), typeof(HttpPatchAttribute), "{id:guid}/acknowledge");
@@ -65,7 +65,7 @@ public sealed class ApiRouteTests
     public void AuditLogEndpointIsAdministratorOnly()
     {
         Assert.Equal("api/audit-actions", RouteOf<AuditActionsController>());
-        AssertMethod<AuditActionsController>(nameof(AuditActionsController.GetRecent), typeof(HttpGetAttribute), null);
+        AssertMethod<AuditActionsController>(nameof(AuditActionsController.GetPage), typeof(HttpGetAttribute), null);
         AuthorizeAttribute attribute = Assert.Single(typeof(AuditActionsController)
             .GetCustomAttributes(typeof(AuthorizeAttribute), false).Cast<AuthorizeAttribute>());
         Assert.Equal("Administrator", attribute.Roles);

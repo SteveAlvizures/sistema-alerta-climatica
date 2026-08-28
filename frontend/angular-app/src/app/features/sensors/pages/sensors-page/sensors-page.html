@@ -165,14 +165,15 @@
               }
             </div>
 
-            @if (canAdminister()) {
               <div class="sensor-card__actions">
+                <a class="status-button status-button--secondary" [routerLink]="['/sensors', sensor.id]">Ver detalle</a>
+            @if (canAdminister()) {
                 <button class="status-button" type="button" (click)="startEdit(sensor)">Editar</button>
                 <button class="status-button status-button--secondary" type="button" (click)="startManualReading(sensor)" [disabled]="sensor.status !== 'Active'">Registrar lectura</button>
                 <button class="status-button" type="button" (click)="restartMonitoring(sensor)">Reiniciar monitoreo</button>
                 <button class="status-button" [class.status-button--deactivate]="sensor.status === 'Active'" type="button" (click)="changeStatus(sensor)">{{ sensor.status === 'Active' ? 'Desactivar' : 'Activar' }}</button>
-              </div>
             }
+              </div>
           </article>
         }
       </div>

@@ -14,4 +14,13 @@ public sealed record AlertResponse(
     string Message,
     DateTimeOffset DetectedAt,
     DateTimeOffset UpdatedAt,
-    DateTimeOffset? ClosedAt);
+    DateTimeOffset? ClosedAt,
+    Guid SensorId,
+    ClimateVariable Variable,
+    decimal DetectedValue,
+    decimal ActivationPoint,
+    string Unit);
+
+public sealed record AlertPageResponse(
+    IReadOnlyList<AlertResponse> Data, int PageIndex, int PageSize, int TotalCount, int TotalPages,
+    bool HasPrevious, bool HasNext, int PreventiveCount, int HighCount, int CriticalCount);

@@ -6,19 +6,36 @@ import { AlertRuleApiService, CreateAlertRuleRequest } from '../../../../core/se
 import { AuthService } from '../../../../core/services/auth.service';
 import { CommunityApiService } from '../../../../core/services/community-api.service';
 
-const variables: Record<ClimateVariable, string> = { Temperature:'Temperatura',RelativeHumidity:'Humedad relativa',WindSpeed:'Velocidad del viento',RainfallLevel:'Nivel de lluvia',RiverOrReservoirLevel:'Nivel de río o reservorio' };
-const levels: Record<string, string> = { Green:'Verde',Yellow:'Amarillo',Orange:'Naranja',Red:'Rojo' };
+const variables:Record<ClimateVariable,string>={Temperature:'Temperatura',RelativeHumidity:'Humedad relativa',WindSpeed:'Velocidad del viento',RainfallLevel:'Nivel de lluvia',RiverOrReservoirLevel:'Nivel de río o reservorio'};
+const levels:Record<string,string>={Green:'Normal',Yellow:'Preventiva',Orange:'Alta',Red:'Crítica'};
+const conditions:Record<string,string>={'>':'Mayor que','>=':'Mayor o igual que','<':'Menor que','<=':'Menor o igual que'};
+const units:Record<ClimateVariable,string>={Temperature:'°C',RelativeHumidity:'%',WindSpeed:'km/h',RainfallLevel:'mm',RiverOrReservoirLevel:'m'};
+interface RuleFilters { communityId:string; variable:''|ClimateVariable; dangerLevel:''|'Yellow'|'Orange'|'Red'; }
+const emptyRuleFilters=():RuleFilters=>({communityId:'',variable:'',dangerLevel:''});
+
 @Component({selector:'app-alert-rules-page',imports:[FormsModule],templateUrl:'./alert-rules-page.html',styleUrl:'./alert-rules-page.scss'})
 export class AlertRulesPage implements OnInit {
   private readonly api=inject(AlertRuleApiService); private readonly communitiesApi=inject(CommunityApiService); protected readonly auth=inject(AuthService);
   protected rules:AlertRuleDto[]=[]; protected communities:CommunityDto[]=[]; protected loading=true; protected saving=false; protected error=''; protected success='';
-  protected communityId=''; protected code=''; protected name=''; protected variable:ClimateVariable='RainfallLevel'; protected phenomenon='Flood'; protected dangerLevel='Yellow'; protected lowerLimit:number|null=null; protected upperLimit:number|null=null;
+  protected communityId=''; protected name=''; protected variable:ClimateVariable='Temperature'; protected phenomenon='Wildfire'; protected dangerLevel='Yellow'; protected condition:'>'|'>='|'<'|'<='='>='; protected activationPoint:number|null=null; protected initialActive=true;
+  protected filterDraft:RuleFilters=emptyRuleFilters(); protected activeFilters:RuleFilters=emptyRuleFilters();
+  protected filtersApplied=false;
   protected readonly variableOptions=Object.keys(variables) as ClimateVariable[];
   ngOnInit():void{forkJoin({rules:this.api.getAll(),communities:this.communitiesApi.getAll()}).subscribe({next:({rules,communities})=>{this.rules=rules;this.communities=communities;this.communityId=communities[0]?.id??'';this.loading=false},error:()=>{this.error='No fue posible cargar las reglas.';this.loading=false}})}
   protected canAdminister():boolean{return this.auth.session()?.role==='Administrator'}
   protected communityName(id:string):string{return this.communities.find(item=>item.id===id)?.name??'Comunidad no disponible'}
   protected variableLabel(value:ClimateVariable):string{return variables[value]}
   protected levelLabel(value:string):string{return levels[value]??value}
-  protected create():void{if(!this.canAdminister()||this.saving||!this.communityId||!this.code.trim()||!this.name.trim()||(this.lowerLimit===null&&this.upperLimit===null)){this.error='Completa comunidad, código, nombre y al menos un límite.';return} const request:CreateAlertRuleRequest={communityId:this.communityId,sensorId:null,code:this.code.trim(),name:this.name.trim(),phenomenon:this.phenomenon as CreateAlertRuleRequest['phenomenon'],variable:this.variable,dangerLevel:this.dangerLevel as CreateAlertRuleRequest['dangerLevel'],lowerLimit:this.lowerLimit,upperLimit:this.upperLimit,validFrom:new Date().toISOString(),validUntil:null};this.saving=true;this.api.create(request).subscribe({next:rule=>{this.rules=[...this.rules,rule];this.code='';this.name='';this.lowerLimit=null;this.upperLimit=null;this.saving=false;this.success='Regla creada correctamente.';this.error=''},error:()=>{this.saving=false;this.error='No fue posible crear la regla.'}})}
-  protected toggle(rule:AlertRuleDto):void{if(!this.canAdminister()||!window.confirm(`¿Deseas ${rule.isActive?'desactivar':'activar'} esta regla?`))return;this.api.changeStatus(rule.id,!rule.isActive).subscribe({next:updated=>{this.rules=this.rules.map(item=>item.id===updated.id?updated:item);this.success='Estado de la regla actualizado.';this.error=''},error:()=>this.error='No fue posible cambiar el estado de la regla.'})}
+  protected conditionLabel(value:string):string{return conditions[value]??value}
+  protected unit():string{return units[this.variable]}
+  protected filteredRules():AlertRuleDto[]{return this.filtersApplied?this.rules.filter(rule=>(!this.activeFilters.communityId||rule.communityId===this.activeFilters.communityId)&&(!this.activeFilters.variable||rule.variable===this.activeFilters.variable)&&(!this.activeFilters.dangerLevel||rule.dangerLevel===this.activeFilters.dangerLevel)):[]}
+  protected applyRuleFilters():void{this.activeFilters={...this.filterDraft};this.filtersApplied=true}
+  protected clearRuleFilters():void{this.filterDraft=emptyRuleFilters();this.activeFilters=emptyRuleFilters();this.filtersApplied=false}
+  protected preview():string{return this.activationPoint===null?'Completa el punto de activación para ver la regla.':`Cuando ${variables[this.variable].toLowerCase()} de ${this.communityName(this.communityId)} sea ${conditions[this.condition].toLowerCase()} ${this.activationPoint} ${this.unit()}, se establecerá un nivel de alerta ${this.levelLabel(this.dangerLevel)}.`}
+  protected create():void{
+    if(!this.canAdminister()||this.saving||!this.communityId||this.activationPoint===null){this.error='Completa comunidad y punto de activación.';return}
+    const request:CreateAlertRuleRequest={communityId:this.communityId,sensorId:null,code:'',name:this.name.trim(),phenomenon:this.phenomenon as CreateAlertRuleRequest['phenomenon'],variable:this.variable,dangerLevel:this.dangerLevel as CreateAlertRuleRequest['dangerLevel'],lowerLimit:['>','>='].includes(this.condition)?this.activationPoint:null,upperLimit:['<','<='].includes(this.condition)?this.activationPoint:null,validFrom:new Date().toISOString(),validUntil:null,condition:this.condition,activationPoint:this.activationPoint};
+    this.saving=true;this.api.create(request).subscribe({next:rule=>{this.rules=[...this.rules,rule];this.name='';this.activationPoint=null;this.saving=false;this.success=`Regla ${rule.code} creada correctamente.`;this.error='';if(!this.initialActive)this.toggle(rule,false)},error:()=>{this.saving=false;this.error='No fue posible crear la regla.'}})
+  }
+  protected toggle(rule:AlertRuleDto,ask=true):void{if(!this.canAdminister()||(ask&&!window.confirm(`¿Deseas ${rule.isActive?'desactivar':'activar'} esta regla?`)))return;this.api.changeStatus(rule.id,!rule.isActive).subscribe({next:updated=>{this.rules=this.rules.map(item=>item.id===updated.id?updated:item);this.success='Estado de la regla actualizado.';this.error=''},error:()=>this.error='No fue posible cambiar el estado de la regla.'})}
 }

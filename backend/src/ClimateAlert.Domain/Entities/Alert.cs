@@ -111,6 +111,22 @@ public sealed class Alert
         UpdatedAt = acknowledgedAt;
     }
 
+    public void Transition(AlertRule rule, SensorReading supportingReading, string message, DateTimeOffset updatedAt)
+    {
+        ArgumentNullException.ThrowIfNull(rule);
+        ArgumentNullException.ThrowIfNull(supportingReading);
+        if (rule.CommunityId != CommunityId || rule.Variable != supportingReading.Variable
+            || supportingReading.Sensor.CommunityId != CommunityId)
+            throw new ArgumentException("The rule and reading must describe the same monitored phenomenon.");
+
+        Rule = rule;
+        RuleId = rule.Id;
+        SupportingReading = supportingReading;
+        SupportingReadingId = supportingReading.Id;
+        Phenomenon = rule.Phenomenon;
+        Update(rule.DangerLevel, message, updatedAt);
+    }
+
     public void Close(DateTimeOffset closedAt)
     {
         if (Status == AlertStatus.Closed)

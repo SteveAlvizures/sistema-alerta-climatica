@@ -20,6 +20,6 @@ export class Header implements OnInit {
   protected logout(): void { this.auth.logout(); void this.router.navigateByUrl('/'); }
   protected sessionLabel(role: string): string { return role === 'Administrator' ? 'Administrador' : 'Usuario'; }
   protected levelLabel(level: ApiDangerLevel | null): string {
-    return level ? ({ Green: 'Verde', Yellow: 'Amarillo', Orange: 'Naranja', Red: 'Rojo' }[level]) : '';
+    return level ? ({ Green: 'Normal', Yellow: 'Preventiva', Orange: 'Alta', Red: 'Crítica' }[level]) : '';
   }
 }

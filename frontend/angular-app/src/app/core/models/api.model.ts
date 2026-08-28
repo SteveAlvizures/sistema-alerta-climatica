@@ -45,6 +45,13 @@ export interface SensorReadingDto {
   origin: ApiSensorOrigin;
 }
 
+export interface HistoryReadingDto extends SensorReadingDto {
+  communityId: string;
+  sensorName: string;
+  sensorCode: string;
+  communityName: string;
+}
+
 export interface PagedResponse<T> {
   data: T[];
   pageIndex: number;
@@ -68,9 +75,14 @@ export interface AlertDto {
   detectedAt: string;
   updatedAt: string;
   closedAt: string | null;
+  sensorId: string;
+  variable: ClimateVariable;
+  detectedValue: number;
+  activationPoint: number;
+  unit: string;
 }
 
-export interface AlertRuleDto { id: string; communityId: string; sensorId: string | null; code: string; name: string; phenomenon: ApiClimatePhenomenon; variable: ClimateVariable; dangerLevel: ApiDangerLevel; lowerLimit: number | null; upperLimit: number | null; validFrom: string; validUntil: string | null; isActive: boolean; createdAt: string; }
+export interface AlertRuleDto { id: string; communityId: string; sensorId: string | null; code: string; name: string; phenomenon: ApiClimatePhenomenon; variable: ClimateVariable; dangerLevel: ApiDangerLevel; lowerLimit: number | null; upperLimit: number | null; validFrom: string; validUntil: string | null; isActive: boolean; createdAt: string; comparisonOperator: '>' | '>=' | '<' | '<='; activationPoint: number; unit: string; }
 
 export interface AuditActionDto {
   id: string;

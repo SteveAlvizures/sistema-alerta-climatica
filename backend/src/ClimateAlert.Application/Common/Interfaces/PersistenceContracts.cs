@@ -29,6 +29,11 @@ public interface ISensorReadingRepository
     Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageBySensorAsync(
         Guid sensorId, int pageIndex, int pageSize, CancellationToken cancellationToken);
     Task<SensorReading?> GetLatestAsync(Guid sensorId, CancellationToken cancellationToken);
+    Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageAsync(
+        Guid? communityId, Guid? sensorId, ClimateVariable? variable,
+        DateTimeOffset? dateFrom, DateTimeOffset? dateTo,
+        int pageIndex, int pageSize, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
     void Add(SensorReading reading);
 }
 
@@ -49,6 +54,10 @@ public interface IAlertRuleRepository
 public interface IAlertRepository
 {
     Task<IReadOnlyList<Alert>> GetAllAsync(CancellationToken cancellationToken);
+    Task<(IReadOnlyList<Alert> Items, int TotalCount, int PreventiveCount, int HighCount, int CriticalCount)> GetPageAsync(
+        Guid? communityId, ClimateVariable? variable, DangerLevel? level,
+        int page, int pageSize, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
     Task<IReadOnlyList<Alert>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task<Alert?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<Alert?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken);

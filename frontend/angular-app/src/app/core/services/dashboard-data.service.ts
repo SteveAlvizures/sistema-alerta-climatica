@@ -13,6 +13,7 @@ import {
 } from 'rxjs';
 import {
   AlertDto,
+  AlertRuleDto,
   ApiAlertStatus,
   ApiClimatePhenomenon,
   ApiDangerLevel,
@@ -31,6 +32,7 @@ import { SensorApiService } from './sensor-api.service';
 import { SensorReadingApiService } from './sensor-reading-api.service';
 import { SimulatedClimateService } from './simulated-climate.service';
 import { ActiveAlertsService } from './active-alerts.service';
+import { AlertRuleApiService } from './alert-rule-api.service';
 
 export type DashboardSource = 'api' | 'simulation';
 export type DashboardLoadState = 'loading' | 'ready' | 'no-communities' | 'no-sensors' | 'error';
@@ -67,7 +69,7 @@ const measurementLabels: Record<ClimateVariable, string> = {
 };
 
 const dangerLevelLabels: Record<ApiDangerLevel, DangerLevel> = {
-  Green: 'Verde', Yellow: 'Amarillo', Orange: 'Naranja', Red: 'Rojo',
+  Green: 'Normal', Yellow: 'Preventiva', Orange: 'Alta', Red: 'Crítica',
 };
 const dangerLevelPriority: Record<ApiDangerLevel, number> = {
   Green: 0, Yellow: 1, Orange: 2, Red: 3,
@@ -91,6 +93,7 @@ export class DashboardDataService {
   private readonly readingApi = inject(SensorReadingApiService);
   private readonly simulation = inject(SimulatedClimateService);
   private readonly activeAlerts = inject(ActiveAlertsService);
+  private readonly alertRuleApi = inject(AlertRuleApiService);
   private readonly apiDashboard = signal<ClimateDashboardState | null>(null);
   private activeRequest: Subscription | null = null;
   private requestVersion = 0;
@@ -164,6 +167,13 @@ export class DashboardDataService {
     this.observeOutcome(this.getCommunityOutcome(community), version);
   }
 
+  refreshSelected(): void {
+    const community = this.communities().find(item => item.id === this.selectedCommunityId());
+    if (!community || this.source() !== 'api') return;
+    const version = this.beginRequest(true);
+    this.observeOutcome(this.getCommunityOutcome(community), version, true);
+  }
+
   updateSelectedAlert(action: AlertAction): void {
     const alert = this.apiDashboard()?.alert;
     if (this.source() !== 'api' || !alert?.id || this.alertActionInProgress()) return;
@@ -208,13 +218,15 @@ export class DashboardDataService {
     return forkJoin({
       sensors: this.sensorApi.getByCommunity(community.id),
       alerts: this.alertApi.getByCommunity(community.id),
+      rules: this.alertRuleApi.getAll(),
     }).pipe(
-      switchMap(({ sensors, alerts }): Observable<LoadOutcome> => {
+      switchMap(({ sensors, alerts, rules }): Observable<LoadOutcome> => {
         const communityAlerts = alerts.filter((alert) => alert.communityId === community.id);
+        const communityRules = rules.filter((rule) => rule.communityId === community.id && rule.isActive);
         if (sensors.length === 0) {
           return of({
             state: 'no-sensors',
-            dashboard: this.createApiDashboard(community, [], communityAlerts),
+            dashboard: this.createApiDashboard(community, [], communityAlerts, [], communityRules),
           });
         }
 
@@ -239,14 +251,14 @@ export class DashboardDataService {
         return forkJoin({ items: forkJoin(latestRequests), histories: forkJoin(historyRequests) }).pipe(
           map(({ items, histories }) => ({
             state: 'ready' as const,
-            dashboard: this.createApiDashboard(community, items, communityAlerts, histories.flat()),
+            dashboard: this.createApiDashboard(community, items, communityAlerts, histories.flat(), communityRules),
           })),
           defaultIfEmpty({
             state: 'ready',
             dashboard: this.createApiDashboard(
               community,
               sensors.map((sensor) => ({ sensor, reading: null })),
-              communityAlerts, [],
+              communityAlerts, [], communityRules,
             ),
           }),
         );
@@ -258,15 +270,15 @@ export class DashboardDataService {
     );
   }
 
-  private beginRequest(): number {
+  private beginRequest(silent = false): number {
     this.cancelActiveRequest();
-    this.loadState.set('loading');
+    if (!silent) this.loadState.set('loading');
     this.errorMessage.set(null);
-    this.apiDashboard.set(null);
+    if (!silent) this.apiDashboard.set(null);
     return this.requestVersion;
   }
 
-  private observeOutcome(outcome$: Observable<LoadOutcome>, version: number): void {
+  private observeOutcome(outcome$: Observable<LoadOutcome>, version: number, silent = false): void {
     this.activeRequest = outcome$.subscribe({
       next: (outcome) => {
         if (!this.isCurrentApiRequest(version)) return;
@@ -274,10 +286,10 @@ export class DashboardDataService {
         this.loadState.set(outcome.state);
       },
       error: () => {
-        if (this.isCurrentApiRequest(version)) this.showConnectionError();
+        if (this.isCurrentApiRequest(version) && !silent) this.showConnectionError();
       },
       complete: () => {
-        if (this.isCurrentApiRequest(version) && this.loadState() === 'loading') {
+        if (this.isCurrentApiRequest(version) && !silent && this.loadState() === 'loading') {
           this.showConnectionError();
         }
       },
@@ -304,6 +316,7 @@ export class DashboardDataService {
     items: SensorWithReading[],
     alerts: AlertDto[],
     history: SensorReadingDto[] = [],
+    rules: AlertRuleDto[] = [],
   ): ClimateDashboardState {
     const latestReadings = items
       .filter((item): item is SensorWithReading & { reading: SensorReadingDto } => item.reading !== null)
@@ -313,7 +326,8 @@ export class DashboardDataService {
       .sort((left, right) => dangerLevelPriority[right.level] - dangerLevelPriority[left.level]
         || Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
     const highestAlert = activeAlerts[0];
-    const mappedHighestAlert = highestAlert ? this.mapAlert(highestAlert) : null;
+    const mappedActiveAlerts = activeAlerts.map(alert => this.mapAlert(alert, community, items));
+    const mappedHighestAlert = mappedActiveAlerts[0] ?? null;
     const updateCandidates = [
       latestReadings[0]?.reading.receivedAt,
       [...alerts].sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0]?.updatedAt,
@@ -339,23 +353,35 @@ export class DashboardDataService {
       level: mappedHighestAlert?.level ?? null,
       levelMessage: mappedHighestAlert?.message ?? 'Sin alertas activas para la comunidad seleccionada.',
       lastUpdated: latestDate ? new Date(latestDate) : new Date(),
-      indicators: indicatorDefinitions.map((definition) => {
-        const match = latestReadings.find((item) => item.reading.variable === definition.variable);
+      indicators: items.map(({ sensor, reading }) => {
+        const definition = indicatorDefinitions.find(item => item.variable === sensor.measurementType)!;
+        const sensorRules = rules.filter(rule => rule.variable === sensor.measurementType && (!rule.sensorId || rule.sensorId === sensor.id));
+        const matchingRule = reading ? sensorRules.filter(rule => this.ruleMatches(rule, reading.value))
+          .sort((left, right) => dangerLevelPriority[right.dangerLevel] - dangerLevelPriority[left.dangerLevel])[0] : undefined;
+        const status = matchingRule ? dangerLevelLabels[matchingRule.dangerLevel] : 'Normal';
+        const nextRule = reading ? sensorRules.filter(rule => !this.ruleMatches(rule, reading.value))
+          .sort((left, right) => Math.abs(left.activationPoint - reading.value) - Math.abs(right.activationPoint - reading.value))[0] : undefined;
+        const sensorTrend = history.filter(item => item.sensorId === sensor.id)
+          .sort((left, right) => Date.parse(left.measuredAt) - Date.parse(right.measuredAt)).slice(-15);
         return {
           key: definition.key,
-          name: definition.name,
-          value: match ? `${match.reading.value} ${match.reading.unit}` : 'Sin lectura',
-          detail: match ? match.sensor.name : 'No hay una lectura disponible',
+          name: measurementLabels[sensor.measurementType], sensorId: sensor.id,
+          value: reading ? `${reading.value} ${reading.unit}` : 'Sin lectura', detail: sensor.name,
+          status, tone: matchingRule ? dangerLevelTones[matchingRule.dangerLevel] : 'green',
+          lastReading: reading ? this.formatDateTime(reading.measuredAt) : 'Sin lectura registrada',
+          nextActivation: nextRule ? `${dangerLevelLabels[nextRule.dangerLevel]} · ${nextRule.activationPoint} ${nextRule.unit}` : 'Sin otro punto configurado',
+          trend: sensorTrend.map(item => ({ label: this.formatDateTime(item.measuredAt), value: item.value, unit: item.unit })),
         };
       }),
       sensors: items.map(({ sensor, reading }) => this.mapSensor(sensor, reading)),
       alert: mappedHighestAlert,
+      activeAlerts: mappedActiveAlerts,
       recentEvents: [...alertEvents, ...readingEvents].slice(0, 8),
-      trend: this.createTrend(history),
+      trend: this.createTrend(history, rules),
     };
   }
 
-  private createTrend(readings: SensorReadingDto[]): ClimateTrendSeries[] {
+  private createTrend(readings: SensorReadingDto[], rules: AlertRuleDto[]): ClimateTrendSeries[] {
     const definitions: Array<{ variable: ClimateVariable; metric: TrendMetric; label: string }> = [
       { variable: 'Temperature', metric: 'temperature', label: 'Temperatura' },
       { variable: 'RelativeHumidity', metric: 'humidity', label: 'Humedad relativa' },
@@ -367,12 +393,16 @@ export class DashboardDataService {
       const values = readings.filter((reading) => reading.variable === definition.variable)
         .sort((left, right) => Date.parse(left.measuredAt) - Date.parse(right.measuredAt)).slice(-30);
       if (!values.length) return [];
+      const activationPoints = rules.filter((rule) => rule.variable === definition.variable && rule.dangerLevel !== 'Green')
+        .sort((left, right) => dangerLevelPriority[left.dangerLevel] - dangerLevelPriority[right.dangerLevel])
+        .map((rule) => ({ level: dangerLevelLabels[rule.dangerLevel] as 'Preventiva' | 'Alta' | 'Crítica', value: rule.activationPoint }));
       return [{ metric: definition.metric, label: definition.label, unit: values.at(-1)!.unit,
-        points: values.map((reading) => ({ label: new Intl.DateTimeFormat('es-GT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(reading.measuredAt)), value: reading.value })) }];
+        points: values.map((reading) => ({ label: new Intl.DateTimeFormat('es-GT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(reading.measuredAt)), value: reading.value, timestamp: reading.measuredAt })), activationPoints }];
     });
   }
 
-  private mapAlert(alert: AlertDto): ClimateAlert {
+  private mapAlert(alert: AlertDto, community?: CommunityDto, items: SensorWithReading[] = []): ClimateAlert {
+    const sensor = items.find(item => item.sensor.id === alert.sensorId)?.sensor;
     return {
       id: alert.id,
       level: dangerLevelLabels[alert.level],
@@ -383,6 +413,10 @@ export class DashboardDataService {
       apiStatus: alert.status,
       tone: dangerLevelTones[alert.level],
       hasEvent: alert.eventId !== null,
+      community: community?.name,
+      sensor: sensor?.name,
+      variable: measurementLabels[alert.variable],
+      value: `${alert.detectedValue} ${alert.unit}`,
     };
   }
 
@@ -409,5 +443,12 @@ export class DashboardDataService {
       minute: '2-digit',
       hourCycle: 'h23',
     }).format(new Date(value));
+  }
+
+  private ruleMatches(rule: AlertRuleDto, value: number): boolean {
+    return rule.comparisonOperator === '>' ? value > rule.activationPoint
+      : rule.comparisonOperator === '>=' ? value >= rule.activationPoint
+      : rule.comparisonOperator === '<' ? value < rule.activationPoint
+      : value <= rule.activationPoint;
   }
 }

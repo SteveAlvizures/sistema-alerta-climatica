@@ -75,6 +75,36 @@
   stroke-width: 1;
 }
 
+.trend-panel__grid text,
+.trend-panel__axis-title {
+  fill: var(--text-subtle);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.trend-panel__axis {
+  stroke: var(--text-subtle);
+  stroke-width: 1.2;
+}
+
+.trend-panel__threshold line {
+  stroke-width: 1.25;
+  stroke-dasharray: 6 5;
+  opacity: 0.75;
+}
+
+.trend-panel__threshold text {
+  font-size: 0.64rem;
+  font-weight: 700;
+}
+
+.trend-panel__threshold--preventiva line { stroke: #b58a00; }
+.trend-panel__threshold--preventiva text { fill: #876700; }
+.trend-panel__threshold--alta line { stroke: #c65d18; }
+.trend-panel__threshold--alta text { fill: #99430e; }
+.trend-panel__threshold--critica line { stroke: #bd3030; }
+.trend-panel__threshold--critica text { fill: #952525; }
+
 .trend-panel__area {
   fill: var(--chart-fill);
 }
@@ -93,13 +123,25 @@
   stroke-width: 3;
 }
 
+.trend-panel__point:hover,
+.trend-panel__point:focus {
+  fill: var(--chart-line);
+  outline: none;
+  r: 5.5px;
+}
+
 .trend-panel__labels {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.25rem;
-  padding: 0 0.4rem;
+  position: relative;
+  height: 1.35rem;
   color: var(--text-subtle);
-  font-size: 0.8125rem;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.trend-panel__labels span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
 }
 
 .trend-panel__legend {
@@ -127,6 +169,15 @@
   color: var(--text-strong);
   font-size: 0.875rem;
 }
+
+.trend-panel__legend strong span {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: var(--text-subtle);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: right;
+}
 .trend-panel__empty { min-height: 14rem; display: grid; align-content: center; justify-items: center; padding: 2rem; color: var(--text-muted); text-align: center; }.trend-panel__empty strong { color: var(--text-strong); }.trend-panel__empty p { max-width: 28rem; margin: 0.45rem 0 0; font-size: 0.875rem; line-height: 1.5; }
 
 @media (max-width: 520px) {
@@ -139,7 +190,4 @@
     height: 11rem;
   }
 
-  .trend-panel__labels span:nth-child(even) {
-    display: none;
-  }
 }

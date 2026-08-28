@@ -1,6 +1,7 @@
 using ClimateAlert.Application.Common.Exceptions;
 using ClimateAlert.Application.Common.Interfaces;
 using ClimateAlert.Domain.Entities;
+using ClimateAlert.Domain.Enums;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -76,6 +77,24 @@ public sealed class SensorRepository(ClimateAlertDbContext dbContext) : ISensorR
 
 public sealed class SensorReadingRepository(ClimateAlertDbContext dbContext) : ISensorReadingRepository
 {
+    public async Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageAsync(
+        Guid? communityId, Guid? sensorId, ClimateVariable? variable,
+        DateTimeOffset? dateFrom, DateTimeOffset? dateTo,
+        int pageIndex, int pageSize, CancellationToken cancellationToken)
+    {
+        IQueryable<SensorReading> query = dbContext.SensorReadings.AsNoTracking();
+        if (communityId.HasValue) query = query.Where(reading => reading.Sensor.CommunityId == communityId.Value);
+        if (sensorId.HasValue) query = query.Where(reading => reading.SensorId == sensorId.Value);
+        if (variable.HasValue) query = query.Where(reading => reading.Variable == variable.Value);
+        if (dateFrom.HasValue) query = query.Where(reading => reading.MeasuredAt >= dateFrom.Value);
+        if (dateTo.HasValue) query = query.Where(reading => reading.MeasuredAt <= dateTo.Value);
+        int totalCount = await query.CountAsync(cancellationToken);
+        IReadOnlyList<SensorReading> items = await query.Include(reading => reading.Sensor).ThenInclude(sensor => sensor.Community)
+            .OrderByDescending(reading => reading.MeasuredAt).ThenByDescending(reading => reading.Id)
+            .Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        return (items, totalCount);
+    }
+
     public async Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageBySensorAsync(
         Guid sensorId, int pageIndex, int pageSize, CancellationToken cancellationToken)
     {
@@ -139,20 +158,43 @@ public sealed class AlertRuleRepository(ClimateAlertDbContext dbContext) : IAler
 public sealed class AlertRepository(ClimateAlertDbContext dbContext) : IAlertRepository
 {
     public async Task<IReadOnlyList<Alert>> GetAllAsync(CancellationToken cancellationToken) =>
-        await dbContext.Alerts.AsNoTracking().OrderByDescending(alert => alert.UpdatedAt)
+        await dbContext.Alerts.AsNoTracking().Include(alert => alert.Rule).Include(alert => alert.SupportingReading).OrderByDescending(alert => alert.UpdatedAt)
             .ToListAsync(cancellationToken);
+
+    public async Task<(IReadOnlyList<Alert> Items, int TotalCount, int PreventiveCount, int HighCount, int CriticalCount)> GetPageAsync(
+        Guid? communityId, ClimateVariable? variable, DangerLevel? level,
+        int page, int pageSize, CancellationToken cancellationToken)
+    {
+        IQueryable<Alert> query = dbContext.Alerts.AsNoTracking();
+        if (communityId.HasValue) query = query.Where(alert => alert.CommunityId == communityId.Value);
+        if (variable.HasValue) query = query.Where(alert => alert.SupportingReading.Variable == variable.Value);
+        if (level.HasValue) query = query.Where(alert => alert.Level == level.Value);
+
+        int totalCount = await query.CountAsync(cancellationToken);
+        int preventiveCount = await query.CountAsync(alert => alert.Level == DangerLevel.Yellow, cancellationToken);
+        int highCount = await query.CountAsync(alert => alert.Level == DangerLevel.Orange, cancellationToken);
+        int criticalCount = await query.CountAsync(alert => alert.Level == DangerLevel.Red, cancellationToken);
+        IReadOnlyList<Alert> items = await query
+            .Include(alert => alert.Rule).Include(alert => alert.SupportingReading)
+            .OrderByDescending(alert => alert.UpdatedAt)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return (items, totalCount, preventiveCount, highCount, criticalCount);
+    }
 
     public async Task<IReadOnlyList<Alert>> GetByCommunityAsync(
         Guid communityId,
         CancellationToken cancellationToken) =>
-        await dbContext.Alerts.AsNoTracking().Where(alert => alert.CommunityId == communityId)
+        await dbContext.Alerts.AsNoTracking().Include(alert => alert.Rule).Include(alert => alert.SupportingReading).Where(alert => alert.CommunityId == communityId)
             .OrderByDescending(alert => alert.UpdatedAt).ToListAsync(cancellationToken);
 
     public Task<Alert?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
-        dbContext.Alerts.AsNoTracking().SingleOrDefaultAsync(alert => alert.Id == id, cancellationToken);
+        dbContext.Alerts.AsNoTracking().Include(alert => alert.Rule).Include(alert => alert.SupportingReading).SingleOrDefaultAsync(alert => alert.Id == id, cancellationToken);
 
     public Task<Alert?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Alerts
+            .Include(alert => alert.Rule)
+            .Include(alert => alert.SupportingReading)
             .Include(alert => alert.Event)
             .ThenInclude(climateEvent => climateEvent!.Alerts)
             .SingleOrDefaultAsync(alert => alert.Id == id, cancellationToken);

@@ -10,10 +10,11 @@ import {
 import { CommunityDto, SensorDto, SensorReadingDto } from '../../../../core/models/api.model';
 import { SensorReadingApiService } from '../../../../core/services/sensor-reading-api.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-sensors-page',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './sensors-page.html',
   styleUrl: './sensors-page.scss',
 })

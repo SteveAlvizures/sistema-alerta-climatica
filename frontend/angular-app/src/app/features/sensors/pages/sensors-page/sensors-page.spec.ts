@@ -7,6 +7,7 @@ import { SensorApiService } from '../../../../core/services/sensor-api.service';
 import { SensorReadingApiService } from '../../../../core/services/sensor-reading-api.service';
 import { CommunityDto, SensorDto, SensorReadingDto } from '../../../../core/models/api.model';
 import { SensorsPage } from './sensors-page';
+import { provideRouter } from '@angular/router';
 
 describe('SensorsPage administration', () => {
   const community: CommunityDto = { id: 'community-1', name: 'Lanquín', location: 'Alta Verapaz', description: null, isActive: true, createdAt: '2026-08-01' };
@@ -27,6 +28,7 @@ describe('SensorsPage administration', () => {
     TestBed.configureTestingModule({
       imports: [SensorsPage],
       providers: [
+        provideRouter([]),
         { provide: AuthService, useValue: { session: role } },
         { provide: CommunityApiService, useValue: { getAll: () => of([community]) } },
         { provide: SensorApiService, useValue: sensorApi },

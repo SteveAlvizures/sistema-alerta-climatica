@@ -1,6 +1,25 @@
-.indicator-card { min-height: 8.8rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-soft); }
-.indicator-card__heading { display: flex; align-items: center; justify-content: space-between; color: var(--text-muted); font-size: 0.8125rem; font-weight: 700; }
-.indicator-card__icon { width: 2.15rem; height: 2.15rem; display: grid; place-items: center; border-radius: 0.65rem; background: var(--brand-soft); color: var(--brand-accent); }
+.indicator-card { position: relative; min-height: 17rem; padding: 1rem; overflow: hidden; border: 1px solid var(--border); border-top: 3px solid #2f855a; border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-soft); }
+.indicator-card[data-tone='yellow'] { border-top-color: #d5a514; }
+.indicator-card[data-tone='orange'] { border-top-color: #dd6b20; }
+.indicator-card[data-tone='red'] { border-top-color: #c53030; }
+.indicator-card__heading, .indicator-card__value-row, .indicator-card__meta { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.indicator-card__heading { color: var(--text-muted); font-size: .8125rem; font-weight: 700; }
+.indicator-card__icon { width: 2.15rem; height: 2.15rem; display: grid; flex: 0 0 auto; place-items: center; border-radius: .65rem; background: var(--brand-soft); color: var(--brand-accent); }
 .indicator-card__icon svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
-.indicator-card strong { display: block; margin-top: 0.75rem; color: var(--text-strong); font-size: clamp(1.35rem, 2vw, 1.7rem); }
-.indicator-card p { margin: 0.35rem 0 0; color: var(--text-subtle); font-size: 0.8125rem; }
+.indicator-card__value-row strong { display: block; margin-top: .65rem; color: var(--text-strong); font-size: clamp(1.35rem, 2vw, 1.7rem); }
+.indicator-card__level { margin-top: .65rem; padding: .28rem .58rem; border-radius: 999px; background: #e9f6ee; color: #276749; font-size: .72rem; font-weight: 800; }
+[data-tone='yellow'] .indicator-card__level { background: #fff8dc; color: #7a5b00; }
+[data-tone='orange'] .indicator-card__level { background: #fff0e5; color: #9c4221; }
+[data-tone='red'] .indicator-card__level { background: #fff0f0; color: #9b2c2c; }
+.indicator-card__sensor { min-height: 1.1rem; margin: .15rem 0 .35rem; color: var(--text-subtle); font-size: .78rem; }
+.indicator-card__trend { display: block; width: 100%; height: 4.5rem; margin: .25rem 0; overflow: visible; }
+.indicator-card__trend line { stroke: #dce7e1; }
+.indicator-card__trend polyline { fill: none; stroke: var(--brand-accent); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.indicator-card__trend circle { fill: var(--surface); stroke: var(--brand-accent); stroke-width: 1.5; }
+.indicator-card__trend circle.is-last { fill: var(--brand-accent); }
+.indicator-card__empty { height: 4.5rem; display: grid; place-items: center; color: var(--text-subtle); font-size: .78rem; }
+.indicator-card__meta { align-items: flex-start; padding-top: .55rem; border-top: 1px solid var(--border); color: var(--text-muted); font-size: .72rem; }
+.indicator-card__meta span:last-child { text-align: right; }
+.indicator-card__meta small { display: block; margin-bottom: .15rem; color: var(--text-subtle); font-size: .65rem; text-transform: uppercase; letter-spacing: .04em; }
+.indicator-card>a { display: inline-flex; align-items: center; gap: .25rem; margin-top: .75rem; color: var(--brand-accent); font-size: .78rem; font-weight: 800; text-decoration: none; }
+.indicator-card>a:hover { text-decoration: underline; }

@@ -1,24 +1,8 @@
-<section class="alert-card" aria-labelledby="alert-title">
-  <div class="alert-card__topline">
-    <span class="alert-card__icon" aria-hidden="true">!</span>
-    <app-status-badge [label]="alert().level + ' · ' + alert().phenomenon" [tone]="alert().tone" />
-  </div>
-  <p class="alert-card__eyebrow">Estado: {{ alert().status }}</p>
-  <h2 id="alert-title">Alerta climática activa</h2>
-  <p class="alert-card__message">{{ alert().message }}</p>
-  <time>{{ alert().occurredAt }}</time>
-  @if (alert().hasEvent) {
-    <p class="alert-card__event">Asociada a un evento climático</p>
-  }
-  @if (actionsEnabled() && alert().apiStatus !== 'Closed') {
-    <div class="alert-card__actions">
-      @if (alert().apiStatus === 'Open') {
-        <button type="button" [disabled]="busy()" (click)="acknowledge.emit()">Reconocer</button>
-      }
-      <button type="button" [disabled]="busy()" (click)="resolve.emit()">Resolver</button>
-    </div>
-  }
-  @if (errorMessage(); as error) {
-    <p class="alert-card__error" role="alert">{{ error }}</p>
+<section class="alert-card" aria-labelledby="active-alerts-title">
+  <div class="alert-card__heading"><div><p>Monitoreo prioritario</p><h2 id="active-alerts-title">Alertas activas: {{ alerts().length }}</h2></div><div class="alert-card__counts"><span>Críticas <strong>{{ count('Crítica') }}</strong></span><span>Altas <strong>{{ count('Alta') }}</strong></span><span>Preventivas <strong>{{ count('Preventiva') }}</strong></span></div></div>
+  @if (alerts().length === 0) { <div class="alert-card__empty"><strong>Sin alertas activas</strong><span>La comunidad seleccionada no presenta condiciones de alerta actualmente.</span></div> }
+  @if (alerts().length > 0) {
+    <div class="active-alerts">@for (alert of visibleAlerts(); track alert.id) { <article [attr.data-tone]="alert.tone"><span class="active-alert__level">{{ alert.level }}</span><div><strong>{{ alert.variable }} · {{ alert.value }}</strong><small>{{ alert.community }}@if (alert.sensor) { · {{ alert.sensor }} }</small><p>{{ alert.message }}</p><time>{{ alert.occurredAt }}</time></div></article> }</div>
+    @if (alerts().length > visibleAlerts().length) { <a class="alert-card__link" routerLink="/alerts">Ver todas las alertas</a> }
   }
 </section>

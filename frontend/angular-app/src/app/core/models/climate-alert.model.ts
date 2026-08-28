@@ -1,4 +1,4 @@
-export type DangerLevel = 'Verde' | 'Amarillo' | 'Naranja' | 'Rojo';
+export type DangerLevel = 'Normal' | 'Preventiva' | 'Alta' | 'Crítica';
 
 export interface ClimateAlert {
   id?: string;
@@ -10,6 +10,10 @@ export interface ClimateAlert {
   apiStatus?: 'Open' | 'Acknowledged' | 'Closed';
   tone: 'green' | 'yellow' | 'orange' | 'red';
   hasEvent: boolean;
+  community?: string;
+  sensor?: string;
+  variable?: string;
+  value?: string;
 }
 
 export interface RecentClimateEvent {

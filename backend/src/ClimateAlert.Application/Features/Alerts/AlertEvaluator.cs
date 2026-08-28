@@ -1,5 +1,6 @@
 using ClimateAlert.Application.Common.Interfaces;
 using ClimateAlert.Domain.Entities;
+using ClimateAlert.Domain.Enums;
 
 namespace ClimateAlert.Application.Features.Alerts;
 
@@ -22,51 +23,56 @@ public sealed class AlertEvaluator(
             reading.MeasuredAt,
             cancellationToken);
 
-        foreach (AlertRule rule in candidates.Where(rule => MatchesValue(rule, reading.Value)))
+        AlertRule? applicableRule = candidates
+            .Where(rule => rule.DangerLevel != DangerLevel.Green && rule.Matches(reading.Value))
+            .OrderByDescending(rule => rule.DangerLevel).FirstOrDefault();
+        var activeAlerts = new List<Alert>();
+        foreach (AlertRule candidate in candidates)
         {
-            string message = $"La lectura coincide con la regla {rule.Name}.";
-            Alert? alert = await alerts.GetOpenByRuleAsync(rule.Id, cancellationToken);
-            if (alert is null)
-            {
-                alert = new Alert(rule, reading, message, reading.ReceivedAt);
-                alerts.Add(alert);
-            }
-            else
-            {
-                alert.Update(rule.DangerLevel, message, reading.ReceivedAt);
-            }
-
-            Event? climateEvent = await events.GetOpenAsync(
-                rule.CommunityId,
-                rule.Phenomenon,
-                cancellationToken);
-
-            if (climateEvent is null)
-            {
-                climateEvent = Event.Open(
-                    rule.Community,
-                    rule.Phenomenon,
-                    $"Incidente asociado con la regla {rule.Name}.",
-                    rule.DangerLevel,
-                    reading.ReceivedAt);
-                events.Add(climateEvent);
-            }
-
-            if (!alert.EventId.HasValue)
-            {
-                climateEvent.AddAlert(alert);
-            }
-            else
-            {
-                climateEvent.Update(
-                    $"Incidente asociado con la regla {rule.Name}.",
-                    alert.Level,
-                    reading.ReceivedAt);
-            }
+            Alert? existing = await alerts.GetOpenByRuleAsync(candidate.Id, cancellationToken);
+            if (existing is not null && activeAlerts.All(item => item.Id != existing.Id)) activeAlerts.Add(existing);
         }
+
+        if (applicableRule is null)
+        {
+            foreach (Alert activeAlert in activeAlerts) activeAlert.Close(reading.ReceivedAt);
+            foreach (ClimatePhenomenon phenomenon in activeAlerts.Select(item => item.Phenomenon).Distinct())
+            {
+                Event? endingEvent = await events.GetOpenAsync(
+                    reading.Sensor.CommunityId, phenomenon, cancellationToken);
+                if (endingEvent is not null
+                    && !endingEvent.Alerts.Any(item => item.Status != AlertStatus.Closed))
+                {
+                    endingEvent.Close(reading.ReceivedAt);
+                }
+            }
+            return;
+        }
+
+        string message = applicableRule.Name;
+        Alert? alert = activeAlerts.OrderByDescending(item => item.UpdatedAt).FirstOrDefault();
+        if (alert is null)
+        {
+            alert = new Alert(applicableRule, reading, message, reading.ReceivedAt);
+            alerts.Add(alert);
+        }
+        else
+        {
+            alert.Transition(applicableRule, reading, message, reading.ReceivedAt);
+            foreach (Alert duplicate in activeAlerts.Where(item => item.Id != alert.Id)) duplicate.Close(reading.ReceivedAt);
+        }
+
+        Event? climateEvent = await events.GetOpenAsync(
+            applicableRule.CommunityId, applicableRule.Phenomenon, cancellationToken);
+        if (climateEvent is null)
+        {
+            climateEvent = Event.Open(applicableRule.Community, applicableRule.Phenomenon,
+                $"Evento de monitoreo asociado con {applicableRule.Code}.", applicableRule.DangerLevel,
+                reading.ReceivedAt);
+            events.Add(climateEvent);
+        }
+        if (!alert.EventId.HasValue) climateEvent.AddAlert(alert);
+        else climateEvent.Update($"Evento de monitoreo asociado con {applicableRule.Code}.", alert.Level, reading.ReceivedAt);
     }
 
-    private static bool MatchesValue(AlertRule rule, decimal value) =>
-        (!rule.LowerLimit.HasValue || value >= rule.LowerLimit.Value)
-        && (!rule.UpperLimit.HasValue || value <= rule.UpperLimit.Value);
 }

@@ -69,7 +69,7 @@ using (var scope = app.Services.CreateScope())
     var database = scope.ServiceProvider
         .GetRequiredService<ClimateAlertDbContext>();
 
-    database.Database.EnsureCreated();
+    await database.Database.MigrateAsync();
     await InitialAdminSeeder.SeedAsync(scope.ServiceProvider);
     await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
 }

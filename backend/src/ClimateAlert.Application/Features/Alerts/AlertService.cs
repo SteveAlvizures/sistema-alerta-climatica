@@ -2,6 +2,7 @@ using ClimateAlert.Application.Common.Exceptions;
 using ClimateAlert.Application.Common.Interfaces;
 using ClimateAlert.Domain.Entities;
 using ClimateAlert.Domain.Enums;
+using ClimateAlert.Application.Features.SensorReadings;
 
 namespace ClimateAlert.Application.Features.Alerts;
 
@@ -13,6 +14,19 @@ public sealed class AlertService(
 {
     public async Task<IReadOnlyList<AlertResponse>> GetAllAsync(CancellationToken cancellationToken) =>
         (await alerts.GetAllAsync(cancellationToken)).Select(Map).ToList();
+
+    public async Task<AlertPageResponse> GetPageAsync(
+        Guid? communityId, ClimateVariable? variable, DangerLevel? level,
+        int page, int pageSize, CancellationToken cancellationToken)
+    {
+        page = Math.Max(1, page);
+        pageSize = pageSize is 10 or 20 or 50 ? pageSize : 20;
+        var result = await alerts.GetPageAsync(communityId, variable, level, page, pageSize, cancellationToken);
+        int totalPages = result.TotalCount == 0 ? 0 : (int)Math.Ceiling(result.TotalCount / (double)pageSize);
+        return new AlertPageResponse(result.Items.Select(Map).ToList(), page, pageSize,
+            result.TotalCount, totalPages, page > 1, page < totalPages,
+            result.PreventiveCount, result.HighCount, result.CriticalCount);
+    }
 
     public async Task<AlertResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         Map(await alerts.GetByIdAsync(id, cancellationToken)
@@ -61,5 +75,7 @@ public sealed class AlertService(
     private static AlertResponse Map(Alert alert) => new(
         alert.Id, alert.CommunityId, alert.RuleId, alert.SupportingReadingId, alert.EventId,
         alert.Level, alert.Phenomenon, alert.Status, alert.Message, alert.DetectedAt,
-        alert.UpdatedAt, alert.ClosedAt);
+        alert.UpdatedAt, alert.ClosedAt, alert.SupportingReading.SensorId,
+        alert.SupportingReading.Variable, alert.SupportingReading.Value,
+        alert.Rule.ActivationPoint, alert.SupportingReading.Unit);
 }

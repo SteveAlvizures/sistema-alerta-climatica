@@ -4,22 +4,14 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HistoryPage } from './history-page';
 
 describe('HistoryPage', () => {
-  let fixture: ComponentFixture<HistoryPage>;
-  let http: HttpTestingController;
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [HistoryPage], providers: [provideHttpClient(), provideHttpClientTesting()] }).compileComponents();
-    fixture = TestBed.createComponent(HistoryPage);
-    http = TestBed.inject(HttpTestingController);
-    fixture.detectChanges();
-  });
-
-  afterEach(() => http.verify());
-
-  it('handles an empty real community response without simulated data', () => {
-    http.expectOne('/api/communities').flush([]);
-    fixture.detectChanges();
-    expect(fixture.componentInstance).toBeTruthy();
-    expect(fixture.nativeElement.textContent).toContain('0 resultados');
-  });
+  let fixture: ComponentFixture<HistoryPage>; let http: HttpTestingController;
+  const community = { id:'c1', name:'La Isla', location:'Norte', description:null, isActive:true, createdAt:'2026-01-01' };
+  const sensors = [{ id:'s1', communityId:'c1', code:'TMP-1', name:'Temperatura norte', measurementType:'Temperature', origin:'Simulated', status:'Active', location:'Norte', deviceCode:null, lastCommunicationAt:null, createdAt:'2026-01-01' }, { id:'s2', communityId:'c2', code:'HUM-1', name:'Humedad sur', measurementType:'RelativeHumidity', origin:'Physical', status:'Active', location:'Sur', deviceCode:null, lastCommunicationAt:null, createdAt:'2026-01-01' }];
+  const page = (data:any[]=[], totalCount=data.length, hasNext=false) => ({ data, pageIndex:1, pageSize:20, totalPages:totalCount?Math.ceil(totalCount/20):0, totalCount, hasPrevious:false, hasNext });
+  beforeEach(async()=>{await TestBed.configureTestingModule({imports:[HistoryPage],providers:[provideHttpClient(),provideHttpClientTesting()]}).compileComponents();fixture=TestBed.createComponent(HistoryPage);http=TestBed.inject(HttpTestingController);fixture.detectChanges();http.expectOne('/api/communities').flush([community]);http.expectOne('/api/sensors').flush(sensors);});
+  afterEach(()=>http.verify());
+  it('starts with all communities and all sensors and queries globally',()=>{http.expectOne('/api/sensor-readings?page=1&pageSize=20').flush(page());fixture.detectChanges();const selects=fixture.nativeElement.querySelectorAll('.filters select');expect(selects[0].value).toBe('');expect(selects[1].value).toBe('');expect(fixture.nativeElement.textContent).toContain('No se encontraron lecturas');});
+  it('resets the sensor and restricts its options when community changes',()=>{http.expectOne('/api/sensor-readings?page=1&pageSize=20').flush(page());Object.assign(fixture.componentInstance,{selectedSensorId:'s2',selectedCommunityId:'c1'});(fixture.componentInstance as any).onCommunityChange();http.expectOne('/api/sensor-readings?page=1&pageSize=20&communityId=c1').flush(page());expect((fixture.componentInstance as any).selectedSensorId).toBe('');expect((fixture.componentInstance as any).availableSensors.map((item:any)=>item.id)).toEqual(['s1']);});
+  it('combines community, sensor, variable and dates before pagination',()=>{http.expectOne('/api/sensor-readings?page=1&pageSize=20').flush(page());Object.assign(fixture.componentInstance,{selectedCommunityId:'c1',selectedSensorId:'s1',selectedVariable:'Temperature',dateFrom:'2026-08-01',dateTo:'2026-08-28'});(fixture.componentInstance as any).applyFilters();const request=http.expectOne(req=>req.url==='/api/sensor-readings'&&req.params.get('communityId')==='c1'&&req.params.get('sensorId')==='s1'&&req.params.get('variable')==='Temperature'&&req.params.has('dateFrom')&&req.params.has('dateTo'));expect(request.request.params.get('page')).toBe('1');request.flush(page());});
+  it('shows manual and simulated readings together with global metadata',()=>{const readings=[{id:'r1',sensorId:'s1',communityId:'c1',sensorName:'Temperatura norte',sensorCode:'TMP-1',communityName:'La Isla',variable:'Temperature',value:31,unit:'°C',measuredAt:'2026-08-28T10:00:00Z',receivedAt:'2026-08-28T10:00:01Z',origin:'Simulated'},{id:'r2',sensorId:'s2',communityId:'c2',sensorName:'Humedad sur',sensorCode:'HUM-1',communityName:'El Sur',variable:'RelativeHumidity',value:80,unit:'%',measuredAt:'2026-08-28T09:00:00Z',receivedAt:'2026-08-28T09:00:01Z',origin:'Physical'}];http.expectOne('/api/sensor-readings?page=1&pageSize=20').flush(page(readings));fixture.detectChanges();expect(fixture.nativeElement.textContent).toContain('Simulado');expect(fixture.nativeElement.textContent).toContain('Manual');expect(fixture.nativeElement.textContent).toContain('La Isla');expect(fixture.nativeElement.textContent).toContain('TMP-1');});
 });

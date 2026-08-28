@@ -1,44 +1,16 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { AlertsPage } from './alerts-page';
-import { AuthService } from '../../../../core/services/auth.service';
-import { AlertDto } from '../../../../core/models/api.model';
 
 describe('AlertsPage', () => {
-  let fixture: ComponentFixture<AlertsPage>;
-  let http: HttpTestingController;
-
-  beforeEach(async () => {
-    sessionStorage.clear();
-    await TestBed.configureTestingModule({ imports: [AlertsPage], providers: [provideHttpClient(), provideHttpClientTesting()] }).compileComponents();
-    fixture = TestBed.createComponent(AlertsPage);
-    http = TestBed.inject(HttpTestingController);
-    fixture.detectChanges();
-    http.expectOne('/api/communities').flush([]);
-    http.expectOne('/api/alerts').flush([]);
-    fixture.detectChanges();
-  });
-
-  afterEach(() => { http.verify(); sessionStorage.clear(); });
-
-  it('loads real alerts and presents public visitor access', () => {
-    expect(fixture.componentInstance).toBeTruthy();
-    expect(fixture.nativeElement.textContent).toContain('Consulta pública');
-    expect(fixture.nativeElement.textContent).not.toContain('Reconocer');
-  });
-
-  it('allows an administrator to acknowledge an open alert', () => {
-    TestBed.inject(AuthService).login({ username: 'admin', password: 'admin' }).subscribe();
-    http.expectOne('/api/auth/login').flush({ accessToken: 'jwt', expiresAt: new Date(Date.now() + 60_000).toISOString(), name: 'Administrador', email: 'admin', role: 'Administrator' });
-    const alert: AlertDto = { id: 'alert-1', communityId: 'community-1', ruleId: 'rule-1', supportingReadingId: 'reading-1', eventId: null, level: 'Yellow', phenomenon: 'Flood', status: 'Open', message: 'Alerta real', detectedAt: new Date().toISOString(), updatedAt: new Date().toISOString(), closedAt: null };
-    Object.assign(fixture.componentInstance, { alerts: [alert] });
-    spyOn(window, 'confirm').and.returnValue(true);
-    fixture.detectChanges();
-    const acknowledge = [...fixture.nativeElement.querySelectorAll('button')].find((button: HTMLButtonElement) => button.textContent?.includes('Reconocer')) as HTMLButtonElement;
-    acknowledge.click();
-    http.expectOne('/api/alerts/alert-1/acknowledge').flush({ ...alert, status: 'Acknowledged' });
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Reconocida');
-  });
+  let fixture: ComponentFixture<AlertsPage>; let http: HttpTestingController;
+  beforeEach(async () => { await TestBed.configureTestingModule({ imports: [AlertsPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] }).compileComponents(); fixture = TestBed.createComponent(AlertsPage); http = TestBed.inject(HttpTestingController); fixture.detectChanges(); http.expectOne('/api/communities').flush([]); fixture.detectChanges(); });
+  afterEach(() => http.verify());
+  it('starts without querying or showing alert results', () => { expect(fixture.nativeElement.textContent).toContain('Seleccione los filtros'); expect(fixture.nativeElement.querySelectorAll('.alert-card').length).toBe(0); });
+  it('applies filters manually and clears back to the initial state', () => { (fixture.nativeElement.querySelector('.primary') as HTMLButtonElement).click(); const request = http.expectOne('/api/alerts?page=1&pageSize=20'); request.flush({ data: [], pageIndex:1, pageSize:20, totalCount:0, totalPages:0, hasPrevious:false, hasNext:false }); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('No se encontraron alertas'); const buttons = [...fixture.nativeElement.querySelectorAll('.filters button')] as HTMLButtonElement[]; buttons[1].click(); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Seleccione los filtros'); });
+  it('sends selected community, variable and level before pagination', () => { Object.assign(fixture.componentInstance, { communityFilter:'c1', variableFilter:'Temperature', levelFilter:'Red' }); (fixture.nativeElement.querySelector('.primary') as HTMLButtonElement).click(); http.expectOne('/api/alerts?page=1&pageSize=20&communityId=c1&variable=Temperature&level=Red').flush({ data: [], pageIndex:1, pageSize:20, totalCount:0, totalPages:0, hasPrevious:false, hasNext:false }); });
+  it('renders one page-size selector and no pagination for empty results', () => { expect(fixture.nativeElement.querySelectorAll('select').length).toBe(4); (fixture.nativeElement.querySelector('.primary') as HTMLButtonElement).click(); http.expectOne('/api/alerts?page=1&pageSize=20').flush({ data:[], pageIndex:1, pageSize:20, totalCount:0, totalPages:0, hasPrevious:false, hasNext:false }); fixture.detectChanges(); expect(fixture.nativeElement.querySelector('.pagination')).toBeNull(); });
+  it('changes page size from page one while preserving active filters', () => { Object.assign(fixture.componentInstance, { applied:true, pageIndex:3, communityFilter:'c1', pageSize:10 }); (fixture.componentInstance as any).changePageSize(); http.expectOne('/api/alerts?page=1&pageSize=10&communityId=c1').flush({ data:[], pageIndex:1, pageSize:10, totalCount:0, totalPages:0, hasPrevious:false, hasNext:false }); expect((fixture.componentInstance as any).pageIndex).toBe(1); });
 });

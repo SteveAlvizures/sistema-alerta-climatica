@@ -3,6 +3,7 @@ using ClimateAlert.Application.Common.Interfaces;
 using ClimateAlert.Application.Features.Communities;
 using ClimateAlert.Application.Features.SensorReadings;
 using ClimateAlert.Application.Features.Sensors;
+using ClimateAlert.Application.Features.AlertRules;
 using ClimateAlert.Domain.Entities;
 using ClimateAlert.Domain.Enums;
 
@@ -207,21 +208,48 @@ public sealed class ApplicationServiceTests
         await Assert.ThrowsAsync<ConflictException>(() => context.Communities.DeleteAsync(sensor.CommunityId, default));
     }
 
+    [Fact]
+    public async Task PreservesCustomAlertRuleMessage()
+    {
+        TestContext context = new();
+        Community community = context.AddCommunity();
+        AlertRuleResponse result = await context.AlertRules.CreateAsync(RuleRequest(community.Id, "Mensaje personalizado."), default);
+        Assert.Equal("Mensaje personalizado.", result.Name);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task GeneratesAlertRuleMessageWhenCustomMessageIsMissing(string? message)
+    {
+        TestContext context = new();
+        Community community = context.AddCommunity();
+        AlertRuleResponse result = await context.AlertRules.CreateAsync(RuleRequest(community.Id, message), default);
+        Assert.Equal("Temperatura alcanzó el nivel Preventiva.", result.Name);
+    }
+
     private static CreateSensorRequest SensorRequest(Guid communityId) => new(
         communityId, ClimateVariable.Temperature, "Centro comunitario", true);
 
     private static CreateSensorReadingRequest ReadingRequest(Guid sensorId) => new(
         sensorId, ClimateVariable.Temperature, 24.5m, "°C", Now, SensorOrigin.Simulated);
 
+    private static CreateAlertRuleRequest RuleRequest(Guid communityId, string? message) => new(
+        communityId, null, "", message, ClimatePhenomenon.Wildfire, ClimateVariable.Temperature,
+        DangerLevel.Yellow, 30m, null, Now, null, ">=", 30m);
+
     private sealed class TestContext
     {
         private readonly FakeCommunityRepository _communityRepository = new();
         private readonly FakeSensorRepository _sensorRepository = new();
+        private readonly FakeAlertRuleRepository _alertRuleRepository = new();
         public FakeReadingRepository ReadingRepository { get; } = new();
         public RecordingAlertEvaluator AlertEvaluator { get; } = new();
         public CommunityService Communities { get; }
         public SensorService Sensors { get; }
         public SensorReadingService Readings { get; }
+        public AlertRuleService AlertRules { get; }
 
         public TestContext()
         {
@@ -230,6 +258,7 @@ public sealed class ApplicationServiceTests
             Communities = new(_communityRepository, unitOfWork, clock);
             Sensors = new(_sensorRepository, _communityRepository, unitOfWork, clock);
             Readings = new(_sensorRepository, ReadingRepository, AlertEvaluator, unitOfWork, clock);
+            AlertRules = new(_alertRuleRepository, _communityRepository, _sensorRepository, unitOfWork, clock);
         }
 
         public Community AddCommunity()
@@ -288,6 +317,16 @@ public sealed class ApplicationServiceTests
         }
         public Task<SensorReading?> GetLatestAsync(Guid sensorId, CancellationToken cancellationToken) => Task.FromResult(_items.Where(item => item.SensorId == sensorId).OrderByDescending(item => item.MeasuredAt).FirstOrDefault());
         public void Add(SensorReading reading) => _items.Add(reading);
+    }
+
+    private sealed class FakeAlertRuleRepository : IAlertRuleRepository
+    {
+        private readonly List<AlertRule> _items = [];
+        public Task<IReadOnlyList<AlertRule>> GetAllAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<AlertRule>>(_items);
+        public Task<AlertRule?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken) => Task.FromResult(_items.SingleOrDefault(item => item.Id == id));
+        public Task<IReadOnlyList<AlertRule>> GetCandidatesAsync(Guid communityId, Guid sensorId, ClimateVariable variable, DateTimeOffset measuredAt, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<AlertRule>>(_items.Where(item => item.CommunityId == communityId && item.Variable == variable && item.IsEnabled(measuredAt)).ToList());
+        public Task<bool> ExistsAsync(Guid communityId, string code, CancellationToken cancellationToken) => Task.FromResult(_items.Any(item => item.CommunityId == communityId && item.Code == code));
+        public void Add(AlertRule rule) => _items.Add(rule);
     }
 
     private sealed class FakeUnitOfWork : IUnitOfWork

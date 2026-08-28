@@ -22,6 +22,12 @@ export class SensorApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
 
+  getAll(): Observable<SensorDto[]> { return this.http.get<SensorDto[]>(`${this.baseUrl}/sensors`); }
+
+  getById(sensorId: string): Observable<SensorDto> {
+    return this.http.get<SensorDto>(`${this.baseUrl}/sensors/${sensorId}`);
+  }
+
   getByCommunity(communityId: string): Observable<SensorDto[]> {
     return this.http.get<SensorDto[]>(
       `${this.baseUrl}/communities/${communityId}/sensors`,

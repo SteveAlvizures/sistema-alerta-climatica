@@ -1,17 +1,24 @@
 <section class="audit-page">
   <header class="page-heading"><p>Administración segura</p><h1>Bitácora de actividad</h1><span>Acciones administrativas registradas por Vigía Rural.</span></header>
-  <form class="filters" (ngSubmit)="load()">
-    <label><span>Acción</span><select [(ngModel)]="actionFilter" name="action"><option value="">Todas las acciones</option>@for (option of actionOptions; track option[0]) { <option [value]="option[0]">{{ option[1] }}</option> }</select></label>
-    <label class="filters__search"><span>Buscar</span><input [(ngModel)]="search" name="search" placeholder="Usuario, entidad o descripción" /></label>
-    <button type="submit">Aplicar filtros</button><button class="secondary" type="button" (click)="clear()">Limpiar</button>
+  <form class="filters" (ngSubmit)="applyFilters()">
+    <label><span>Usuario</span><input [(ngModel)]="draftFilters.username" name="username" placeholder="Nombre del usuario" /></label>
+    <label><span>Acción</span><select [(ngModel)]="draftFilters.action" name="action"><option value="">Todas</option>@for (option of actionOptions; track option[0]) { <option [value]="option[0]">{{ option[1] }}</option> }</select></label>
+    <label><span>Entidad</span><select [(ngModel)]="draftFilters.entity" name="entity"><option value="">Todas</option>@for (option of entityOptions; track option[0]) { <option [value]="option[0]">{{ option[1] }}</option> }</select></label>
+    <label><span>Fecha desde</span><input type="date" [(ngModel)]="draftFilters.dateFrom" name="dateFrom" /></label>
+    <label><span>Fecha hasta</span><input type="date" [(ngModel)]="draftFilters.dateTo" name="dateTo" /></label>
+    <div class="filter-actions"><button type="submit">Aplicar filtros</button><button class="secondary" type="button" (click)="clearFilters()">Limpiar filtros</button></div>
   </form>
   @if (loading) { <p class="state">Cargando actividad…</p> }
   @if (error) { <p class="state state--error" role="alert">{{ error }} <button type="button" (click)="load()">Reintentar</button></p> }
-  @if (!loading && !error && actions.length === 0) { <p class="state"><strong>Sin actividad para mostrar</strong><span>No se encontraron eventos con los filtros seleccionados.</span></p> }
+  @if (!loading && !error && totalCount === 0) { <p class="state"><strong>{{ hasActiveFilters() ? 'No se encontraron registros para los filtros seleccionados.' : 'No existen registros de auditoría disponibles.' }}</strong></p> }
   @if (!loading && !error && actions.length > 0) {
+    <div class="results-summary"><span>Mostrando {{ firstShown() }}–{{ lastShown() }} de {{ totalCount }} registros</span><strong>Página {{ page }} de {{ totalPages }}</strong></div>
     <div class="audit-table" role="table" aria-label="Actividad administrativa">
       <div class="audit-row audit-row--header" role="row"><span>Fecha y hora</span><span>Usuario</span><span>Acción</span><span>Entidad</span><span>Descripción</span></div>
       @for (item of actions; track item.id) { <article class="audit-row" role="row"><time>{{ formatDate(item.occurredAt) }}</time><strong>{{ item.username }}</strong><span class="action">{{ actionLabel(item.action) }}</span><span>{{ entityLabel(item.affectedEntity) }}</span><p>{{ item.description }}</p></article> }
     </div>
+  }
+  @if (!loading && !error && totalCount > 0) {
+    <nav class="pagination" aria-label="Paginación de la bitácora"><label>Registros por página:<select [(ngModel)]="pageSize" (ngModelChange)="changePageSize()">@for (size of pageSizeOptions; track size) { <option [ngValue]="size">{{ size }}</option> }</select></label><div><button type="button" [disabled]="!hasPrevious" (click)="previous()">Anterior</button><button type="button" [disabled]="!hasNext" (click)="next()">Siguiente</button></div></nav>
   }
 </section>

@@ -62,7 +62,7 @@ export class SimulatedClimateService implements OnDestroy {
 
     return {
       communityName: 'Comunidad El Pinar',
-      level: 'Amarillo',
+      level: 'Preventiva',
       levelMessage:
         'El nivel actual es amarillo. Conviene mantener vigilancia sobre la lluvia y el cauce cercano.',
       lastUpdated: now,
@@ -80,7 +80,7 @@ export class SimulatedClimateService implements OnDestroy {
         { name: 'Anemómetro del sector alto', measurementType: 'Velocidad del viento', status: 'Inactivo', origin: 'Physical', lastCommunication: 'Pendiente de conexión' },
       ],
       alert: {
-        level: 'Amarillo',
+        level: 'Preventiva',
         phenomenon: 'Inundación',
         message: 'Se mantiene vigilancia preventiva por el comportamiento reciente de la lluvia y del cauce.',
         occurredAt: `Actualizada hoy · ${timeLabel}`,
@@ -88,6 +88,12 @@ export class SimulatedClimateService implements OnDestroy {
         tone: 'yellow',
         hasEvent: true,
       },
+      activeAlerts: [{
+        level: 'Preventiva', phenomenon: 'Inundación',
+        message: 'Se mantiene vigilancia preventiva por el comportamiento reciente de la lluvia y del cauce.',
+        occurredAt: `Actualizada hoy · ${timeLabel}`, status: 'Abierta', tone: 'yellow', hasEvent: true,
+        community: 'El Pinar', variable: 'Nivel de lluvia', value: `${scenario.rain} mm`,
+      }],
       recentEvents: [
         { title: 'Lecturas recibidas', detail: 'Sensores simulados sincronizados', occurredAt: timeLabel, tone: 'green' },
         { title: 'Alerta actualizada', detail: 'Vigilancia preventiva por inundación', occurredAt: tenMinutesAgo, tone: 'yellow' },

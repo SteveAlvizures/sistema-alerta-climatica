@@ -22,7 +22,9 @@ public sealed class AlertRule
         DateTimeOffset validFrom,
         DateTimeOffset createdAt,
         DateTimeOffset? validUntil = null,
-        Sensor? sensor = null)
+        Sensor? sensor = null,
+        string? comparisonOperator = null,
+        decimal? activationPoint = null)
     {
         Community = community ?? throw new ArgumentNullException(nameof(community));
         CommunityId = community.Id;
@@ -66,6 +68,8 @@ public sealed class AlertRule
         SensorId = sensor?.Id;
         IsActive = true;
         CreatedAt = createdAt;
+        ComparisonOperator = comparisonOperator ?? (lowerLimit.HasValue ? ">=" : "<=");
+        ActivationPoint = activationPoint ?? lowerLimit ?? upperLimit!.Value;
 
         Community.AddAlertRule(this);
     }
@@ -86,10 +90,21 @@ public sealed class AlertRule
     public DateTimeOffset? ValidUntil { get; private set; }
     public bool IsActive { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+    public string ComparisonOperator { get; private set; } = ">=";
+    public decimal ActivationPoint { get; private set; }
     public IReadOnlyCollection<Alert> Alerts => _alerts.AsReadOnly();
 
     public bool IsEnabled(DateTimeOffset at) =>
         IsActive && at >= ValidFrom && (!ValidUntil.HasValue || at <= ValidUntil.Value);
+
+    public bool Matches(decimal value) => ComparisonOperator switch
+    {
+        ">" => value > ActivationPoint,
+        ">=" => value >= ActivationPoint,
+        "<" => value < ActivationPoint,
+        "<=" => value <= ActivationPoint,
+        _ => (!LowerLimit.HasValue || value >= LowerLimit.Value) && (!UpperLimit.HasValue || value <= UpperLimit.Value)
+    };
 
     public void Enable() => IsActive = true;
 

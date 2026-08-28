@@ -10,6 +10,7 @@ import { DashboardDataService } from './dashboard-data.service';
 import { SensorApiService } from './sensor-api.service';
 import { SensorReadingApiService } from './sensor-reading-api.service';
 import { SimulatedClimateService } from './simulated-climate.service';
+import { AlertRuleApiService } from './alert-rule-api.service';
 
 const community: CommunityDto = {
   id: 'community-1', name: 'El Pinar', location: 'Alta Verapaz', description: null,
@@ -27,14 +28,18 @@ const alert: AlertDto = {
   supportingReadingId: 'reading-1', eventId: 'event-1', level: 'Yellow',
   phenomenon: 'Flood', status: 'Open', message: 'Aumento observado en el nivel del río.',
   detectedAt: '2026-08-19T12:00:00Z', updatedAt: '2026-08-19T12:10:00Z', closedAt: null,
+  sensorId: sensor.id, variable: 'RiverOrReservoirLevel', detectedValue: 1.8, activationPoint: 1.5, unit: 'm',
 };
 const simulated = signal<ClimateDashboardState>({
-  communityName: 'Simulada', level: 'Verde', levelMessage: 'Simulación', lastUpdated: new Date(),
+  communityName: 'Simulada', level: 'Normal', levelMessage: 'Simulación', lastUpdated: new Date(),
   indicators: [], sensors: [], alert: null, recentEvents: [], trend: [],
 });
 const page = (data: SensorReadingDto[]): PagedResponse<SensorReadingDto> => ({ data, pageIndex: 1, pageSize: 30, totalPages: data.length ? 1 : 0, totalCount: data.length, hasPrevious: false, hasNext: false });
 
 describe('DashboardDataService', () => {
+  beforeEach(() => TestBed.configureTestingModule({
+    providers: [{ provide: AlertRuleApiService, useValue: { getAll: () => of([]) } }],
+  }));
   function create(
     communitiesResult: Observable<CommunityDto[]>,
     sensorsResult: Observable<SensorDto[]> = of([]),
@@ -96,6 +101,26 @@ describe('DashboardDataService', () => {
     expect(service.dashboard()?.trend[0].points.length).toBe(30);
   });
 
+  it('keeps sensors of the same variable as separate indicators with isolated trends', () => {
+    const peer = { ...sensor, id: 'sensor-peer', code: 'TEMP-02', name: 'Sensor norte' };
+    const readings: SensorReadingDto[] = [
+      { id: 'r1', sensorId: sensor.id, variable: 'Temperature', value: 21, unit: '°C', measuredAt: '2026-08-19T12:00:00Z', receivedAt: '2026-08-19T12:00:01Z', origin: 'Simulated' },
+      { id: 'r2', sensorId: peer.id, variable: 'Temperature', value: 35, unit: '°C', measuredAt: '2026-08-19T12:01:00Z', receivedAt: '2026-08-19T12:01:01Z', origin: 'Simulated' },
+    ];
+    TestBed.configureTestingModule({ providers: [
+      DashboardDataService,
+      { provide: CommunityApiService, useValue: { getAll: () => of([community]) } },
+      { provide: AlertApiService, useValue: { getByCommunity: () => of([]) } },
+      { provide: SensorApiService, useValue: { getByCommunity: () => of([sensor, peer]) } },
+      { provide: SensorReadingApiService, useValue: { getLatest: (id: string) => of(readings.find(item => item.sensorId === id)!), getHistory: (id: string) => of(page(readings.filter(item => item.sensorId === id))) } },
+      { provide: SimulatedClimateService, useValue: { dashboard: simulated } },
+    ] });
+    const indicators = TestBed.inject(DashboardDataService).dashboard()!.indicators;
+    expect(indicators.map(item => item.sensorId)).toEqual([sensor.id, peer.id]);
+    expect(indicators[0].trend?.map(item => item.value)).toEqual([21]);
+    expect(indicators[1].trend?.map(item => item.value)).toEqual([35]);
+  });
+
   it('finishes loading when a latest-reading request completes without a value', () => {
     const service = create(of([community]), of([sensor]), EMPTY);
     expect(service.loadState()).toBe('ready');
@@ -144,7 +169,7 @@ describe('DashboardDataService', () => {
     ];
     const service = create(of([community]), of([]), EMPTY, of(alerts));
 
-    expect(service.dashboard()?.level).toBe('Naranja');
+    expect(service.dashboard()?.level).toBe('Alta');
     expect(service.dashboard()?.alert?.message).toBe('Tormenta activa.');
   });
 
@@ -156,13 +181,37 @@ describe('DashboardDataService', () => {
     expect(service.dashboard()?.levelMessage).toContain('Sin alertas activas');
   });
 
+  it('makes new API requests so an alert appears and then disappears on return to Normal', () => {
+    const getAlerts = jasmine.createSpy('getByCommunity').and.returnValues(of([]), of([alert]), of([{ ...alert, status: 'Closed' }]));
+    const getSensors = jasmine.createSpy('getByCommunity').and.returnValue(of([]));
+    TestBed.configureTestingModule({ providers: [
+      DashboardDataService,
+      { provide: CommunityApiService, useValue: { getAll: () => of([community]) } },
+      { provide: AlertApiService, useValue: { getByCommunity: getAlerts } },
+      { provide: SensorApiService, useValue: { getByCommunity: getSensors } },
+      { provide: SensorReadingApiService, useValue: { getLatest: () => EMPTY, getHistory: () => of(page([])) } },
+      { provide: SimulatedClimateService, useValue: { dashboard: simulated } },
+    ] });
+    const service = TestBed.inject(DashboardDataService);
+    expect(service.dashboard()?.level).toBeNull();
+    service.refreshSelected();
+    expect(getAlerts).toHaveBeenCalledTimes(2);
+    expect(getSensors).toHaveBeenCalledTimes(2);
+    expect(service.dashboard()?.level).toBe('Preventiva');
+    expect(service.dashboard()?.activeAlerts?.length).toBe(1);
+    service.refreshSelected();
+    expect(getAlerts).toHaveBeenCalledTimes(3);
+    expect(service.dashboard()?.level).toBeNull();
+    expect(service.dashboard()?.activeAlerts).toEqual([]);
+  });
+
   it('ignores alerts that do not belong to the selected community', () => {
     const service = create(of([community]), of([]), EMPTY, of([
       { ...alert, communityId: secondCommunity.id, level: 'Red' },
       alert,
     ]));
 
-    expect(service.dashboard()?.level).toBe('Amarillo');
+    expect(service.dashboard()?.level).toBe('Preventiva');
     expect(service.dashboard()?.recentEvents.length).toBe(1);
   });
 
@@ -183,7 +232,7 @@ describe('DashboardDataService', () => {
 
     expect(firstAlerts.observed).toBeFalse();
     expect(service.dashboard()?.communityName).toBe(secondCommunity.name);
-    expect(service.dashboard()?.level).toBe('Rojo');
+    expect(service.dashboard()?.level).toBe('Crítica');
   });
 
   it('cancels an alert request when switching to simulation', () => {

@@ -7,6 +7,7 @@ import { CommunityApiService } from './community-api.service';
 import { SensorApiService } from './sensor-api.service';
 import { SensorReadingApiService } from './sensor-reading-api.service';
 import { AlertRuleApiService } from './alert-rule-api.service';
+import { AuditActionApiService } from './audit-action-api.service';
 
 describe('API services', () => {
   let http: HttpTestingController;
@@ -78,9 +79,9 @@ describe('API services', () => {
 
   it('requests all alerts from the real route', () => {
     TestBed.inject(AlertApiService).getAll().subscribe();
-    const request = http.expectOne('/api/alerts');
+    const request = http.expectOne('/api/alerts?page=1&pageSize=50');
     expect(request.request.method).toBe('GET');
-    request.flush([]);
+    request.flush({ data: [], pageIndex: 1, pageSize: 50, totalCount: 0, totalPages: 0, hasPrevious: false, hasNext: false });
   });
 
   it('requests persisted history for a sensor', () => {
@@ -117,5 +118,18 @@ describe('API services', () => {
     const request = http.expectOne('/api/sensors/sensor-1/readings/latest');
     expect(request.request.method).toBe('GET');
     request.flush({});
+  });
+
+  it('requests a filtered audit page with real pagination parameters', () => {
+    TestBed.inject(AuditActionApiService).getPage(2, 50, { username: 'Ana', action: 'Login', entity: 'User', dateFrom: '2026-08-01', dateTo: '2026-08-02' }).subscribe();
+    const request = http.expectOne(candidate => candidate.url === '/api/audit-actions');
+    expect(request.request.params.get('page')).toBe('2');
+    expect(request.request.params.get('pageSize')).toBe('50');
+    expect(request.request.params.get('username')).toBe('Ana');
+    expect(request.request.params.get('action')).toBe('Login');
+    expect(request.request.params.get('entity')).toBe('User');
+    expect(request.request.params.get('dateFrom')).toBe('2026-08-01T00:00:00.000Z');
+    expect(request.request.params.get('dateTo')).toBe('2026-08-02T23:59:59.999Z');
+    request.flush({ data: [], pageIndex: 2, pageSize: 50, totalPages: 0, totalCount: 0, hasPrevious: true, hasNext: false });
   });
 });

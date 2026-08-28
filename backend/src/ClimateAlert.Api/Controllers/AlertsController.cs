@@ -2,6 +2,8 @@ using ClimateAlert.Application.Features.Alerts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using ClimateAlert.Api.Audit;
+using ClimateAlert.Application.Features.SensorReadings;
+using ClimateAlert.Domain.Enums;
 
 namespace ClimateAlert.Api.Controllers;
 
@@ -10,9 +12,14 @@ namespace ClimateAlert.Api.Controllers;
 public sealed class AlertsController(AlertService service, AuditActionService audit) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<AlertResponse>>> GetAll(
-        CancellationToken cancellationToken) =>
-        Ok(await service.GetAllAsync(cancellationToken));
+    public async Task<ActionResult<AlertPageResponse>> GetPage(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? communityId = null,
+        [FromQuery] ClimateVariable? variable = null,
+        [FromQuery] DangerLevel? level = null,
+        CancellationToken cancellationToken = default) =>
+        Ok(await service.GetPageAsync(communityId, variable, level, page, pageSize, cancellationToken));
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<AlertResponse>> GetById(

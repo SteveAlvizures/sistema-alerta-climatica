@@ -18,6 +18,8 @@ public sealed class AlertRuleConfiguration : IEntityTypeConfiguration<AlertRule>
         builder.Property(rule => rule.DangerLevel).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(rule => rule.LowerLimit).HasPrecision(18, 4);
         builder.Property(rule => rule.UpperLimit).HasPrecision(18, 4);
+        builder.Property(rule => rule.ComparisonOperator).HasMaxLength(2).IsRequired();
+        builder.Property(rule => rule.ActivationPoint).HasPrecision(18, 4).IsRequired();
         builder.Property(rule => rule.ValidFrom).HasColumnType("datetimeoffset").IsRequired();
         builder.Property(rule => rule.ValidUntil).HasColumnType("datetimeoffset");
         builder.Property(rule => rule.IsActive).IsRequired();

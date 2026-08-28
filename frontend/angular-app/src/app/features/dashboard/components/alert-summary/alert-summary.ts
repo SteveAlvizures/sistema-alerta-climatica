@@ -1,18 +1,15 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { ClimateAlert } from '../../../../core/models/climate-alert.model';
-import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-alert-summary',
-  imports: [StatusBadge],
+  imports: [RouterLink],
   templateUrl: './alert-summary.html',
   styleUrl: './alert-summary.scss',
 })
 export class AlertSummary {
-  readonly alert = input.required<ClimateAlert>();
-  readonly actionsEnabled = input(false);
-  readonly busy = input(false);
-  readonly errorMessage = input<string | null>(null);
-  readonly acknowledge = output<void>();
-  readonly resolve = output<void>();
+  readonly alerts = input.required<ClimateAlert[]>();
+  protected visibleAlerts(): ClimateAlert[] { return this.alerts().slice(0, 5); }
+  protected count(level: string): number { return this.alerts().filter(alert => alert.level === level).length; }
 }

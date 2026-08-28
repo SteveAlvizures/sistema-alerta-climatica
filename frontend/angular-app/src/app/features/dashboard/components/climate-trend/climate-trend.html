@@ -21,7 +21,7 @@
     }
   </div>
 
-  <div class="trend-panel__chart">
+  <div #chartContainer class="trend-panel__chart">
     <svg
       viewBox="0 0 640 220"
       role="img"
@@ -30,28 +30,36 @@
     >
       <title>Evolución de {{ activeSeries().label }}</title>
       <desc>Serie de hasta treinta lecturas recientes para la comunidad seleccionada.</desc>
+      <text class="trend-panel__axis-title" x="18" y="103" transform="rotate(-90 18 103)">{{ axisLabel() }}</text>
       <g class="trend-panel__grid" aria-hidden="true">
-        <line x1="32" y1="50" x2="608" y2="50" />
-        <line x1="32" y1="94" x2="608" y2="94" />
-        <line x1="32" y1="138" x2="608" y2="138" />
-        <line x1="32" y1="182" x2="608" y2="182" />
+        @for (tick of yTicks(); track tick.value) {
+          <line x1="72" [attr.y1]="tick.y" x2="612" [attr.y2]="tick.y" />
+          <text x="62" [attr.y]="tick.y + 4" text-anchor="end">{{ tick.label }}</text>
+        }
       </g>
-      <path class="trend-panel__area" [attr.d]="path() + ' L 608 182 L 32 182 Z'" />
+      <line class="trend-panel__axis" x1="72" y1="28" x2="72" y2="178" />
+      @for (activation of activeSeries().activationPoints ?? []; track activation.level + activation.value) {
+        <g [class]="thresholdClass(activation.level)">
+          <line x1="72" [attr.y1]="pointY(activation.value)" x2="612" [attr.y2]="pointY(activation.value)" />
+          <text x="606" [attr.y]="pointY(activation.value) - 5" text-anchor="end">{{ activation.level }} · {{ activation.value }} {{ activeSeries().unit }}</text>
+        </g>
+      }
+      <path class="trend-panel__area" [attr.d]="path() + ' L 612 178 L 72 178 Z'" />
       <path class="trend-panel__line" [attr.d]="path()" />
       @for (value of values(); track $index) {
-        <circle class="trend-panel__point" [attr.cx]="pointX($index)" [attr.cy]="pointY(value)" r="4" />
+        <circle class="trend-panel__point" tabindex="0" [attr.aria-label]="tooltip($index)" [attr.cx]="pointX($index)" [attr.cy]="pointY(value)" r="4"><title>{{ tooltip($index) }}</title></circle>
       }
     </svg>
     <div class="trend-panel__labels" aria-hidden="true">
-      @for (point of points(); track $index) {
-        <span>{{ point.label }}</span>
+      @for (label of xLabels(); track label.index) {
+        <span [style.left.%]="label.left">{{ label.label }}</span>
       }
     </div>
   </div>
 
   <div class="trend-panel__legend">
     <span><i aria-hidden="true"></i>{{ activeSeries().label }}</span>
-    <strong>{{ values().at(-1) }} {{ activeSeries().unit }}</strong>
+    <strong><span>Valor actual</span>{{ values().at(-1) }} {{ activeSeries().unit }}</strong>
   </div>
   } @else {
     <div class="trend-panel__empty"><strong>Sin historial suficiente</strong><p>No existen al menos dos lecturas persistidas para dibujar una tendencia.</p></div>
