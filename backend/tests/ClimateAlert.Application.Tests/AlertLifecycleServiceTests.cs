@@ -186,7 +186,7 @@ public sealed class AlertLifecycleServiceTests
         public Task<IReadOnlyList<Alert>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Alert>>(Items.Where(alert => alert.CommunityId == communityId).ToList());
         public Task<Alert?> GetByIdAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(Items.SingleOrDefault(alert => alert.Id == id));
         public Task<Alert?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(Items.SingleOrDefault(alert => alert.Id == id));
-        public Task<Alert?> GetOpenByRuleAsync(Guid ruleId, CancellationToken cancellationToken) => Task.FromResult(Items.SingleOrDefault(alert => alert.RuleId == ruleId && alert.Status != AlertStatus.Closed));
+        public Task<IReadOnlyList<Alert>> GetOpenBySensorAsync(Guid sensorId, ClimateVariable variable, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Alert>>(Items.Where(alert => alert.SupportingReading.SensorId == sensorId && alert.SupportingReading.Variable == variable && alert.Status != AlertStatus.Closed).ToList());
         public Task<bool> ExistsForReadingAsync(Guid readingId, CancellationToken cancellationToken) => Task.FromResult(Items.Any(alert => alert.SupportingReadingId == readingId));
         public void Add(Alert alert) => Items.Add(alert);
     }

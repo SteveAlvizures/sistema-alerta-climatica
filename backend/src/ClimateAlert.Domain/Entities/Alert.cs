@@ -116,15 +116,24 @@ public sealed class Alert
         ArgumentNullException.ThrowIfNull(rule);
         ArgumentNullException.ThrowIfNull(supportingReading);
         if (rule.CommunityId != CommunityId || rule.Variable != supportingReading.Variable
-            || supportingReading.Sensor.CommunityId != CommunityId)
+            || supportingReading.Sensor.CommunityId != CommunityId
+            || supportingReading.SensorId != SupportingReading.SensorId
+            || rule.Phenomenon != Phenomenon
+            || (rule.SensorId.HasValue && rule.SensorId != supportingReading.SensorId))
             throw new ArgumentException("The rule and reading must describe the same monitored phenomenon.");
 
+        if (EventId.HasValue && (Event is null || Event.CommunityId != CommunityId
+            || Event.Phenomenon != rule.Phenomenon || Event.Status != EventStatus.Open))
+            throw new InvalidOperationException("The alert must retain an open event for the same phenomenon.");
+        if (updatedAt < supportingReading.ReceivedAt)
+            throw new ArgumentException("Update cannot precede the supporting reading reception.", nameof(updatedAt));
+
+        // Validate the lifecycle before changing any historical references.
+        Update(rule.DangerLevel, message, updatedAt);
         Rule = rule;
         RuleId = rule.Id;
         SupportingReading = supportingReading;
         SupportingReadingId = supportingReading.Id;
-        Phenomenon = rule.Phenomenon;
-        Update(rule.DangerLevel, message, updatedAt);
     }
 
     public void Close(DateTimeOffset closedAt)

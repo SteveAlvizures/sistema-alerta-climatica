@@ -10,6 +10,9 @@ const variables:Record<ClimateVariable,string>={Temperature:'Temperatura',Relati
 const levels:Record<string,string>={Green:'Normal',Yellow:'Preventiva',Orange:'Alta',Red:'Crítica'};
 const conditions:Record<string,string>={'>':'Mayor que','>=':'Mayor o igual que','<':'Menor que','<=':'Menor o igual que'};
 const units:Record<ClimateVariable,string>={Temperature:'°C',RelativeHumidity:'%',WindSpeed:'km/h',RainfallLevel:'mm',RiverOrReservoirLevel:'m'};
+const phenomena: Record<AlertRuleDto['phenomenon'], string> = {
+  Flood: 'Inundación', Drought: 'Sequía', Storm: 'Tormenta', Frost: 'Helada', Wildfire: 'Incendio forestal',
+};
 interface RuleFilters { communityId:string; variable:''|ClimateVariable; dangerLevel:''|'Yellow'|'Orange'|'Red'; }
 const emptyRuleFilters=():RuleFilters=>({communityId:'',variable:'',dangerLevel:''});
 
@@ -17,7 +20,8 @@ const emptyRuleFilters=():RuleFilters=>({communityId:'',variable:'',dangerLevel:
 export class AlertRulesPage implements OnInit {
   private readonly api=inject(AlertRuleApiService); private readonly communitiesApi=inject(CommunityApiService); protected readonly auth=inject(AuthService);
   protected rules:AlertRuleDto[]=[]; protected communities:CommunityDto[]=[]; protected loading=true; protected saving=false; protected error=''; protected success='';
-  protected communityId=''; protected name=''; protected variable:ClimateVariable='Temperature'; protected phenomenon='Wildfire'; protected dangerLevel='Yellow'; protected condition:'>'|'>='|'<'|'<='='>='; protected activationPoint:number|null=null; protected initialActive=true;
+  protected communityId=''; protected name=''; protected variable:ClimateVariable='Temperature'; protected phenomenon: '' | AlertRuleDto['phenomenon']=''; protected dangerLevel='Yellow'; protected condition:'>'|'>='|'<'|'<='='>='; protected activationPoint:number|null=null; protected initialActive=true;
+  protected readonly phenomenonOptions = Object.entries(phenomena);
   protected filterDraft:RuleFilters=emptyRuleFilters(); protected activeFilters:RuleFilters=emptyRuleFilters();
   protected filtersApplied=false;
   protected readonly variableOptions=Object.keys(variables) as ClimateVariable[];
@@ -34,7 +38,8 @@ export class AlertRulesPage implements OnInit {
   protected preview():string{return this.activationPoint===null?'Completa el punto de activación para ver la regla.':`Cuando ${variables[this.variable].toLowerCase()} de ${this.communityName(this.communityId)} sea ${conditions[this.condition].toLowerCase()} ${this.activationPoint} ${this.unit()}, se establecerá un nivel de alerta ${this.levelLabel(this.dangerLevel)}.`}
   protected create():void{
     if(!this.canAdminister()||this.saving||!this.communityId||this.activationPoint===null){this.error='Completa comunidad y punto de activación.';return}
-    const request:CreateAlertRuleRequest={communityId:this.communityId,sensorId:null,code:'',name:this.name.trim(),phenomenon:this.phenomenon as CreateAlertRuleRequest['phenomenon'],variable:this.variable,dangerLevel:this.dangerLevel as CreateAlertRuleRequest['dangerLevel'],lowerLimit:['>','>='].includes(this.condition)?this.activationPoint:null,upperLimit:['<','<='].includes(this.condition)?this.activationPoint:null,validFrom:new Date().toISOString(),validUntil:null,condition:this.condition,activationPoint:this.activationPoint};
+    if (!this.phenomenon || !Object.hasOwn(phenomena, this.phenomenon)) { this.error='Selecciona un fenómeno climático válido.'; return; }
+    const request:CreateAlertRuleRequest={communityId:this.communityId,sensorId:null,code:'',name:this.name.trim(),phenomenon:this.phenomenon,variable:this.variable,dangerLevel:this.dangerLevel as CreateAlertRuleRequest['dangerLevel'],lowerLimit:['>','>='].includes(this.condition)?this.activationPoint:null,upperLimit:['<','<='].includes(this.condition)?this.activationPoint:null,validFrom:new Date().toISOString(),validUntil:null,condition:this.condition,activationPoint:this.activationPoint};
     this.saving=true;this.api.create(request).subscribe({next:rule=>{this.rules=[...this.rules,rule];this.name='';this.activationPoint=null;this.saving=false;this.success=`Regla ${rule.code} creada correctamente.`;this.error='';if(!this.initialActive)this.toggle(rule,false)},error:()=>{this.saving=false;this.error='No fue posible crear la regla.'}})
   }
   protected toggle(rule:AlertRuleDto,ask=true):void{if(!this.canAdminister()||(ask&&!window.confirm(`¿Deseas ${rule.isActive?'desactivar':'activar'} esta regla?`)))return;this.api.changeStatus(rule.id,!rule.isActive).subscribe({next:updated=>{this.rules=this.rules.map(item=>item.id===updated.id?updated:item);this.success='Estado de la regla actualizado.';this.error=''},error:()=>this.error='No fue posible cambiar el estado de la regla.'})}

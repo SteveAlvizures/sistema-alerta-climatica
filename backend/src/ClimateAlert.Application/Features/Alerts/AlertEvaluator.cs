@@ -26,31 +26,25 @@ public sealed class AlertEvaluator(
         AlertRule? applicableRule = candidates
             .Where(rule => rule.DangerLevel != DangerLevel.Green && rule.Matches(reading.Value))
             .OrderByDescending(rule => rule.DangerLevel).FirstOrDefault();
-        var activeAlerts = new List<Alert>();
-        foreach (AlertRule candidate in candidates)
-        {
-            Alert? existing = await alerts.GetOpenByRuleAsync(candidate.Id, cancellationToken);
-            if (existing is not null && activeAlerts.All(item => item.Id != existing.Id)) activeAlerts.Add(existing);
-        }
+        IReadOnlyList<Alert> activeAlerts = await alerts.GetOpenBySensorAsync(
+            reading.SensorId, reading.Variable, cancellationToken);
 
         if (applicableRule is null)
         {
             foreach (Alert activeAlert in activeAlerts) activeAlert.Close(reading.ReceivedAt);
-            foreach (ClimatePhenomenon phenomenon in activeAlerts.Select(item => item.Phenomenon).Distinct())
-            {
-                Event? endingEvent = await events.GetOpenAsync(
-                    reading.Sensor.CommunityId, phenomenon, cancellationToken);
-                if (endingEvent is not null
-                    && !endingEvent.Alerts.Any(item => item.Status != AlertStatus.Closed))
-                {
-                    endingEvent.Close(reading.ReceivedAt);
-                }
-            }
+            CloseCompletedEvents(activeAlerts, reading.ReceivedAt);
             return;
         }
 
         string message = applicableRule.Name;
-        Alert? alert = activeAlerts.OrderByDescending(item => item.UpdatedAt).FirstOrDefault();
+        // Prefer RuleId + SensorId; severity transitions may reuse only the same phenomenon.
+        Alert? alert = activeAlerts
+            .Where(item => item.Phenomenon == applicableRule.Phenomenon
+                && (!item.EventId.HasValue || item.Event is { Status: EventStatus.Open } linkedEvent
+                    && linkedEvent.Phenomenon == applicableRule.Phenomenon
+                    && linkedEvent.CommunityId == reading.Sensor.CommunityId))
+            .OrderByDescending(item => item.RuleId == applicableRule.Id)
+            .ThenByDescending(item => item.UpdatedAt).ThenBy(item => item.Id).FirstOrDefault();
         if (alert is null)
         {
             alert = new Alert(applicableRule, reading, message, reading.ReceivedAt);
@@ -59,10 +53,13 @@ public sealed class AlertEvaluator(
         else
         {
             alert.Transition(applicableRule, reading, message, reading.ReceivedAt);
-            foreach (Alert duplicate in activeAlerts.Where(item => item.Id != alert.Id)) duplicate.Close(reading.ReceivedAt);
         }
 
-        Event? climateEvent = await events.GetOpenAsync(
+        // A changed phenomenon starts another alert, preserving the old alert/event relationship.
+        foreach (Alert previous in activeAlerts.Where(item => item.Id != alert.Id))
+            previous.Close(reading.ReceivedAt);
+
+        Event? climateEvent = alert.Event ?? await events.GetOpenAsync(
             applicableRule.CommunityId, applicableRule.Phenomenon, cancellationToken);
         if (climateEvent is null)
         {
@@ -73,6 +70,17 @@ public sealed class AlertEvaluator(
         }
         if (!alert.EventId.HasValue) climateEvent.AddAlert(alert);
         else climateEvent.Update($"Evento de monitoreo asociado con {applicableRule.Code}.", alert.Level, reading.ReceivedAt);
+        CloseCompletedEvents(activeAlerts, reading.ReceivedAt);
     }
 
+    private static void CloseCompletedEvents(IEnumerable<Alert> alerts, DateTimeOffset at)
+    {
+        // Events aggregate a community/phenomenon, so another sensor may still keep them open.
+        foreach (Event climateEvent in alerts.Select(alert => alert.Event).OfType<Event>().DistinctBy(item => item.Id))
+        {
+            if (climateEvent.Status == EventStatus.Open
+                && climateEvent.Alerts.All(alert => alert.Status == AlertStatus.Closed))
+                climateEvent.Close(at < climateEvent.UpdatedAt ? climateEvent.UpdatedAt : at);
+        }
+    }
 }

@@ -2,6 +2,7 @@
 @if(canAdminister()){<section class="panel"><h2>Nueva regla comunitaria</h2><form (ngSubmit)="create()">
 <label>Comunidad<select name="community" [(ngModel)]="communityId">@for(c of communities;track c.id){<option [value]="c.id">{{c.name}}</option>}</select></label>
 <label>Variable monitoreada<select name="variable" [(ngModel)]="variable">@for(v of variableOptions;track v){<option [value]="v">{{variableLabel(v)}}</option>}</select></label>
+<label>Fenómeno climático<select name="phenomenon" [(ngModel)]="phenomenon" required><option value="" disabled>Selecciona un fenómeno</option>@for(option of phenomenonOptions;track option[0]){<option [value]="option[0]">{{option[1]}}</option>}</select></label>
 <label>Condición<select name="condition" [(ngModel)]="condition"><option value=">">Mayor que</option><option value=">=">Mayor o igual que</option><option value="<">Menor que</option><option value="<=">Menor o igual que</option></select></label>
 <label>Punto de activación<div class="value-input"><input name="point" type="number" step="any" [(ngModel)]="activationPoint" /><span>{{unit()}}</span></div></label>
 <label>Nivel de alerta<select name="danger" [(ngModel)]="dangerLevel"><option value="Yellow">Preventiva</option><option value="Orange">Alta</option><option value="Red">Crítica</option></select></label>

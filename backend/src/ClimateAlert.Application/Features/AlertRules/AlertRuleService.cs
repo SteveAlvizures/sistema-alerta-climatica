@@ -22,6 +22,9 @@ public sealed class AlertRuleService(
         CreateAlertRuleRequest request,
         CancellationToken cancellationToken)
     {
+        if (!Enum.IsDefined(request.Phenomenon))
+            throw new ValidationException("El fenómeno climático no es válido.");
+
         Community community = await communities.GetByIdAsync(request.CommunityId, true, cancellationToken)
             ?? throw new NotFoundException("La comunidad solicitada no existe.");
 

@@ -36,6 +36,44 @@ describe('AlertRulesPage filters', () => {
   it('clears selectors and active filters and hides results again', () => { const page = fixture.componentInstance as any; page.filterDraft = { communityId: 'c1', variable: 'Temperature', dangerLevel: 'Yellow' }; page.applyRuleFilters(); page.clearRuleFilters(); fixture.detectChanges(); expect(page.filterDraft).toEqual({ communityId: '', variable: '', dangerLevel: '' }); expect(page.activeFilters).toEqual({ communityId: '', variable: '', dangerLevel: '' }); expect(page.filteredRules()).toEqual([]); expect(fixture.nativeElement.querySelectorAll('.grid article').length).toBe(0); expect(fixture.nativeElement.textContent).toContain('Seleccione los filtros y presione Aplicar filtros para consultar las reglas.'); });
   it('shows the specified message when no rules match', () => { const page = fixture.componentInstance as any; page.filterDraft = { communityId: 'c2', variable: 'RelativeHumidity', dangerLevel: 'Yellow' }; page.applyRuleFilters(); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('No se encontraron reglas para los filtros seleccionados.'); expect(fixture.nativeElement.querySelectorAll('.grid article').length).toBe(0); });
   it('shows the result counter only after applying and hides it after clearing', () => { const page = fixture.componentInstance as any; expect(fixture.nativeElement.textContent).not.toContain('de 3 reglas'); page.filterDraft.communityId = 'c1'; page.applyRuleFilters(); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('2 de 3 reglas'); page.clearRuleFilters(); fixture.detectChanges(); expect(fixture.nativeElement.textContent).not.toContain('de 3 reglas'); });
-  it('creates a rule with its custom message unchanged', () => { const page = fixture.componentInstance as any; page.name = 'Temperatura elevada detectada.'; page.activationPoint = 31; page.create(); expect(createRule.calls.mostRecent().args[0].name).toBe('Temperatura elevada detectada.'); });
-  it('allows creating a rule without a custom message', () => { const page = fixture.componentInstance as any; page.name = '   '; page.activationPoint = 31; page.create(); expect(createRule.calls.mostRecent().args[0].name).toBe(''); expect(page.error).toBe(''); });
+  it('creates a rule with its custom message unchanged', () => { const page = fixture.componentInstance as any; page.name = 'Temperatura elevada detectada.'; page.phenomenon = 'Frost'; page.activationPoint = 31; page.create(); expect(createRule.calls.mostRecent().args[0].name).toBe('Temperatura elevada detectada.'); });
+  it('allows creating a rule without a custom message', () => { const page = fixture.componentInstance as any; page.name = '   '; page.phenomenon = 'Frost'; page.activationPoint = 31; page.create(); expect(createRule.calls.mostRecent().args[0].name).toBe(''); expect(page.error).toBe(''); });
+
+  it('requires an explicit phenomenon instead of defaulting to Wildfire', async () => {
+    await fixture.whenStable();
+    const page = fixture.componentInstance as any;
+    const selector = fixture.nativeElement.querySelector('select[name="phenomenon"]') as HTMLSelectElement;
+    expect(selector.value).toBe('');
+    expect([...selector.options].map(option => option.textContent?.trim())).toEqual([
+      'Selecciona un fenómeno', 'Inundación', 'Sequía', 'Tormenta', 'Helada', 'Incendio forestal',
+    ]);
+    page.activationPoint = 31;
+    page.create();
+    expect(createRule).not.toHaveBeenCalled();
+    expect(page.error).toContain('Selecciona un fenómeno');
+  });
+
+  for (const phenomenon of ['Flood', 'Drought', 'Storm', 'Frost', 'Wildfire']) {
+    it(`sends the selected ${phenomenon} from the form`, async () => {
+      await fixture.whenStable();
+      const selector = fixture.nativeElement.querySelector('select[name="phenomenon"]') as HTMLSelectElement;
+      selector.value = phenomenon;
+      selector.dispatchEvent(new Event('change'));
+      const page = fixture.componentInstance as any;
+      page.activationPoint = 31;
+      fixture.detectChanges();
+      fixture.nativeElement.querySelector('.panel form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      expect(createRule).toHaveBeenCalledTimes(1);
+      expect(createRule.calls.mostRecent().args[0].phenomenon).toBe(phenomenon);
+    });
+  }
+
+  it('does not send an unsupported phenomenon', () => {
+    const page = fixture.componentInstance as any;
+    page.activationPoint = 31;
+    page.phenomenon = 'Unsupported';
+    page.create();
+    expect(createRule).not.toHaveBeenCalled();
+    expect(page.error).toContain('válido');
+  });
 });

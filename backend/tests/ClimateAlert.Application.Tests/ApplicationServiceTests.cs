@@ -229,6 +229,35 @@ public sealed class ApplicationServiceTests
         Assert.Equal("Temperatura alcanzó el nivel Preventiva.", result.Name);
     }
 
+    [Theory]
+    [InlineData(ClimatePhenomenon.Flood)]
+    [InlineData(ClimatePhenomenon.Drought)]
+    [InlineData(ClimatePhenomenon.Storm)]
+    [InlineData(ClimatePhenomenon.Frost)]
+    [InlineData(ClimatePhenomenon.Wildfire)]
+    public async Task PreservesSelectedRulePhenomenon(ClimatePhenomenon phenomenon)
+    {
+        TestContext context = new();
+        Community community = context.AddCommunity();
+        AlertRuleResponse created = await context.AlertRules.CreateAsync(
+            RuleRequest(community.Id, "Selected phenomenon") with { Phenomenon = phenomenon }, default);
+        AlertRuleResponse stored = await context.AlertRules.GetByIdAsync(created.Id, default);
+        Assert.Equal(phenomenon, created.Phenomenon);
+        Assert.Equal(phenomenon, stored.Phenomenon);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(999)]
+    public async Task RejectsUndefinedRulePhenomenonWithoutCreatingRule(int invalid)
+    {
+        TestContext context = new();
+        Community community = context.AddCommunity();
+        await Assert.ThrowsAsync<ValidationException>(() => context.AlertRules.CreateAsync(
+            RuleRequest(community.Id, "Invalid") with { Phenomenon = (ClimatePhenomenon)invalid }, default));
+        Assert.Empty(await context.AlertRules.GetAllAsync(default));
+    }
+
     private static CreateSensorRequest SensorRequest(Guid communityId) => new(
         communityId, ClimateVariable.Temperature, "Centro comunitario", true);
 

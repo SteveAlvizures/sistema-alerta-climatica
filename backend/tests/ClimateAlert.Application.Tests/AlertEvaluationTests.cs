@@ -137,6 +137,97 @@ public sealed class AlertEvaluationTests
         Assert.Single(context.Events.Items);
     }
 
+    [Fact]
+    public async Task NormalReadingFromAnotherSensorDoesNotChangeExistingAlert()
+    {
+        EvaluationContext context = new();
+        context.AddRule(20m);
+        SensorReading original = context.CreateReading(25m);
+        await context.EvaluateAsync(original);
+        Alert alert = Assert.Single(context.Alerts.Items);
+        Guid? eventId = alert.EventId;
+
+        await context.EvaluateAsync(context.CreateReading(10m, Now.AddMinutes(1), context.AddSensor()));
+
+        Assert.Equal(AlertStatus.Open, alert.Status);
+        Assert.Equal(original.Id, alert.SupportingReadingId);
+        Assert.Equal(Now, alert.UpdatedAt);
+        Assert.Equal(eventId, alert.EventId);
+        Assert.Equal(EventStatus.Open, alert.Event!.Status);
+        Assert.Equal(Now, alert.Event.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task SharedRuleCreatesSeparateAlertsAndNormalReadingClosesOnlyItsSensor()
+    {
+        EvaluationContext context = new();
+        AlertRule rule = context.AddRule(20m);
+        Sensor secondSensor = context.AddSensor();
+        await context.EvaluateAsync(context.CreateReading(25m));
+        Alert first = Assert.Single(context.Alerts.Items);
+        SensorReading secondReading = context.CreateReading(26m, Now.AddMinutes(1), secondSensor);
+        await context.EvaluateAsync(secondReading);
+        Alert second = Assert.Single(context.Alerts.Items, item => item.Id != first.Id);
+        Assert.Equal(rule.Id, second.RuleId);
+        Assert.Equal(rule.Id, first.RuleId);
+        Assert.Equal(first.EventId, second.EventId); // Intentional community/phenomenon aggregation.
+
+        await context.EvaluateAsync(context.CreateReading(10m, Now.AddMinutes(2)));
+
+        Assert.Equal(AlertStatus.Closed, first.Status);
+        Assert.Equal(AlertStatus.Open, second.Status);
+        Assert.Equal(secondReading.Id, second.SupportingReadingId);
+        Assert.Equal(Now.AddMinutes(1), second.UpdatedAt);
+        Assert.Equal(EventStatus.Open, second.Event!.Status);
+        await context.EvaluateAsync(context.CreateReading(10m, Now.AddMinutes(3), secondSensor));
+        Assert.Equal(EventStatus.Closed, second.Event.Status);
+    }
+
+    [Fact]
+    public async Task DifferentPhenomenonClosesOldAlertWithoutReassigningItsEvent()
+    {
+        EvaluationContext context = new();
+        AlertRule flood = context.AddRule(20m);
+        AlertRule fire = context.AddRule(30m, level: DangerLevel.Red, code: "FIRE", phenomenon: ClimatePhenomenon.Wildfire);
+        SensorReading firstReading = context.CreateReading(25m);
+        await context.EvaluateAsync(firstReading);
+        Alert first = Assert.Single(context.Alerts.Items);
+        Guid? originalEvent = first.EventId;
+
+        await context.EvaluateAsync(context.CreateReading(35m, Now.AddMinutes(1)));
+
+        Alert second = Assert.Single(context.Alerts.Items, item => item.Status == AlertStatus.Open);
+        Assert.Equal(AlertStatus.Closed, first.Status);
+        Assert.Equal(flood.Id, first.RuleId);
+        Assert.Equal(firstReading.Id, first.SupportingReadingId);
+        Assert.Equal(originalEvent, first.EventId);
+        Assert.NotEqual(originalEvent, second.EventId);
+        Assert.Equal(fire.Id, second.RuleId);
+        Assert.Equal(ClimatePhenomenon.Flood, first.Event!.Phenomenon);
+        Assert.Equal(EventStatus.Closed, first.Event.Status);
+        Assert.Equal(ClimatePhenomenon.Wildfire, second.Event!.Phenomenon);
+        Assert.Equal(second.Phenomenon, second.Event.Phenomenon);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DisabledOrExpiredRuleIsReconciledOnNextReading(bool expire)
+    {
+        EvaluationContext context = new();
+        AlertRule rule = context.AddRule(20m, validUntil: expire ? Now.AddSeconds(30) : null);
+        await context.EvaluateAsync(context.CreateReading(25m));
+        Alert original = Assert.Single(context.Alerts.Items);
+        if (!expire) rule.Disable();
+
+        await context.EvaluateAsync(context.CreateReading(25m, Now.AddMinutes(1)));
+
+        Assert.Equal(AlertStatus.Closed, original.Status);
+        Assert.Equal(EventStatus.Closed, original.Event!.Status);
+        Assert.Equal(rule.Id, original.RuleId);
+        Assert.Single(context.Alerts.Items);
+    }
+
     private sealed class EvaluationContext
     {
         private readonly Community _community = new("El Pinar", "Alta Verapaz", null, Now);
@@ -159,18 +250,22 @@ public sealed class AlertEvaluationTests
             DateTimeOffset? validUntil = null,
             ClimateVariable variable = ClimateVariable.Temperature,
             DangerLevel level = DangerLevel.Yellow,
-            string code = "TEMP-RULE")
+            string code = "TEMP-RULE",
+            ClimatePhenomenon phenomenon = ClimatePhenomenon.Flood)
         {
-            var rule = new AlertRule(_community, code, code, ClimatePhenomenon.Flood, variable,
+            var rule = new AlertRule(_community, code, code, phenomenon, variable,
                 level, lowerLimit, null, Now.AddHours(-1), Now.AddHours(-2), validUntil);
             _rules.Items.Add(rule);
             return rule;
         }
 
-        public SensorReading CreateReading(decimal value, DateTimeOffset? at = null)
+        public Sensor AddSensor() => new(_community, "TEMP-02", "Second sensor", ClimateVariable.Temperature,
+            SensorOrigin.Simulated, "North", Now);
+
+        public SensorReading CreateReading(decimal value, DateTimeOffset? at = null, Sensor? sensor = null)
         {
             DateTimeOffset timestamp = at ?? Now;
-            return new SensorReading(_sensor, ClimateVariable.Temperature, value, "°C",
+            return new SensorReading(sensor ?? _sensor, ClimateVariable.Temperature, value, "°C",
                 timestamp, timestamp, SensorOrigin.Simulated);
         }
 
@@ -194,7 +289,7 @@ public sealed class AlertEvaluationTests
         public Task<IReadOnlyList<Alert>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Alert>>(Items.Where(item => item.CommunityId == communityId).ToList());
         public Task<Alert?> GetByIdAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(Items.SingleOrDefault(item => item.Id == id));
         public Task<Alert?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult(Items.SingleOrDefault(item => item.Id == id));
-        public Task<Alert?> GetOpenByRuleAsync(Guid ruleId, CancellationToken cancellationToken) => Task.FromResult(Items.LastOrDefault(item => item.RuleId == ruleId && item.Status != AlertStatus.Closed));
+        public Task<IReadOnlyList<Alert>> GetOpenBySensorAsync(Guid sensorId, ClimateVariable variable, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Alert>>(Items.Where(item => item.SupportingReading.SensorId == sensorId && item.SupportingReading.Variable == variable && item.Status != AlertStatus.Closed).ToList());
         public Task<bool> ExistsForReadingAsync(Guid readingId, CancellationToken cancellationToken) => Task.FromResult(Items.Any(item => item.SupportingReadingId == readingId));
         public void Add(Alert alert) => Items.Add(alert);
     }

@@ -26,6 +26,9 @@ public sealed class AlertRule
         string? comparisonOperator = null,
         decimal? activationPoint = null)
     {
+        if (!Enum.IsDefined(phenomenon))
+            throw new ArgumentException("Climate phenomenon is invalid.", nameof(phenomenon));
+
         Community = community ?? throw new ArgumentNullException(nameof(community));
         CommunityId = community.Id;
         Code = Required(code, nameof(code));

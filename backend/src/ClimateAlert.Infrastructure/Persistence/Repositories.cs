@@ -199,13 +199,22 @@ public sealed class AlertRepository(ClimateAlertDbContext dbContext) : IAlertRep
             .ThenInclude(climateEvent => climateEvent!.Alerts)
             .SingleOrDefaultAsync(alert => alert.Id == id, cancellationToken);
 
-    public async Task<Alert?> GetOpenByRuleAsync(Guid ruleId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Alert>> GetOpenBySensorAsync(
+        Guid sensorId, ClimateVariable variable, CancellationToken cancellationToken)
     {
-        Alert? local = dbContext.Alerts.Local.FirstOrDefault(
-            alert => alert.RuleId == ruleId && alert.Status != ClimateAlert.Domain.Enums.AlertStatus.Closed);
-        return local ?? await dbContext.Alerts.Include(alert => alert.Event)
-            .Where(alert => alert.RuleId == ruleId && alert.Status != ClimateAlert.Domain.Enums.AlertStatus.Closed)
-            .OrderByDescending(alert => alert.UpdatedAt).FirstOrDefaultAsync(cancellationToken);
+        // Do not filter by rule activation/validity: those incidents still need reconciliation.
+        var persisted = await dbContext.Alerts
+            .Include(alert => alert.SupportingReading)
+            .Include(alert => alert.Event).ThenInclude(climateEvent => climateEvent!.Alerts)
+            .Where(alert => alert.SupportingReading.SensorId == sensorId
+                && alert.SupportingReading.Variable == variable && alert.Status != AlertStatus.Closed)
+            .ToListAsync(cancellationToken);
+
+        // Include pending additions and respect state changes in the current unit of work.
+        return persisted.Concat(dbContext.Alerts.Local).DistinctBy(alert => alert.Id)
+            .Where(alert => alert.SupportingReading is not null && alert.SupportingReading.SensorId == sensorId
+                && alert.SupportingReading.Variable == variable && alert.Status != AlertStatus.Closed)
+            .OrderByDescending(alert => alert.UpdatedAt).ThenBy(alert => alert.Id).ToList();
     }
 
     public Task<bool> ExistsForReadingAsync(Guid readingId, CancellationToken cancellationToken)

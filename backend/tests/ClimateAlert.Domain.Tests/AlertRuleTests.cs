@@ -6,6 +6,15 @@ namespace ClimateAlert.Domain.Tests;
 public sealed class AlertRuleTests
 {
     [Fact]
+    public void ConstructorRejectsUndefinedPhenomenon()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        Community community = new("El Pinar", "Guatemala", null, now);
+        Assert.Throws<ArgumentException>(() => new AlertRule(community, "INVALID", "Invalid",
+            (ClimatePhenomenon)999, ClimateVariable.Temperature, DangerLevel.Yellow, 20m, null, now, now));
+    }
+
+    [Fact]
     public void ConstructorRejectsLowerLimitGreaterThanUpperLimit()
     {
         Community community = new("El Pinar", "Guatemala", null, DateTimeOffset.UtcNow);
