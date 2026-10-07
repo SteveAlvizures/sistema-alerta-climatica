@@ -15,7 +15,7 @@ public sealed class User
         Name = Required(name, nameof(name));
         Email = Required(email, nameof(email));
         PasswordHash = Required(passwordHash, nameof(passwordHash));
-        Role = Required(role, nameof(role));
+        Role = UserRoles.Normalize(Required(role, nameof(role)));
         CreatedAt = createdAt;
         IsActive = true;
     }
@@ -38,7 +38,7 @@ public sealed class User
         Name = Required(name, nameof(name));
         Email = Required(username, nameof(username)).ToLowerInvariant();
         PasswordHash = Required(passwordHash, nameof(passwordHash));
-        Role = Required(role, nameof(role));
+        Role = UserRoles.Normalize(Required(role, nameof(role)));
     }
 
     internal void AddRefreshToken(RefreshToken refreshToken) => _refreshTokens.Add(refreshToken);

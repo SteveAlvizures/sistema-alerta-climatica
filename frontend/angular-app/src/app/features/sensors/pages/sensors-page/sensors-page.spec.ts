@@ -29,7 +29,7 @@ describe('SensorsPage administration', () => {
       imports: [SensorsPage],
       providers: [
         provideRouter([]),
-        { provide: AuthService, useValue: { session: role } },
+        { provide: AuthService, useValue: { session: role, canOperate: () => ['Administrator', 'Operator'].includes(role()?.role ?? '') } },
         { provide: CommunityApiService, useValue: { getAll: () => of([community]) } },
         { provide: SensorApiService, useValue: sensorApi },
         { provide: SensorReadingApiService, useValue: readingApi },
@@ -100,4 +100,12 @@ describe('SensorsPage administration', () => {
     expect(component.success).toBe('Lectura registrada correctamente.');
     expect(component.latestReadings[sensor.id]?.value).toBe(31.5);
   });
+  for (const name of ['Operator', 'ConsultationUser', 'User']) {
+    it(`shows write controls only for operational role ${name}`, () => {
+      role.set({ role: name }); fixture.detectChanges();
+      expect(!!fixture.nativeElement.querySelector('form.sensor-form')).toBe(name === 'Operator');
+      expect(component.canAdminister()).toBe(name === 'Operator');
+    });
+  }
+
 });

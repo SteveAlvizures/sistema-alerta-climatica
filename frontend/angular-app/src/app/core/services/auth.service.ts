@@ -19,6 +19,9 @@ export class AuthService {
     return !!session && new Date(session.expiresAt).getTime() > Date.now();
   });
 
+  canOperate(): boolean { return ['Administrator', 'Operator'].includes(this.validSession()?.role ?? ''); }
+  canViewAudit(): boolean { return this.validSession()?.role === 'Administrator'; }
+
   login(request: LoginRequest): Observable<AuthSession> {
     return this.http.post<AuthSession>(`${this.baseUrl}/auth/login`, request).pipe(tap((session) => {
       sessionStorage.setItem(storageKey, JSON.stringify(session));

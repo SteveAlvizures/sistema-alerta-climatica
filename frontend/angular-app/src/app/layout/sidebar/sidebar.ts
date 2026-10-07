@@ -57,7 +57,7 @@ export class Sidebar {
   ];
 
   protected get visibleNavigation(): NavigationItem[] {
-    return this.navigation.filter((item) => !item.administratorOnly || this.auth.session()?.role === 'Administrator');
+    return this.navigation.filter((item) => !item.administratorOnly || this.auth.canViewAudit());
   }
 
   protected navigate(item: NavigationItem): void {

@@ -42,7 +42,7 @@ public sealed class AuthService(
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
             new(ClaimTypes.Name, user.Name),
-            new(ClaimTypes.Role, user.Role),
+            new(ClaimTypes.Role, UserRoles.Normalize(user.Role)),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         ];
         SigningCredentials credentials = new(
@@ -52,6 +52,6 @@ public sealed class AuthService(
             expiresAt.UtcDateTime, credentials);
 
         return new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), expiresAt,
-            user.Name, user.Email, user.Role);
+            user.Name, user.Email, UserRoles.Normalize(user.Role));
     }
 }

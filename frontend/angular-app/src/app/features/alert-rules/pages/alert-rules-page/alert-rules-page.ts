@@ -31,7 +31,7 @@ export class AlertRulesPage implements OnInit {
   protected filtersApplied=false;
   protected readonly variableOptions=Object.keys(variables) as ClimateVariable[];
   ngOnInit():void{forkJoin({rules:this.api.getAll(),communities:this.communitiesApi.getAll(),sensors:this.sensorsApi.getAll()}).subscribe({next:({rules,communities,sensors})=>{this.sensors=sensors;this.rules=rules;this.communities=communities;this.communityId=communities[0]?.id??'';this.loading=false},error:()=>{this.error='No fue posible cargar las reglas.';this.loading=false}})}
-  protected canAdminister():boolean{return this.auth.session()?.role==='Administrator'}
+  protected canAdminister():boolean{return this.auth.canOperate()}
   protected communityName(id:string):string{return this.communities.find(item=>item.id===id)?.name??'Comunidad no disponible'}
   protected variableLabel(value:ClimateVariable):string{return variables[value]}
   protected levelLabel(value:string):string{return levels[value]??value}

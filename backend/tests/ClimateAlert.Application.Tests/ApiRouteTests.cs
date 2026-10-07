@@ -68,7 +68,7 @@ public sealed class ApiRouteTests
         AssertMethod<AuditActionsController>(nameof(AuditActionsController.GetPage), typeof(HttpGetAttribute), null);
         AuthorizeAttribute attribute = Assert.Single(typeof(AuditActionsController)
             .GetCustomAttributes(typeof(AuthorizeAttribute), false).Cast<AuthorizeAttribute>());
-        Assert.Equal("Administrator", attribute.Roles);
+        Assert.Equal(ClimateAlert.Api.Authentication.AuthorizationPolicies.AdministratorOnly, attribute.Policy);
     }
 
     private static string? RouteOf<TController>() =>
@@ -86,6 +86,6 @@ public sealed class ApiRouteTests
     {
         AuthorizeAttribute attribute = Assert.Single(typeof(TController).GetMethod(name)!
             .GetCustomAttributes(typeof(AuthorizeAttribute), false).Cast<AuthorizeAttribute>());
-        Assert.Equal("Administrator", attribute.Roles);
+        Assert.Equal(ClimateAlert.Api.Authentication.AuthorizationPolicies.OperateSystem, attribute.Policy);
     }
 }

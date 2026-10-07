@@ -9,7 +9,7 @@ describe('administratorGuard', () => {
     const current = signal(role ? { role } : null);
     TestBed.configureTestingModule({ providers: [
       provideRouter([]),
-      { provide: AuthService, useValue: { session: current, isAuthenticated: computed(() => !!current()) } },
+      { provide: AuthService, useValue: { session: current, canViewAudit: () => current()?.role === 'Administrator', isAuthenticated: computed(() => !!current()) } },
     ] });
     return TestBed.runInInjectionContext(() => administratorGuard({} as never, {} as never)) as boolean | UrlTree;
   }
@@ -27,4 +27,10 @@ describe('administratorGuard', () => {
   it('allows administrators', () => {
     expect(evaluate('Administrator')).toBeTrue();
   });
+  for (const role of ['Operator', 'ConsultationUser']) {
+    it(`denies audit access to ${role}`, () => {
+      expect(evaluate(role)).not.toBeTrue();
+    });
+  }
+
 });

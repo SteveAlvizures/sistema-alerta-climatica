@@ -1,3 +1,4 @@
+using ClimateAlert.Api.Authentication;
 using ClimateAlert.Application.Features.Sensors;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -24,7 +25,7 @@ public sealed class SensorsController(SensorService service, AuditActionService 
         Ok(await service.GetByCommunityAsync(communityId, cancellationToken));
 
     [HttpPost]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     public async Task<ActionResult<SensorResponse>> Create(
         CreateSensorRequest request, CancellationToken cancellationToken)
     {
@@ -35,7 +36,7 @@ public sealed class SensorsController(SensorService service, AuditActionService 
     }
 
     [HttpPatch("{id:guid}/status")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     public async Task<ActionResult<SensorResponse>> ChangeStatus(
         Guid id, ChangeSensorStatusRequest request, CancellationToken cancellationToken)
     {
@@ -51,7 +52,7 @@ public sealed class SensorsController(SensorService service, AuditActionService 
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     public async Task<ActionResult<SensorResponse>> Update(
         Guid id, UpdateSensorRequest request, CancellationToken cancellationToken)
     {

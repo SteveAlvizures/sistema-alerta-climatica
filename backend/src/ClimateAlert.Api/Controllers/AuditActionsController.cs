@@ -1,3 +1,4 @@
+using ClimateAlert.Api.Authentication;
 using ClimateAlert.Api.Audit;
 using ClimateAlert.Application.Features.SensorReadings;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +8,7 @@ namespace ClimateAlert.Api.Controllers;
 
 [ApiController]
 [Route("api/audit-actions")]
-[Authorize(Roles = "Administrator")]
+[Authorize(Policy = AuthorizationPolicies.AdministratorOnly)]
 public sealed class AuditActionsController(AuditActionService service) : ControllerBase
 {
     [HttpGet]

@@ -15,7 +15,7 @@ public static class InitialAdminSeeder
         await SeedUserAsync(database, hasher, configuration,
             "INITIAL_ADMIN_USERNAME", "INITIAL_ADMIN_PASSWORD", "Administrador", "Administrator");
         await SeedUserAsync(database, hasher, configuration,
-            "INITIAL_USER_USERNAME", "INITIAL_USER_PASSWORD", "Usuario", "User");
+            "INITIAL_USER_USERNAME", "INITIAL_USER_PASSWORD", "Usuario", UserRoles.ConsultationUser);
         await database.SaveChangesAsync();
     }
 

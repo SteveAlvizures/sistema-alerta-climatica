@@ -1,3 +1,4 @@
+using ClimateAlert.Api.Authentication;
 using ClimateAlert.Application.Features.Communities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -20,7 +21,7 @@ public sealed class CommunitiesController(CommunityService service) : Controller
         Ok(await service.GetByIdAsync(id, cancellationToken));
 
     [HttpPost]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     [ProducesResponseType<CommunityResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
@@ -32,7 +33,7 @@ public sealed class CommunitiesController(CommunityService service) : Controller
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     [ProducesResponseType<CommunityResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -42,7 +43,7 @@ public sealed class CommunitiesController(CommunityService service) : Controller
         Ok(await service.UpdateAsync(id, request, cancellationToken));
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]

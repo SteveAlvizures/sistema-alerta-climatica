@@ -1,4 +1,4 @@
-﻿import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ElementRef, ViewChild } from '@angular/core';
 import { CommunityApiService } from '../../../../core/services/community-api.service';
@@ -102,6 +102,7 @@ export class SensorsPage implements OnInit {
   }
 
   createSensor(): void {
+    if (!this.canAdminister()) return;
     this.error = '';
     this.success = '';
 
@@ -162,7 +163,7 @@ export class SensorsPage implements OnInit {
     });
   }
 
-  canAdminister(): boolean { return this.auth.session()?.role === 'Administrator'; }
+  canAdminister(): boolean { return this.auth.canOperate(); }
   variableLabel(value: string): string { return ({ Temperature: 'Temperatura', RelativeHumidity: 'Humedad relativa', WindSpeed: 'Velocidad del viento', RainfallLevel: 'Nivel de lluvia', RiverOrReservoirLevel: 'Nivel de río o reservorio' } as Record<string, string>)[value] ?? value; }
   unitFor(value: string): string { return ({ Temperature: '°C', RelativeHumidity: '%', WindSpeed: 'km/h', RainfallLevel: 'mm', RiverOrReservoirLevel: 'm' } as Record<string, string>)[value] ?? ''; }
   generatedName(): string { return this.location.trim() ? `Sensor de ${this.variableLabel(this.measurementType).toLowerCase()} - ${this.location.trim()}` : 'Completa la ubicación o referencia'; }
@@ -188,6 +189,7 @@ export class SensorsPage implements OnInit {
   cancelEdit(): void { this.editingSensor = null; }
 
   saveEdit(): void {
+    if (!this.canAdminister()) return;
     if (!this.editingSensor || !this.editLocation.trim()) return;
     const request: UpdateSensorRequest = { location: this.editLocation.trim() };
     this.saving = true; this.error = ''; this.success = '';
@@ -209,6 +211,7 @@ export class SensorsPage implements OnInit {
   cancelManualReading(): void { this.readingSensor = null; this.manualValue = null; }
 
   registerManualReading(): void {
+    if (!this.canAdminister()) return;
     if (!this.readingSensor || this.manualValue === null || !Number.isFinite(this.manualValue)) {
       this.error = 'Ingresa un valor numérico válido.'; return;
     }

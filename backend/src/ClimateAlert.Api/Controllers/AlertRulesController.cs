@@ -1,3 +1,4 @@
+using ClimateAlert.Api.Authentication;
 using ClimateAlert.Application.Features.AlertRules;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -21,7 +22,7 @@ public sealed class AlertRulesController(AlertRuleService service, AuditActionSe
         Ok(await service.GetByIdAsync(id, cancellationToken));
 
     [HttpPost]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     public async Task<ActionResult<AlertRuleResponse>> Create(
         CreateAlertRuleRequest request,
         CancellationToken cancellationToken)
@@ -33,7 +34,7 @@ public sealed class AlertRulesController(AlertRuleService service, AuditActionSe
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     public async Task<ActionResult<AlertRuleResponse>> Update(Guid id, UpdateAlertRuleRequest request, CancellationToken cancellationToken)
     {
         var updated = await service.UpdateAsync(id, request, cancellationToken);
@@ -43,7 +44,7 @@ public sealed class AlertRulesController(AlertRuleService service, AuditActionSe
     }
 
     [HttpPatch("{id:guid}/status")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     public async Task<ActionResult<AlertRuleResponse>> ChangeStatus(
         Guid id,
         ChangeAlertRuleStatusRequest request,

@@ -14,7 +14,7 @@
     @if (climate.dashboard(); as dashboard) { <span class="app-header__time">Actualizado {{ formatTime(dashboard.lastUpdated) }}</span> }
     <app-status-badge [label]="climate.source() === 'api' && climate.loadState() === 'error' ? 'Sin conexión' : 'Monitoreo activo'" [tone]="climate.source() === 'api' && climate.loadState() === 'error' ? 'neutral' : 'green'" />
     @if (auth.isAuthenticated() && auth.session(); as session) {
-      <section class="auth-state" [class.auth-state--admin]="session.role === 'Administrator'" [class.auth-state--user]="session.role === 'User'" [attr.aria-label]="'Sesión activa como ' + sessionLabel(session.role)">
+      <section class="auth-state" [class.auth-state--admin]="session.role === 'Administrator'" [class.auth-state--user]="session.role === 'User' || session.role === 'ConsultationUser' || session.role === 'Operator'" [attr.aria-label]="'Sesión activa como ' + sessionLabel(session.role)">
         <span class="auth-state__icon" aria-hidden="true">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5" /><path d="M5.5 20c.5-4 2.7-6 6.5-6s6 2 6.5 6" /></svg>
         </span>

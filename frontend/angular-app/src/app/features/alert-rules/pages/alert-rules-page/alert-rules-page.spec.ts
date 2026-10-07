@@ -27,7 +27,7 @@ describe('AlertRulesPage filters', () => {
       { provide: AlertRuleApiService, useValue: { getAll: () => of(rules), create: createRule, update:updateRule, changeStatus } },
       { provide: SensorApiService, useValue:{getAll:()=>of([])} },
       { provide: CommunityApiService, useValue: { getAll: () => of(communities) } },
-      { provide: AuthService, useValue: { session: signal({ role: 'Administrator' }) } },
+      { provide: AuthService, useValue: { session: signal({ role: 'Administrator' }), canOperate: () => true } },
     ] }).compileComponents();
     fixture = TestBed.createComponent(AlertRulesPage); fixture.detectChanges();
   });

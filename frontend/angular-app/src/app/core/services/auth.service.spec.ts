@@ -58,4 +58,24 @@ describe('AuthService', () => {
     expect(service.token()).toBeNull();
     expect(sessionStorage.getItem('vigia-rural-session')).toBeNull();
   });
+  for (const role of ['Administrator', 'Operator', 'ConsultationUser', 'User', 'Unknown']) {
+    it(`enforces permissions for ${role}`, () => {
+      service.login({ username: 'account', password: 'secret' }).subscribe();
+      http.expectOne('/api/auth/login').flush({ accessToken: 'jwt',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(), name: 'Account', email: 'account', role });
+      expect(service.canOperate()).toBe(['Administrator', 'Operator'].includes(role));
+      expect(service.canViewAudit()).toBe(role === 'Administrator');
+    });
+  }
+  it('denies expired sessions and visitors', () => {
+    expect(service.canOperate()).toBeFalse();
+    expect(service.canViewAudit()).toBeFalse();
+    service.login({ username: 'admin', password: 'secret' }).subscribe();
+    http.expectOne('/api/auth/login').flush({ accessToken: 'jwt',
+      expiresAt: new Date(Date.now() - 60_000).toISOString(), name: 'Admin', email: 'admin', role: 'Administrator' });
+    expect(service.canOperate()).toBeFalse();
+    expect(service.canViewAudit()).toBeFalse();
+    expect(service.token()).toBeNull();
+  });
+
 });

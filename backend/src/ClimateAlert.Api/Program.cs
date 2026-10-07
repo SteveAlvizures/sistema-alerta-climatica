@@ -36,7 +36,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.FromMinutes(1)
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddClimateAuthorization();
 builder.Services.AddScoped<AuthService>();
 
 const string developmentCorsPolicy = "DevelopmentFrontend";

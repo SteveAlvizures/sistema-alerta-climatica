@@ -1,3 +1,4 @@
+using ClimateAlert.Api.Authentication;
 using ClimateAlert.Application.Features.Alerts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -34,7 +35,7 @@ public sealed class AlertsController(AlertService service, AuditActionService au
         Ok(await service.GetByCommunityAsync(communityId, cancellationToken));
 
     [HttpPatch("{id:guid}/acknowledge")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     public async Task<ActionResult<AlertResponse>> Acknowledge(
         Guid id,
         CancellationToken cancellationToken)
@@ -46,7 +47,7 @@ public sealed class AlertsController(AlertService service, AuditActionService au
     }
 
     [HttpPatch("{id:guid}/resolve")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     public async Task<ActionResult<AlertResponse>> Resolve(
         Guid id,
         CancellationToken cancellationToken)

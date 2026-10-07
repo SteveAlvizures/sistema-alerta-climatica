@@ -22,7 +22,7 @@ export class CommunitiesPage implements OnInit {
   location = '';
   description = '';
 
-  canAdminister(): boolean { return this.auth.session()?.role === 'Administrator'; }
+  canAdminister(): boolean { return this.auth.canOperate(); }
   ngOnInit(): void { this.loadCommunities(); }
   loadCommunities(): void {
     this.loading = true; this.error = '';
@@ -32,6 +32,7 @@ export class CommunitiesPage implements OnInit {
     });
   }
   saveCommunity(): void {
+    if (!this.canAdminister()) return;
     this.error = ''; this.success = '';
     if (!this.name.trim() || !this.location.trim()) { this.error = 'Nombre y ubicación son obligatorios.'; return; }
     const request: CreateCommunityRequest = { name: this.name.trim(), location: this.location.trim(), description: this.description.trim() || null };
@@ -47,6 +48,7 @@ export class CommunitiesPage implements OnInit {
     });
   }
   editCommunity(community: CommunityDto): void {
+    if (!this.canAdminister()) return;
     this.editingId = community.id; this.name = community.name; this.location = community.location;
     this.description = community.description ?? ''; this.error = ''; this.success = '';
     setTimeout(() => {
@@ -56,6 +58,7 @@ export class CommunitiesPage implements OnInit {
   }
   cancelEdit(): void { this.resetForm(); }
   deleteCommunity(community: CommunityDto): void {
+    if (!this.canAdminister()) return;
     if (!confirm(`¿Eliminar la comunidad "${community.name}"?`)) return;
     this.error = ''; this.success = ''; this.deletingId = community.id;
     this.communityApi.delete(community.id).subscribe({

@@ -25,7 +25,7 @@ public sealed class AuthenticationTests
 
         User[] users = await database.Users.OrderBy(user => user.Email).ToArrayAsync();
         Assert.Equal(2, users.Length);
-        Assert.Equal(["Administrator", "User"], users.Select(user => user.Role).Order().ToArray());
+        Assert.Equal(["Administrator", "ConsultationUser"], users.Select(user => user.Role).Order().ToArray());
         IPasswordHasher<User> hasher = services.GetRequiredService<IPasswordHasher<User>>();
         foreach (User user in users)
         {
@@ -38,7 +38,7 @@ public sealed class AuthenticationTests
 
     [Theory]
     [InlineData("admin", "admin", "Administrator")]
-    [InlineData("user", "user", "User")]
+    [InlineData("user", "user", "ConsultationUser")]
     public async Task LoginReturnsJwtWithStoredRole(string username, string password, string expectedRole)
     {
         await using ClimateAlertDbContext database = CreateDatabase();
@@ -53,6 +53,27 @@ public sealed class AuthenticationTests
         JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(response.AccessToken);
         Assert.Contains(token.Claims, claim =>
             (claim.Type is ClaimTypes.Role or "role") && claim.Value == expectedRole);
+    }
+
+    [Theory]
+    [InlineData("Operator", "Operator")]
+    [InlineData("ConsultationUser", "ConsultationUser")]
+    [InlineData("User", "ConsultationUser")]
+    public async Task LoginSupportsNewAndPersistedLegacyRoles(string storedRole, string expectedRole)
+    {
+        await using var database = CreateDatabase();
+        using var services = CreateServices(database);
+        var user = new User("Account", "account", "pending", "ConsultationUser", Now);
+        var hasher = services.GetRequiredService<IPasswordHasher<User>>();
+        user.UpdateIdentity("Account", "account", hasher.HashPassword(user, "secret"), "ConsultationUser");
+        database.Users.Add(user);
+        database.Entry(user).Property(candidate => candidate.Role).CurrentValue = storedRole;
+        await database.SaveChangesAsync();
+        var response = Assert.IsType<LoginResponse>(await CreateAuthService(database, services)
+            .LoginAsync(new("account", "secret"), default));
+        Assert.Equal(expectedRole, response.Role);
+        var token = new JwtSecurityTokenHandler().ReadJwtToken(response.AccessToken);
+        Assert.Contains(token.Claims, claim => claim.Type == ClaimTypes.Role && claim.Value == expectedRole);
     }
 
     [Fact]

@@ -24,7 +24,7 @@ describe('CommunitiesPage', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: AuthService, useValue: { session: () => ({ role: 'Administrator' }) } },
+        { provide: AuthService, useValue: { session: () => ({ role: 'Administrator' }), canOperate: () => true } },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(CommunitiesPage);

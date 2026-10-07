@@ -10,7 +10,7 @@ describe('Sidebar role navigation', () => {
     TestBed.configureTestingModule({
       imports: [Sidebar],
       providers: [
-        { provide: AuthService, useValue: { session: signal(role ? { role } : null) } },
+        { provide: AuthService, useValue: { session: signal(role ? { role } : null), canViewAudit: () => role === 'Administrator' } },
         { provide: DashboardDataService, useValue: { source: signal('api') } },
         { provide: Router, useValue: { url: '/', navigateByUrl: jasmine.createSpy() } },
       ],
@@ -30,4 +30,10 @@ describe('Sidebar role navigation', () => {
   it('shows audit log to administrators', () => {
     expect(labels('Administrator')).toContain('Bitácora');
   });
+  for (const role of ['Operator', 'ConsultationUser']) {
+    it(`hides audit navigation for ${role}`, () => {
+      expect(labels(role)).not.toContain('Bit?cora');
+    });
+  }
+
 });
