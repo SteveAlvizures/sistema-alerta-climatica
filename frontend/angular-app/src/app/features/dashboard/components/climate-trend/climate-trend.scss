@@ -98,12 +98,12 @@
   font-weight: 700;
 }
 
-.trend-panel__threshold--preventiva line { stroke: #b58a00; }
-.trend-panel__threshold--preventiva text { fill: #876700; }
-.trend-panel__threshold--alta line { stroke: #c65d18; }
-.trend-panel__threshold--alta text { fill: #99430e; }
-.trend-panel__threshold--critica line { stroke: #bd3030; }
-.trend-panel__threshold--critica text { fill: #952525; }
+.trend-panel__threshold--precaucion line { stroke: #b58a00; }
+.trend-panel__threshold--precaucion text { fill: #876700; }
+.trend-panel__threshold--alerta line { stroke: #c65d18; }
+.trend-panel__threshold--alerta text { fill: #99430e; }
+.trend-panel__threshold--emergencia line { stroke: #bd3030; }
+.trend-panel__threshold--emergencia text { fill: #952525; }
 
 .trend-panel__area {
   fill: var(--chart-fill);

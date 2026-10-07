@@ -1,4 +1,4 @@
-export type DangerLevel = 'Normal' | 'Preventiva' | 'Alta' | 'Crítica';
+export type DangerLevel = 'Normal' | 'Precaución' | 'Alerta' | 'Emergencia';
 
 export interface ClimateAlert {
   id?: string;

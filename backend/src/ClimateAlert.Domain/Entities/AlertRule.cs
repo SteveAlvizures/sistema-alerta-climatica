@@ -24,7 +24,9 @@ public sealed class AlertRule
         DateTimeOffset? validUntil = null,
         Sensor? sensor = null,
         string? comparisonOperator = null,
-        decimal? activationPoint = null)
+        decimal? activationPoint = null,
+        string? message = null,
+        bool? usesRange = null)
     {
         if (!Enum.IsDefined(phenomenon))
             throw new ArgumentException("Climate phenomenon is invalid.", nameof(phenomenon));
@@ -33,6 +35,11 @@ public sealed class AlertRule
         CommunityId = community.Id;
         Code = Required(code, nameof(code));
         Name = Required(name, nameof(name));
+        Message = string.IsNullOrWhiteSpace(message) ? "Condición climática detectada." : message.Trim();
+        ValidateText(Name, Message);
+        UsesRange = usesRange ?? comparisonOperator is null;
+        if (!Enum.IsDefined(variable) || !Enum.IsDefined(dangerLevel))
+            throw new ArgumentException("Variable or danger level is invalid.");
 
         if (!lowerLimit.HasValue && !upperLimit.HasValue)
         {
@@ -84,6 +91,8 @@ public sealed class AlertRule
     public Sensor? Sensor { get; private set; }
     public string Code { get; private set; } = null!;
     public string Name { get; private set; } = null!;
+    public string Message { get; private set; } = null!;
+    public bool UsesRange { get; private set; }
     public ClimatePhenomenon Phenomenon { get; private set; }
     public ClimateVariable Variable { get; private set; }
     public DangerLevel DangerLevel { get; private set; }
@@ -100,20 +109,58 @@ public sealed class AlertRule
     public bool IsEnabled(DateTimeOffset at) =>
         IsActive && at >= ValidFrom && (!ValidUntil.HasValue || at <= ValidUntil.Value);
 
-    public bool Matches(decimal value) => ComparisonOperator switch
+    public bool Matches(decimal value) => UsesRange && HasValidRange
+        ? (!LowerLimit.HasValue || value >= LowerLimit.Value) && (!UpperLimit.HasValue || value <= UpperLimit.Value)
+        : ComparisonOperator switch
     {
         ">" => value > ActivationPoint,
         ">=" => value >= ActivationPoint,
         "<" => value < ActivationPoint,
         "<=" => value <= ActivationPoint,
-        _ => (!LowerLimit.HasValue || value >= LowerLimit.Value) && (!UpperLimit.HasValue || value <= UpperLimit.Value)
+        _ => HasValidRange && (!LowerLimit.HasValue || value >= LowerLimit.Value) && (!UpperLimit.HasValue || value <= UpperLimit.Value)
     };
+
+    public bool HasValidRange => (LowerLimit.HasValue || UpperLimit.HasValue)
+        && (!LowerLimit.HasValue || !UpperLimit.HasValue || LowerLimit <= UpperLimit);
+
+    public void Edit(string name, decimal? minValue, decimal? maxValue, DangerLevel level,
+        ClimatePhenomenon phenomenon, string message, DateTimeOffset validFrom,
+        DateTimeOffset? validUntil, bool isActive)
+    {
+        // Validate before mutating the tracked entity.
+        string validatedName = Required(name, nameof(name));
+        if (!Enum.IsDefined(level) || !Enum.IsDefined(phenomenon)
+            || (!minValue.HasValue && !maxValue.HasValue)
+            || (minValue.HasValue && maxValue.HasValue && minValue > maxValue)
+            || (validUntil.HasValue && validUntil < validFrom))
+            throw new ArgumentException("Invalid rule range, level, phenomenon or validity.");
+        string validatedMessage = Required(message, nameof(message));
+        ValidateText(validatedName, validatedMessage);
+        Name = validatedName;
+        Message = validatedMessage;
+        LowerLimit = minValue;
+        UpperLimit = maxValue;
+        ActivationPoint = (minValue ?? maxValue)!.Value;
+        ComparisonOperator = minValue.HasValue ? ">=" : "<=";
+        DangerLevel = level;
+        Phenomenon = phenomenon;
+        ValidFrom = validFrom;
+        ValidUntil = validUntil;
+        IsActive = isActive;
+        UsesRange = true;
+    }
 
     public void Enable() => IsActive = true;
 
     public void Disable() => IsActive = false;
 
     internal void AddAlert(Alert alert) => _alerts.Add(alert);
+
+    private static void ValidateText(string name, string message)
+    {
+        if (name.Length > 150 || message.Length > 1000)
+            throw new ArgumentException("Name or message exceeds its maximum length.");
+    }
 
     private static string Required(string value, string parameterName)
     {

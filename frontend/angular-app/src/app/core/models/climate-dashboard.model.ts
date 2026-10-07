@@ -15,7 +15,7 @@ export interface ClimateTrendSeries {
   label: string;
   unit: string;
   points: ClimateTrendPoint[];
-  activationPoints?: Array<{ level: 'Preventiva' | 'Alta' | 'Crítica'; value: number }>;
+  activationPoints?: Array<{ level: 'Precaución' | 'Alerta' | 'Emergencia'; value: number }>;
 }
 
 export interface ClimateDashboardState {

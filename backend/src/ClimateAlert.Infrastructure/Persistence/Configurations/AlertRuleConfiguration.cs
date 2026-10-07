@@ -12,6 +12,8 @@ public sealed class AlertRuleConfiguration : IEntityTypeConfiguration<AlertRule>
         builder.HasKey(rule => rule.Id);
         builder.Property(rule => rule.Id).ValueGeneratedNever();
         builder.Property(rule => rule.Code).HasMaxLength(80).IsRequired();
+        builder.Property(rule => rule.Message).HasMaxLength(1000).IsRequired();
+        builder.Property(rule => rule.UsesRange).IsRequired();
         builder.Property(rule => rule.Name).HasMaxLength(150).IsRequired();
         builder.Property(rule => rule.Phenomenon).HasConversion<string>().HasMaxLength(30).IsRequired();
         builder.Property(rule => rule.Variable).HasConversion<string>().HasMaxLength(40).IsRequired();

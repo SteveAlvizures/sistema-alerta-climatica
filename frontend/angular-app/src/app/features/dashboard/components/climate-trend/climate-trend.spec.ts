@@ -13,7 +13,7 @@ describe('ClimateTrend', () => {
         { label: '26/08 10:00', value: 28, timestamp: '2026-08-26T10:00:00-06:00' },
         { label: '26/08 11:00', value: 31, timestamp: '2026-08-26T11:00:00-06:00' },
       ],
-      activationPoints: [{ level: 'Preventiva', value: 30 }],
+      activationPoints: [{ level: 'Precaución', value: 30 }],
     }]);
     fixture.detectChanges();
   });
@@ -23,7 +23,7 @@ describe('ClimateTrend', () => {
     expect(element.querySelector('.trend-panel__axis-title')?.textContent).toContain('Temperatura (°C)');
     expect(element.querySelectorAll('.trend-panel__grid text').length).toBe(5);
     expect(element.querySelector('circle title')?.textContent).toContain('Temperatura: 28 °C');
-    expect(element.querySelector('.trend-panel__threshold--preventiva')?.textContent).toContain('Preventiva');
+    expect(element.querySelector('.trend-panel__threshold--precaucion')?.textContent).toContain('Precaución');
     expect(element.querySelector('.trend-panel__legend strong')?.textContent).toContain('Valor actual');
   });
 

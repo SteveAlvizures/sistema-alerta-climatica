@@ -27,7 +27,7 @@ export class SensorDetailPage implements OnInit, OnDestroy {
   protected selectPeriod(period: 'recent' | number): void { this.period = period; this.selectedPoint = null; this.loadReadings(); }
   protected variableLabel(): string { return this.variableInfo().label; }
   protected axisLabel(): string { return `${this.variableInfo().label} (${this.data.at(-1)?.unit ?? this.rules[0]?.unit ?? this.variableInfo().unit})`; }
-  protected levelLabel(level: string): string { return ({ Green: 'Normal', Yellow: 'Preventiva', Orange: 'Alta', Red: 'Crítica' } as Record<string, string>)[level] ?? level; }
+  protected levelLabel(level: string): string { return ({ Green: 'Normal', Yellow: 'Precaución', Orange: 'Alerta', Red: 'Emergencia' } as Record<string, string>)[level] ?? level; }
   protected currentLevel(): string { const rule = this.matchingRule(this.data.at(-1)?.value); return rule ? this.levelLabel(rule.dangerLevel) : 'Normal'; }
   protected condition(reading: SensorReadingDto): string { const rule = this.matchingRule(reading.value); return rule ? this.levelLabel(rule.dangerLevel) : 'Normal'; }
   protected nextActivation(): string { const value = this.data.at(-1)?.value; if (value === undefined) return 'Sin lectura'; const rule = this.rules.filter(item => item.isActive && !this.matches(item, value)).sort((a, b) => Math.abs(a.activationPoint - value) - Math.abs(b.activationPoint - value))[0]; return rule ? `${this.levelLabel(rule.dangerLevel)} · ${rule.comparisonOperator} ${rule.activationPoint} ${rule.unit}` : 'Sin otro punto configurado'; }

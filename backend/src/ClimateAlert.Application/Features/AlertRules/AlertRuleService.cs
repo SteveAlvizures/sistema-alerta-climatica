@@ -22,11 +22,11 @@ public sealed class AlertRuleService(
         CreateAlertRuleRequest request,
         CancellationToken cancellationToken)
     {
-        if (!Enum.IsDefined(request.Phenomenon))
-            throw new ValidationException("El fenómeno climático no es válido.");
+        if (!Enum.IsDefined(request.Variable) || !Enum.IsDefined(request.DangerLevel) || !Enum.IsDefined(request.Phenomenon))
+            throw new ValidationException("El fenómeno, la variable o el nivel no es válido.");
 
         Community community = await communities.GetByIdAsync(request.CommunityId, true, cancellationToken)
-            ?? throw new NotFoundException("La comunidad solicitada no existe.");
+            ?? throw new ValidationException("La comunidad solicitada no existe.");
 
         string prefix = $"ALT-{Abbreviation(community.Name)}-{VariableAbbreviation(request.Variable)}-";
         IReadOnlyList<AlertRule> currentRules = await rules.GetAllAsync(cancellationToken);
@@ -38,19 +38,20 @@ public sealed class AlertRuleService(
         if (request.SensorId.HasValue)
         {
             sensor = await sensors.GetByIdAsync(request.SensorId.Value, true, cancellationToken)
-                ?? throw new NotFoundException("El sensor solicitado no existe.");
+                ?? throw new ValidationException("El sensor solicitado no existe.");
         }
 
         AlertRule rule;
         try
         {
-            string message = string.IsNullOrWhiteSpace(request.Name)
+            string message = string.IsNullOrWhiteSpace(request.Message)
                 ? DefaultMessage(request.Variable, request.DangerLevel)
-                : request.Name;
+                : request.Message;
             rule = new AlertRule(
-                community, code, message, request.Phenomenon, request.Variable,
-                request.DangerLevel, request.LowerLimit, request.UpperLimit, request.ValidFrom,
-                timeProvider.GetUtcNow(), request.ValidUntil, sensor, request.Condition, request.ActivationPoint);
+                community, code, request.Name!, request.Phenomenon, request.Variable,
+                request.DangerLevel, request.MinValue ?? request.LowerLimit, request.MaxValue ?? request.UpperLimit, request.ValidFrom,
+                timeProvider.GetUtcNow(), request.ValidUntil, sensor, message: message, usesRange: true);
+            if (!request.IsActive) rule.Disable();
         }
         catch (ArgumentException exception)
         {
@@ -74,11 +75,27 @@ public sealed class AlertRuleService(
         return Map(rule);
     }
 
+    public async Task<AlertRuleResponse> UpdateAsync(Guid id, UpdateAlertRuleRequest request, CancellationToken cancellationToken)
+    {
+        AlertRule rule = await rules.GetByIdAsync(id, true, cancellationToken)
+            ?? throw new NotFoundException("La regla de alerta solicitada no existe.");
+        try
+        {
+            rule.Edit(request.Name, request.MinValue, request.MaxValue, request.DangerLevel,
+                request.Phenomenon, string.IsNullOrWhiteSpace(request.Message)
+                    ? DefaultMessage(rule.Variable, request.DangerLevel) : request.Message,
+                request.ValidFrom, request.ValidUntil, request.IsActive);
+        }
+        catch (ArgumentException exception) { throw new ValidationException(exception.Message); }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Map(rule);
+    }
+
     private static AlertRuleResponse Map(AlertRule rule) => new(
         rule.Id, rule.CommunityId, rule.SensorId, rule.Code, rule.Name, rule.Phenomenon,
         rule.Variable, rule.DangerLevel, rule.LowerLimit, rule.UpperLimit, rule.ValidFrom,
         rule.ValidUntil, rule.IsActive, rule.CreatedAt, rule.ComparisonOperator,
-        rule.ActivationPoint, ClimateAlert.Application.Features.SensorReadings.SensorReadingService.UnitFor(rule.Variable));
+        rule.ActivationPoint, ClimateAlert.Application.Features.SensorReadings.SensorReadingService.UnitFor(rule.Variable), rule.LowerLimit, rule.UpperLimit, rule.Message, rule.UsesRange);
 
     private static string VariableAbbreviation(ClimateAlert.Domain.Enums.ClimateVariable variable) => variable switch
     {
@@ -107,9 +124,9 @@ public sealed class AlertRuleService(
 
     private static string LevelLabel(ClimateAlert.Domain.Enums.DangerLevel level) => level switch
     {
-        ClimateAlert.Domain.Enums.DangerLevel.Yellow => "Preventiva",
-        ClimateAlert.Domain.Enums.DangerLevel.Orange => "Alta",
-        ClimateAlert.Domain.Enums.DangerLevel.Red => "Crítica",
+        ClimateAlert.Domain.Enums.DangerLevel.Yellow => "Precaución",
+        ClimateAlert.Domain.Enums.DangerLevel.Orange => "Alerta",
+        ClimateAlert.Domain.Enums.DangerLevel.Red => "Emergencia",
         _ => "Normal"
     };
 

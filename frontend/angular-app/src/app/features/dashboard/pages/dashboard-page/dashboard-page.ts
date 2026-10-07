@@ -16,13 +16,13 @@ import { SensorStatus } from '../../components/sensor-status/sensor-status';
 })
 export class DashboardPage implements OnInit, OnDestroy {
   protected readonly climate = inject(DashboardDataService);
-  protected readonly dangerLevels: DangerLevel[] = ['Normal', 'Preventiva', 'Alta', 'Crítica'];
+  protected readonly dangerLevels: DangerLevel[] = ['Normal', 'Precaución', 'Alerta', 'Emergencia'];
   private refreshSubscription?: Subscription;
 
   ngOnInit(): void { this.refreshSubscription = timer(0, 15_000).subscribe(() => this.climate.refreshSelected()); }
   ngOnDestroy(): void { this.refreshSubscription?.unsubscribe(); }
   protected levelTone(level: DangerLevel): 'green' | 'yellow' | 'orange' | 'red' {
-    return { Normal: 'green', Preventiva: 'yellow', Alta: 'orange', Crítica: 'red' }[level] as 'green' | 'yellow' | 'orange' | 'red';
+    return { Normal: 'green', 'Precaución': 'yellow', Alerta: 'orange', Emergencia: 'red' }[level] as 'green' | 'yellow' | 'orange' | 'red';
   }
 
   protected selectCommunity(event: Event): void {

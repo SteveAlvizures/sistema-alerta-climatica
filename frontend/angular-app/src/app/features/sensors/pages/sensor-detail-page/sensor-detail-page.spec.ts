@@ -43,7 +43,7 @@ describe('SensorDetailPage', () => {
   });
   it('shows a nearby threshold without allowing a distant threshold to compress the readings', () => {
     expect(fixture.nativeElement.querySelectorAll('.threshold').length).toBe(1);
-    expect(fixture.nativeElement.textContent).toContain('Crítica · >= 100 °C');
+    expect(fixture.nativeElement.textContent).toContain('Emergencia · >= 100 °C');
     expect((fixture.componentInstance as any).valueY(27)).toBeGreaterThan(50);
   });
   it('reloads the same sensor when the period changes', () => {

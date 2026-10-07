@@ -13,8 +13,8 @@ header span { display: block; margin-top: .45rem; color: var(--text-muted); font
 .summary strong { display: block; margin: .4rem 0; color: var(--text-strong); font-size: 1.22rem; }
 .summary__primary strong { color: var(--brand-accent); font-size: 1.7rem; }
 .level { border-top-color: var(--success) !important; }
-.level.preventiva { border-top-color: #c99c36 !important; }.level.alta { border-top-color: #d17a3d !important; }.level.crítica { border-top-color: #c95f5a !important; }
-.level.preventiva strong { color: var(--warning-text); }.level.alta strong { color: #e8a06f; }.level.crítica strong { color: #e98f8a; }
+.level.precaución { border-top-color: #c99c36 !important; }.level.alerta { border-top-color: #d17a3d !important; }.level.emergencia { border-top-color: #c95f5a !important; }
+.level.precaución strong { color: var(--warning-text); }.level.alerta strong { color: #e8a06f; }.level.emergencia strong { color: #e98f8a; }
 .chart { padding: clamp(1rem, 2vw, 1.35rem); }
 .chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.2rem; }
 .chart-head h2, .rules h2, .readings h2 { margin: 0; color: var(--text-strong); font-size: 1.12rem; }

@@ -32,6 +32,16 @@ public sealed class AlertRulesController(AlertRuleService service, AuditActionSe
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Administrator")]
+    public async Task<ActionResult<AlertRuleResponse>> Update(Guid id, UpdateAlertRuleRequest request, CancellationToken cancellationToken)
+    {
+        var updated = await service.UpdateAsync(id, request, cancellationToken);
+        await audit.RecordAsync(User, "ReglaEditada", "AlertRule", id,
+            $"Se edito la regla {updated.Code}.", cancellationToken);
+        return Ok(updated);
+    }
+
     [HttpPatch("{id:guid}/status")]
     [Authorize(Roles = "Administrator")]
     public async Task<ActionResult<AlertRuleResponse>> ChangeStatus(

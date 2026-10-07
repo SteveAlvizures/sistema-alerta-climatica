@@ -4,7 +4,7 @@ export interface ClimateIndicator {
   value: string;
   detail: string;
   sensorId?: string;
-  status?: 'Normal' | 'Preventiva' | 'Alta' | 'Crítica';
+  status?: 'Normal' | 'Precaución' | 'Alerta' | 'Emergencia';
   tone?: 'green' | 'yellow' | 'orange' | 'red';
   lastReading?: string;
   nextActivation?: string;

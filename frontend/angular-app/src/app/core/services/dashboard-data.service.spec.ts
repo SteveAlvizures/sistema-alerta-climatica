@@ -169,7 +169,7 @@ describe('DashboardDataService', () => {
     ];
     const service = create(of([community]), of([]), EMPTY, of(alerts));
 
-    expect(service.dashboard()?.level).toBe('Alta');
+    expect(service.dashboard()?.level).toBe('Alerta');
     expect(service.dashboard()?.alert?.message).toBe('Tormenta activa.');
   });
 
@@ -197,7 +197,7 @@ describe('DashboardDataService', () => {
     service.refreshSelected();
     expect(getAlerts).toHaveBeenCalledTimes(2);
     expect(getSensors).toHaveBeenCalledTimes(2);
-    expect(service.dashboard()?.level).toBe('Preventiva');
+    expect(service.dashboard()?.level).toBe('Precaución');
     expect(service.dashboard()?.activeAlerts?.length).toBe(1);
     service.refreshSelected();
     expect(getAlerts).toHaveBeenCalledTimes(3);
@@ -211,7 +211,7 @@ describe('DashboardDataService', () => {
       alert,
     ]));
 
-    expect(service.dashboard()?.level).toBe('Preventiva');
+    expect(service.dashboard()?.level).toBe('Precaución');
     expect(service.dashboard()?.recentEvents.length).toBe(1);
   });
 
@@ -232,7 +232,7 @@ describe('DashboardDataService', () => {
 
     expect(firstAlerts.observed).toBeFalse();
     expect(service.dashboard()?.communityName).toBe(secondCommunity.name);
-    expect(service.dashboard()?.level).toBe('Crítica');
+    expect(service.dashboard()?.level).toBe('Emergencia');
   });
 
   it('cancels an alert request when switching to simulation', () => {

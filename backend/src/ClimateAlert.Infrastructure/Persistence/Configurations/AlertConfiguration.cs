@@ -14,6 +14,7 @@ public sealed class AlertConfiguration : IEntityTypeConfiguration<Alert>
         builder.Property(alert => alert.Level).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(alert => alert.Phenomenon).HasConversion<string>().HasMaxLength(30).IsRequired();
         builder.Property(alert => alert.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(alert => alert.ActivationPointSnapshot).HasPrecision(18, 4);
         builder.Property(alert => alert.Message).HasMaxLength(1000).IsRequired();
         builder.Property(alert => alert.DetectedAt).HasColumnType("datetimeoffset").IsRequired();
         builder.Property(alert => alert.UpdatedAt).HasColumnType("datetimeoffset").IsRequired();

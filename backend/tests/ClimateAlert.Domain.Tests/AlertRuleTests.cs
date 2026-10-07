@@ -5,6 +5,60 @@ namespace ClimateAlert.Domain.Tests;
 
 public sealed class AlertRuleTests
 {
+    [Theory]
+    [InlineData(30, 35, 30, true)]
+    [InlineData(30, 35, 35, true)]
+    [InlineData(30, 35, 36, false)]
+    [InlineData(30, 35, 29, false)]
+    [InlineData(40, null, 40, true)]
+    [InlineData(40, null, 39, false)]
+    [InlineData(null, 5, 5, true)]
+    [InlineData(null, 5, 6, false)]
+    public void PhaseTwoUsesInclusiveRanges(int? min, int? max, int value, bool expected)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var rule = new AlertRule(new Community("Test", "Test", null, now), "R", "Name",
+            ClimatePhenomenon.Frost, ClimateVariable.Temperature, DangerLevel.Yellow,
+            min, max, now, now, comparisonOperator: ">", activationPoint: 100,
+            message: "Message", usesRange: true);
+        Assert.Equal(expected, rule.Matches(value));
+        Assert.NotEqual(rule.Name, rule.Message);
+    }
+
+    [Theory]
+    [InlineData(">", 30, false)]
+    [InlineData(">", 31, true)]
+    [InlineData("<", 30, false)]
+    [InlineData("<", 29, true)]
+    public void LegacyRulesRetainStrictOperatorEvenWithOldLimits(string op, int value, bool expected)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var rule = new AlertRule(new Community("Test", "Test", null, now), "R", "Name",
+            ClimatePhenomenon.Frost, ClimateVariable.Temperature, DangerLevel.Yellow,
+            30, 35, now, now, comparisonOperator: op, activationPoint: 30);
+        Assert.Equal(expected, rule.Matches(value));
+        typeof(AlertRule).GetProperty(nameof(AlertRule.LowerLimit))!.SetValue(rule, null);
+        typeof(AlertRule).GetProperty(nameof(AlertRule.UpperLimit))!.SetValue(rule, null);
+        Assert.Equal(expected, rule.Matches(value));
+    }
+
+    [Fact]
+    public void EditingRulePreservesStoredAlertMeaning()
+    {
+        var now = DateTimeOffset.UtcNow; var community = new Community("Test", "Test", null, now);
+        var sensor = new Sensor(community, "S", "S", ClimateVariable.Temperature, SensorOrigin.Simulated, "Site", now);
+        var rule = new AlertRule(community, "R", "Name", ClimatePhenomenon.Frost,
+            ClimateVariable.Temperature, DangerLevel.Yellow, 30, null, now, now, message: "Original");
+        var reading = new SensorReading(sensor, ClimateVariable.Temperature, 31, "C", now, now, SensorOrigin.Simulated);
+        var alert = new Alert(rule, reading, rule.Message, now);
+        rule.Edit("Edited", 40, 50, DangerLevel.Red, ClimatePhenomenon.Wildfire, "Changed", now, null, true);
+        Assert.Equal("Original", alert.Message);
+        Assert.Equal(DangerLevel.Yellow, alert.Level);
+        Assert.Equal(ClimatePhenomenon.Frost, alert.Phenomenon);
+        Assert.Equal(30, alert.ActivationPointSnapshot);
+        Assert.Equal(rule.Id, alert.RuleId);
+    }
+
     [Fact]
     public void ConstructorRejectsUndefinedPhenomenon()
     {

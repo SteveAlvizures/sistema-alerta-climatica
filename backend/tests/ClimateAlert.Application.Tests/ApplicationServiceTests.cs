@@ -214,7 +214,8 @@ public sealed class ApplicationServiceTests
         TestContext context = new();
         Community community = context.AddCommunity();
         AlertRuleResponse result = await context.AlertRules.CreateAsync(RuleRequest(community.Id, "Mensaje personalizado."), default);
-        Assert.Equal("Mensaje personalizado.", result.Name);
+        Assert.Equal("Regla de temperatura", result.Name);
+        Assert.Equal("Mensaje personalizado.", result.Message);
     }
 
     [Theory]
@@ -226,7 +227,8 @@ public sealed class ApplicationServiceTests
         TestContext context = new();
         Community community = context.AddCommunity();
         AlertRuleResponse result = await context.AlertRules.CreateAsync(RuleRequest(community.Id, message), default);
-        Assert.Equal("Temperatura alcanzó el nivel Preventiva.", result.Name);
+        Assert.Equal("Regla de temperatura", result.Name);
+        Assert.Equal("Temperatura alcanzó el nivel Precaución.", result.Message);
     }
 
     [Theory]
@@ -258,6 +260,70 @@ public sealed class ApplicationServiceTests
         Assert.Empty(await context.AlertRules.GetAllAsync(default));
     }
 
+    [Fact]
+    public async Task EditingPersistsWithoutChangingIdentityOrCode()
+    {
+        TestContext context = new();
+        Community community = context.AddCommunity();
+        var created = await context.AlertRules.CreateAsync(RuleRequest(community.Id, "Original"), default);
+        var updated = await context.AlertRules.UpdateAsync(created.Id,
+            new("Edited", 10m, 20m, DangerLevel.Orange, ClimatePhenomenon.Frost, "New message", Now, Now.AddDays(1), false), default);
+        var stored = await context.AlertRules.GetByIdAsync(created.Id, default);
+        Assert.Equal(created.Id, stored.Id);
+        Assert.Equal(created.Code, stored.Code);
+        Assert.Equal(updated, stored);
+        Assert.Equal("Edited", stored.Name);
+        Assert.Equal("New message", stored.Message);
+        Assert.Equal(ClimatePhenomenon.Frost, stored.Phenomenon);
+        Assert.Equal(10m, stored.MinValue);
+        Assert.Equal(20m, stored.MaxValue);
+        Assert.False(stored.IsActive);
+        Assert.True(stored.UsesRange);
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData(40, 30)]
+    public async Task InvalidRangeRejectedByCreateAndUpdate(int? min, int? max)
+    {
+        TestContext context = new(); var community = context.AddCommunity();
+        var original = RuleRequest(community.Id, "Message") with { LowerLimit = null, UpperLimit = null, MinValue = min, MaxValue = max };
+        await Assert.ThrowsAsync<ValidationException>(() => context.AlertRules.CreateAsync(original, default));
+        var created = await context.AlertRules.CreateAsync(RuleRequest(community.Id, "Message"), default);
+        await Assert.ThrowsAsync<ValidationException>(() => context.AlertRules.UpdateAsync(created.Id,
+            new("Edited", min, max, DangerLevel.Yellow, ClimatePhenomenon.Flood, "Message", Now, null, true), default));
+        Assert.Equal(created, await context.AlertRules.GetByIdAsync(created.Id, default));
+    }
+
+    [Fact]
+    public async Task RejectsInvalidVariableLevelAndForeignIds()
+    {
+        TestContext context = new(); var community = context.AddCommunity(); var request = RuleRequest(community.Id, "Message");
+        await Assert.ThrowsAsync<ValidationException>(() => context.AlertRules.CreateAsync(request with { Variable = (ClimateVariable)999 }, default));
+        await Assert.ThrowsAsync<ValidationException>(() => context.AlertRules.CreateAsync(request with { DangerLevel = (DangerLevel)999 }, default));
+        await Assert.ThrowsAsync<ValidationException>(() => context.AlertRules.CreateAsync(request with { CommunityId = Guid.NewGuid() }, default));
+        await Assert.ThrowsAsync<ValidationException>(() => context.AlertRules.CreateAsync(request with { SensorId = Guid.NewGuid() }, default));
+        await Assert.ThrowsAsync<ValidationException>(() => context.AlertRules.CreateAsync(request with { Name = " " }, default));
+    }
+
+    [Theory]
+    [InlineData("phenomenon")]
+    [InlineData("variable")]
+    [InlineData("dangerLevel")]
+    public void JsonRequiresExplicitBusinessEnums(string missing)
+    {
+        var options = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+        var fields = new Dictionary<string, object?>
+        {
+            ["communityId"] = Guid.NewGuid(), ["name"] = "Name", ["phenomenon"] = 0,
+            ["variable"] = 0, ["dangerLevel"] = 1, ["minValue"] = 30
+        };
+        fields.Remove(missing);
+        var json = System.Text.Json.JsonSerializer.Serialize(fields);
+        Assert.Throws<System.Text.Json.JsonException>(() =>
+            System.Text.Json.JsonSerializer.Deserialize<CreateAlertRuleRequest>(json, options));
+    }
+
     private static CreateSensorRequest SensorRequest(Guid communityId) => new(
         communityId, ClimateVariable.Temperature, "Centro comunitario", true);
 
@@ -265,8 +331,8 @@ public sealed class ApplicationServiceTests
         sensorId, ClimateVariable.Temperature, 24.5m, "°C", Now, SensorOrigin.Simulated);
 
     private static CreateAlertRuleRequest RuleRequest(Guid communityId, string? message) => new(
-        communityId, null, "", message, ClimatePhenomenon.Wildfire, ClimateVariable.Temperature,
-        DangerLevel.Yellow, 30m, null, Now, null, ">=", 30m);
+        communityId, null, "", "Regla de temperatura", ClimatePhenomenon.Wildfire, ClimateVariable.Temperature,
+        DangerLevel.Yellow, 30m, null, Now, null, ">=", 30m, Message: message);
 
     private sealed class TestContext
     {

@@ -5,7 +5,7 @@ import { AlertDto, ApiDangerLevel, ClimateVariable, CommunityDto } from '../../.
 import { AlertApiService } from '../../../../core/services/alert-api.service';
 import { CommunityApiService } from '../../../../core/services/community-api.service';
 
-const levelLabels: Record<ApiDangerLevel, string> = { Green: 'Normal', Yellow: 'Preventiva', Orange: 'Alta', Red: 'Crítica' };
+const levelLabels: Record<ApiDangerLevel, string> = { Green: 'Normal', Yellow: 'Precaución', Orange: 'Alerta', Red: 'Emergencia' };
 const variableLabels: Record<ClimateVariable, string> = { Temperature: 'Temperatura', RelativeHumidity: 'Humedad relativa', WindSpeed: 'Velocidad del viento', RainfallLevel: 'Nivel de lluvia', RiverOrReservoirLevel: 'Nivel de río o reservorio' };
 
 @Component({ selector: 'app-alerts-page', imports: [FormsModule, RouterLink], templateUrl: './alerts-page.html', styleUrl: './alerts-page.scss' })

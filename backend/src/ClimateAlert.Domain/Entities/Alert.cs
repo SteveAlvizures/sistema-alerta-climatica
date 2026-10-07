@@ -43,6 +43,7 @@ public sealed class Alert
         CommunityId = rule.CommunityId;
         RuleId = rule.Id;
         SupportingReadingId = supportingReading.Id;
+        ActivationPointSnapshot = rule.ActivationPoint;
         Level = rule.DangerLevel;
         Phenomenon = rule.Phenomenon;
         Message = message.Trim();
@@ -62,6 +63,7 @@ public sealed class Alert
     public AlertRule Rule { get; private set; } = null!;
     public Guid SupportingReadingId { get; private set; }
     public SensorReading SupportingReading { get; private set; } = null!;
+    public decimal ActivationPointSnapshot { get; private set; }
     public DangerLevel Level { get; private set; }
     public ClimatePhenomenon Phenomenon { get; private set; }
     public AlertStatus Status { get; private set; }
@@ -131,6 +133,7 @@ public sealed class Alert
         // Validate the lifecycle before changing any historical references.
         Update(rule.DangerLevel, message, updatedAt);
         Rule = rule;
+        ActivationPointSnapshot = rule.ActivationPoint;
         RuleId = rule.Id;
         SupportingReading = supportingReading;
         SupportingReadingId = supportingReading.Id;

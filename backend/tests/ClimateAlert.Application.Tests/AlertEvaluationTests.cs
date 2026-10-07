@@ -11,6 +11,29 @@ public sealed class AlertEvaluationTests
     private static readonly DateTimeOffset Now = new(2026, 8, 19, 12, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public async Task GreenDoesNotGenerateRiskAlert()
+    {
+        EvaluationContext context = new(); context.AddRule(lowerLimit: 20m, level: DangerLevel.Green);
+        await context.EvaluateAsync(context.CreateReading(25m));
+        Assert.Empty(context.Alerts.Items); Assert.Empty(context.Events.Items);
+    }
+
+    [Theory]
+    [InlineData(DangerLevel.Yellow)]
+    [InlineData(DangerLevel.Orange)]
+    [InlineData(DangerLevel.Red)]
+    public async Task HighestMatchingRiskLevelWins(DangerLevel highest)
+    {
+        EvaluationContext context = new();
+        context.AddRule(lowerLimit: 20m, level: DangerLevel.Green, code: "GREEN");
+        context.AddRule(lowerLimit: 20m, level: DangerLevel.Yellow, code: "YELLOW");
+        if (highest >= DangerLevel.Orange) context.AddRule(lowerLimit: 20m, level: DangerLevel.Orange, code: "ORANGE");
+        if (highest == DangerLevel.Red) context.AddRule(lowerLimit: 20m, level: DangerLevel.Red, code: "RED");
+        await context.EvaluateAsync(context.CreateReading(25m));
+        Assert.Equal(highest, Assert.Single(context.Alerts.Items).Level);
+    }
+
+    [Fact]
     public async Task ReadingWithoutMatchingValueDoesNotCreateAlert()
     {
         EvaluationContext context = new();

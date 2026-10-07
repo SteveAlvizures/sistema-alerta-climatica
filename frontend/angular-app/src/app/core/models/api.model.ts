@@ -82,7 +82,7 @@ export interface AlertDto {
   unit: string;
 }
 
-export interface AlertRuleDto { id: string; communityId: string; sensorId: string | null; code: string; name: string; phenomenon: ApiClimatePhenomenon; variable: ClimateVariable; dangerLevel: ApiDangerLevel; lowerLimit: number | null; upperLimit: number | null; validFrom: string; validUntil: string | null; isActive: boolean; createdAt: string; comparisonOperator: '>' | '>=' | '<' | '<='; activationPoint: number; unit: string; }
+export interface AlertRuleDto { minValue?:number|null; maxValue?:number|null; message?:string; usesRange?:boolean; id: string; communityId: string; sensorId: string | null; code: string; name: string; phenomenon: ApiClimatePhenomenon; variable: ClimateVariable; dangerLevel: ApiDangerLevel; lowerLimit: number | null; upperLimit: number | null; validFrom: string; validUntil: string | null; isActive: boolean; createdAt: string; comparisonOperator: '>' | '>=' | '<' | '<='; activationPoint: number; unit: string; }
 
 export interface AuditActionDto {
   id: string;

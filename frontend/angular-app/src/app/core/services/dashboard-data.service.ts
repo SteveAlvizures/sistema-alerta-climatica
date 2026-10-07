@@ -69,7 +69,7 @@ const measurementLabels: Record<ClimateVariable, string> = {
 };
 
 const dangerLevelLabels: Record<ApiDangerLevel, DangerLevel> = {
-  Green: 'Normal', Yellow: 'Preventiva', Orange: 'Alta', Red: 'Crítica',
+  Green: 'Normal', Yellow: 'Precaución', Orange: 'Alerta', Red: 'Emergencia',
 };
 const dangerLevelPriority: Record<ApiDangerLevel, number> = {
   Green: 0, Yellow: 1, Orange: 2, Red: 3,
@@ -395,7 +395,7 @@ export class DashboardDataService {
       if (!values.length) return [];
       const activationPoints = rules.filter((rule) => rule.variable === definition.variable && rule.dangerLevel !== 'Green')
         .sort((left, right) => dangerLevelPriority[left.dangerLevel] - dangerLevelPriority[right.dangerLevel])
-        .map((rule) => ({ level: dangerLevelLabels[rule.dangerLevel] as 'Preventiva' | 'Alta' | 'Crítica', value: rule.activationPoint }));
+        .map((rule) => ({ level: dangerLevelLabels[rule.dangerLevel] as 'Precaución' | 'Alerta' | 'Emergencia', value: rule.activationPoint }));
       return [{ metric: definition.metric, label: definition.label, unit: values.at(-1)!.unit,
         points: values.map((reading) => ({ label: new Intl.DateTimeFormat('es-GT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(reading.measuredAt)), value: reading.value, timestamp: reading.measuredAt })), activationPoints }];
     });

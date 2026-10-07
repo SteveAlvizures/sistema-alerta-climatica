@@ -24,7 +24,9 @@ public sealed class AlertEvaluator(
             cancellationToken);
 
         AlertRule? applicableRule = candidates
-            .Where(rule => rule.DangerLevel != DangerLevel.Green && rule.Matches(reading.Value))
+            .Where(rule => rule.IsEnabled(reading.MeasuredAt) && rule.CommunityId == reading.Sensor.CommunityId
+                && rule.Variable == reading.Variable && (!rule.SensorId.HasValue || rule.SensorId == reading.SensorId)
+                && rule.DangerLevel != DangerLevel.Green && rule.Matches(reading.Value))
             .OrderByDescending(rule => rule.DangerLevel).FirstOrDefault();
         IReadOnlyList<Alert> activeAlerts = await alerts.GetOpenBySensorAsync(
             reading.SensorId, reading.Variable, cancellationToken);
@@ -36,7 +38,7 @@ public sealed class AlertEvaluator(
             return;
         }
 
-        string message = applicableRule.Name;
+        string message = applicableRule.Message;
         // Prefer RuleId + SensorId; severity transitions may reuse only the same phenomenon.
         Alert? alert = activeAlerts
             .Where(item => item.Phenomenon == applicableRule.Phenomenon

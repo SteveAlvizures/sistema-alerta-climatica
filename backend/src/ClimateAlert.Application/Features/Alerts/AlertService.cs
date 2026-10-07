@@ -77,5 +77,5 @@ public sealed class AlertService(
         alert.Level, alert.Phenomenon, alert.Status, alert.Message, alert.DetectedAt,
         alert.UpdatedAt, alert.ClosedAt, alert.SupportingReading.SensorId,
         alert.SupportingReading.Variable, alert.SupportingReading.Value,
-        alert.Rule.ActivationPoint, alert.SupportingReading.Unit);
+        alert.ActivationPointSnapshot, alert.SupportingReading.Unit);
 }

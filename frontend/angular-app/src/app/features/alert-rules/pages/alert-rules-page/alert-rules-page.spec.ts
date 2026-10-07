@@ -5,11 +5,13 @@ import { AlertRuleDto, CommunityDto } from '../../../../core/models/api.model';
 import { AlertRuleApiService } from '../../../../core/services/alert-rule-api.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { CommunityApiService } from '../../../../core/services/community-api.service';
+import { SensorApiService } from '../../../../core/services/sensor-api.service';
 import { AlertRulesPage } from './alert-rules-page';
 
 describe('AlertRulesPage filters', () => {
   let fixture: ComponentFixture<AlertRulesPage>;
   let createRule: jasmine.Spy;
+  let updateRule:jasmine.Spy; let changeStatus:jasmine.Spy;
   const communities: CommunityDto[] = [
     { id: 'c1', name: 'La Libertad', location: 'Guatemala', description: null, isActive: true, createdAt: '2026-01-01T00:00:00Z' },
     { id: 'c2', name: 'Lanquín', location: 'Alta Verapaz', description: null, isActive: true, createdAt: '2026-01-01T00:00:00Z' },
@@ -18,9 +20,12 @@ describe('AlertRulesPage filters', () => {
   const rules = [rule('1', 'c1', 'Temperature', 'Yellow'), rule('2', 'c1', 'RelativeHumidity', 'Orange'), rule('3', 'c2', 'Temperature', 'Red')];
 
   beforeEach(async () => {
+    updateRule=jasmine.createSpy().and.callFake((id:any,request:any)=>of({...rules[0],...request,id}));
+    changeStatus=jasmine.createSpy().and.callFake((id:any,isActive:any)=>of({...rules[0],id,isActive}));
     createRule = jasmine.createSpy().and.callFake((request: any) => of({ ...rules[0], id: 'created', name: request.name || 'Temperatura alcanzó el nivel Preventiva.' }));
     await TestBed.configureTestingModule({ imports: [AlertRulesPage], providers: [
-      { provide: AlertRuleApiService, useValue: { getAll: () => of(rules), create: createRule, changeStatus: jasmine.createSpy() } },
+      { provide: AlertRuleApiService, useValue: { getAll: () => of(rules), create: createRule, update:updateRule, changeStatus } },
+      { provide: SensorApiService, useValue:{getAll:()=>of([])} },
       { provide: CommunityApiService, useValue: { getAll: () => of(communities) } },
       { provide: AuthService, useValue: { session: signal({ role: 'Administrator' }) } },
     ] }).compileComponents();
@@ -36,8 +41,8 @@ describe('AlertRulesPage filters', () => {
   it('clears selectors and active filters and hides results again', () => { const page = fixture.componentInstance as any; page.filterDraft = { communityId: 'c1', variable: 'Temperature', dangerLevel: 'Yellow' }; page.applyRuleFilters(); page.clearRuleFilters(); fixture.detectChanges(); expect(page.filterDraft).toEqual({ communityId: '', variable: '', dangerLevel: '' }); expect(page.activeFilters).toEqual({ communityId: '', variable: '', dangerLevel: '' }); expect(page.filteredRules()).toEqual([]); expect(fixture.nativeElement.querySelectorAll('.grid article').length).toBe(0); expect(fixture.nativeElement.textContent).toContain('Seleccione los filtros y presione Aplicar filtros para consultar las reglas.'); });
   it('shows the specified message when no rules match', () => { const page = fixture.componentInstance as any; page.filterDraft = { communityId: 'c2', variable: 'RelativeHumidity', dangerLevel: 'Yellow' }; page.applyRuleFilters(); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('No se encontraron reglas para los filtros seleccionados.'); expect(fixture.nativeElement.querySelectorAll('.grid article').length).toBe(0); });
   it('shows the result counter only after applying and hides it after clearing', () => { const page = fixture.componentInstance as any; expect(fixture.nativeElement.textContent).not.toContain('de 3 reglas'); page.filterDraft.communityId = 'c1'; page.applyRuleFilters(); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('2 de 3 reglas'); page.clearRuleFilters(); fixture.detectChanges(); expect(fixture.nativeElement.textContent).not.toContain('de 3 reglas'); });
-  it('creates a rule with its custom message unchanged', () => { const page = fixture.componentInstance as any; page.name = 'Temperatura elevada detectada.'; page.phenomenon = 'Frost'; page.activationPoint = 31; page.create(); expect(createRule.calls.mostRecent().args[0].name).toBe('Temperatura elevada detectada.'); });
-  it('allows creating a rule without a custom message', () => { const page = fixture.componentInstance as any; page.name = '   '; page.phenomenon = 'Frost'; page.activationPoint = 31; page.create(); expect(createRule.calls.mostRecent().args[0].name).toBe(''); expect(page.error).toBe(''); });
+  it('creates a rule with its custom message unchanged', () => { const page = fixture.componentInstance as any; page.message = 'Temperatura elevada detectada.'; page.phenomenon = 'Frost'; page.minValue = 31; page.name='Regla de prueba'; page.create(); expect(createRule.calls.mostRecent().args[0].message).toBe('Temperatura elevada detectada.'); });
+  it('allows creating a rule without a custom message', () => { const page = fixture.componentInstance as any; page.message = '   '; page.phenomenon = 'Frost'; page.minValue = 31; page.name='Regla de prueba'; page.create(); expect(createRule.calls.mostRecent().args[0].message).toBe(''); expect(page.error).toBe(''); });
 
   it('requires an explicit phenomenon instead of defaulting to Wildfire', async () => {
     await fixture.whenStable();
@@ -47,7 +52,7 @@ describe('AlertRulesPage filters', () => {
     expect([...selector.options].map(option => option.textContent?.trim())).toEqual([
       'Selecciona un fenómeno', 'Inundación', 'Sequía', 'Tormenta', 'Helada', 'Incendio forestal',
     ]);
-    page.activationPoint = 31;
+    page.minValue = 31; page.name='Regla de prueba';
     page.create();
     expect(createRule).not.toHaveBeenCalled();
     expect(page.error).toContain('Selecciona un fenómeno');
@@ -60,7 +65,7 @@ describe('AlertRulesPage filters', () => {
       selector.value = phenomenon;
       selector.dispatchEvent(new Event('change'));
       const page = fixture.componentInstance as any;
-      page.activationPoint = 31;
+      page.minValue = 31; page.name='Regla de prueba';
       fixture.detectChanges();
       fixture.nativeElement.querySelector('.panel form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       expect(createRule).toHaveBeenCalledTimes(1);
@@ -70,10 +75,19 @@ describe('AlertRulesPage filters', () => {
 
   it('does not send an unsupported phenomenon', () => {
     const page = fixture.componentInstance as any;
-    page.activationPoint = 31;
+    page.minValue = 31; page.name='Regla de prueba';
     page.phenomenon = 'Unsupported';
     page.create();
     expect(createRule).not.toHaveBeenCalled();
     expect(page.error).toContain('válido');
   });
+  it('requires a bound and rejects a reversed range',()=>{const page=fixture.componentInstance as any;page.name='Rule';page.phenomenon='Frost';page.create();expect(createRule).not.toHaveBeenCalled();expect(page.error).toContain('al menos');page.minValue=40;page.maxValue=30;page.create();expect(page.error).toContain('superar');expect(createRule).not.toHaveBeenCalled()});
+  it('requires a name',()=>{const page=fixture.componentInstance as any;page.phenomenon='Frost';page.minValue=30;page.create();expect(createRule).not.toHaveBeenCalled();expect(page.error).toContain('nombre')});
+  it('loads editing data and sends the phase two DTO',()=>{const page=fixture.componentInstance as any;page.edit({...rules[0],usesRange:true,minValue:30,maxValue:35,message:'Original'});expect(page.name).toBe(rules[0].name);expect(page.message).toBe('Original');expect(page.maxValue).toBe(35);page.name='Edited';page.message='Changed';page.create();expect(updateRule).toHaveBeenCalledTimes(1);const [id,dto]=updateRule.calls.mostRecent().args;expect(id).toBe(rules[0].id);expect(dto.name).toBe('Edited');expect(dto.message).toBe('Changed');expect(dto.minValue).toBe(30);expect(dto.maxValue).toBe(35);expect(dto.phenomenon).toBe('Flood');expect(createRule).not.toHaveBeenCalled()});
+  it('preserves status toggle',()=>{const page=fixture.componentInstance as any;page.toggle(rules[0],false);expect(changeStatus).toHaveBeenCalledWith(rules[0].id,false);expect(page.rules[0].isActive).toBeFalse()});
+  it('shows official labels and readable inclusive ranges',()=>{const page=fixture.componentInstance as any;expect(['Green','Yellow','Orange','Red'].map(x=>page.levelLabel(x))).toEqual(['Normal','Precaución','Alerta','Emergencia']);expect(page.rangeLabel({...rules[0],usesRange:true,minValue:30,maxValue:35})).toBe('30 a 35');expect(page.rangeLabel({...rules[0],usesRange:true,minValue:40,maxValue:null,upperLimit:null})).toBe('40 o más');expect(page.rangeLabel({...rules[0],usesRange:true,minValue:null,maxValue:5,lowerLimit:null})).toBe('5 o menos');expect(page.rangeLabel(rules[0])).toContain('Mayor o igual que')});
+
+  it('renders a range instead of an operator for a phase two rule',()=>{const page=fixture.componentInstance as any;page.rules=[{...rules[0],usesRange:true,minValue:30,maxValue:35,message:'Separate message'}];page.applyRuleFilters();fixture.detectChanges();const card=fixture.nativeElement.querySelector('.grid article');expect(card.textContent).toContain('30 a 35');expect(card.textContent).toContain('Separate message');expect(card.textContent).not.toContain('Mayor o igual que')});
+  it('explains conversion when editing a legacy rule',()=>{const page=fixture.componentInstance as any;page.edit(rules[0]);fixture.detectChanges();expect(fixture.nativeElement.querySelector('[role="note"]').textContent).toContain('rango inclusivo')});
+
 });
