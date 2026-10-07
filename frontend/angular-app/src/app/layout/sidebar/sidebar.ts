@@ -9,6 +9,7 @@ interface NavigationItem {
   route: string | null;
   upcoming: boolean;
   administratorOnly?: boolean;
+  authenticationRequired?: boolean;
 }
 
 @Component({
@@ -47,6 +48,7 @@ export class Sidebar {
       upcoming: false,
     },
     { label: 'Reglas', symbol: '⚙', route: '/alert-rules', upcoming: false },
+    { label: 'Eventos', symbol: '◷', route: '/events', upcoming: false, authenticationRequired: true },
     {
       label: 'Comunidades',
       symbol: '◇',
@@ -58,7 +60,8 @@ export class Sidebar {
   ];
 
   protected get visibleNavigation(): NavigationItem[] {
-    return this.navigation.filter((item) => !item.administratorOnly || this.auth.canViewAudit());
+    return this.navigation.filter((item) => (!item.administratorOnly || this.auth.canViewAudit())
+      && (!item.authenticationRequired || this.auth.session() !== null));
   }
 
   protected navigate(item: NavigationItem): void {

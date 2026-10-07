@@ -22,6 +22,7 @@ public static class DependencyInjection
             provider.GetRequiredService<SensorReadingService>());
         services.AddScoped<AlertRuleService>();
         services.AddScoped<AlertService>();
+        services.AddScoped<ClimateAlert.Application.Features.Events.EventService>();
         services.AddScoped<AuditActionService>();
         services.AddScoped<IAlertLifecycleAudit, AlertLifecycleAudit>();
         services.AddScoped<UserManagementService>();

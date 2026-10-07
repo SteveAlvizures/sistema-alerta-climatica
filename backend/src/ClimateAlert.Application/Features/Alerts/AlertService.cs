@@ -82,7 +82,7 @@ public sealed class AlertService(
         await alerts.GetForUpdateAsync(id, cancellationToken)
             ?? throw new NotFoundException("La alerta solicitada no existe.");
 
-    private static AlertResponse Map(Alert alert) => new(
+    internal static AlertResponse Map(Alert alert) => new(
         alert.Id, alert.CommunityId, alert.RuleId, alert.SupportingReadingId, alert.EventId,
         alert.Level, alert.Phenomenon, alert.Status, alert.Message, alert.DetectedAt,
         alert.UpdatedAt, alert.ClosedAt, alert.SupportingReading.SensorId,

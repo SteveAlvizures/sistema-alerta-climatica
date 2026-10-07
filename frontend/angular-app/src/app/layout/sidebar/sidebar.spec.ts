@@ -21,6 +21,19 @@ describe('Sidebar role navigation', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
+  for (const role of ['Administrator', 'Operator', 'ConsultationUser']) {
+    it(`shows separate Events navigation for ${role}`, () => {
+      const navigation = labels(role); expect(navigation).toContain('Eventos'); expect(navigation).toContain('Historial');
+    });
+  }
+  it('hides authenticated event history from visitors', () => { expect(labels(null)).not.toContain('Eventos'); });
+  it('navigates to the Events module from the sidebar', () => {
+    labels('ConsultationUser');
+    const fixture = TestBed.createComponent(Sidebar); fixture.detectChanges();
+    const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(b => b.textContent?.includes('Eventos'))!;
+    button.click(); expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/events');
+  });
+
   it('hides audit log from visitors and normal users', () => {
     expect(labels(null)).not.toContain('Bitácora');
     TestBed.resetTestingModule();

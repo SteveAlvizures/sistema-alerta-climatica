@@ -1,0 +1,40 @@
+<section class="events-page">
+  <header><a routerLink="/events">Volver a Eventos</a><p class="eyebrow">Historial de riesgos</p><h1>Detalle del evento</h1></header>
+  @if (loading) { <p aria-live="polite">Consultando evento…</p> }
+  @if (error) { <p role="alert" class="error">{{ error }}</p> }
+  @if (detail; as data) { @let event = data.event;
+    <section class="panel" aria-label="Información general del evento">
+      <div class="topline"><h2>{{ phenomenonLabels[event.phenomenon] }}</h2><span [class]="'level ' + event.level.toLowerCase()">{{ levelLabels[event.level] }}</span><span>{{ statusLabels[event.status] }}</span></div>
+      <p>{{ event.description }}</p>
+      <dl>
+        <div><dt>Fecha y hora de inicio</dt><dd>{{ formatDate(event.occurredAt) }}</dd></div>
+        <div><dt>Comunidad</dt><dd>{{ event.communityName }}</dd></div>
+        <div><dt>Última actualización</dt><dd>{{ formatDate(event.updatedAt) }}</dd></div>
+        <div><dt>Fecha y hora de cierre</dt><dd>{{ formatDate(event.closedAt) }}</dd></div>
+        <div><dt>Sensor principal</dt><dd>{{ event.sensorName || 'Sin sensor histórico' }} {{ event.sensorCode }}</dd></div>
+        <div><dt>Valor representativo</dt><dd>{{ event.value ?? 'Sin valor histórico' }} {{ event.unit }}</dd></div>
+        <div><dt>Responsable {{ event.responsibility === 'Closure' ? 'del cierre' : event.responsibility === 'Attention' ? 'de atención' : '' }}</dt><dd>{{ event.responsibleUserName || 'Sin responsable' }}</dd></div>
+        <div><dt>ID del evento</dt><dd>{{ event.id }}</dd></div>
+        <div><dt>ID de comunidad</dt><dd>{{ event.communityId }}</dd></div>
+      </dl>
+      <p>El nivel corresponde al máximo registrado del incidente. El valor representativo corresponde a una alerta relacionada; no combina unidades de sensores distintos.</p>
+      @if (event.representativeAlertId) { <a [routerLink]="['/alerts', event.representativeAlertId]">Ver alerta representativa</a> }
+    </section>
+    <section class="panel" aria-label="Sensores relacionados"><h2>Sensores relacionados</h2>
+      @for (sensor of data.sensors; track sensor.id) { <p><a [routerLink]="['/sensors', sensor.id]">{{ sensor.name }} · {{ sensor.code }}</a></p> }
+      @empty { <p>Sin sensores históricos asociados.</p> }
+    </section>
+    <section aria-label="Alertas relacionadas"><h2>Alertas relacionadas ({{ data.alerts.length }})</h2>
+      @for (alert of data.alerts; track alert.id) {
+        <article class="panel">
+          <div class="topline"><h3>{{ alert.sensorName }} · {{ alert.sensorCode }}</h3><span>{{ levelLabels[alert.level] }} · {{ alertStatusLabels[alert.status] }}</span></div>
+          <p>{{ alert.message }}</p><p>{{ formatDate(alert.detectedAt) }} · {{ alert.detectedValue }} {{ alert.unit }} · Umbral: {{ condition(alert) }}</p>
+          <p>Atendida: {{ alert.acknowledgedByName || 'Sin responsable' }} · {{ formatDate(alert.acknowledgedAt) }}</p>
+          <p>Cerrada: {{ alert.closedByName || 'Sin responsable' }} · {{ formatDate(alert.closedAt) }}</p>
+          <dl><div><dt>Regla</dt><dd>{{ alert.ruleName }} · {{ alert.ruleCode }}</dd></div><div><dt>ID de regla</dt><dd>{{ alert.ruleId }}</dd></div><div><dt>ID de lectura</dt><dd>{{ alert.supportingReadingId }}</dd></div><div><dt>ID de sensor</dt><dd>{{ alert.sensorId }}</dd></div></dl>
+          <a [routerLink]="['/alerts', alert.id]">Ver detalle de la alerta</a>
+        </article>
+      } @empty { <p class="panel">Sin alertas históricas asociadas.</p> }
+    </section>
+  }
+</section>

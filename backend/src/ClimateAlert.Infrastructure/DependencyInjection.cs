@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<IAlertRuleRepository, AlertRuleRepository>();
         services.AddScoped<IAlertRepository, AlertRepository>();
         services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IEventHistoryRepository, EventHistoryRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<ISimulatedReadingCycle, SimulatedReadingCycle>();
         services.AddScoped<ISimulationErrorReporter, SimulationErrorReporter>();

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { administratorGuard } from './core/guards/administrator.guard';
+import { authenticatedGuard } from './core/guards/authenticated.guard';
 
 export const routes: Routes = [
   {
@@ -59,6 +60,14 @@ export const routes: Routes = [
           import('./features/history/pages/history-page/history-page').then(
             (component) => component.HistoryPage,
           ),
+      },
+      {
+        path: 'events', canActivate: [authenticatedGuard],
+        loadComponent: () => import('./features/events/pages/events-page/events-page').then(component => component.EventsPage),
+      },
+      {
+        path: 'events/:id', canActivate: [authenticatedGuard],
+        loadComponent: () => import('./features/events/pages/event-detail-page/event-detail-page').then(component => component.EventDetailPage),
       },
       {
         path: 'alert-rules',

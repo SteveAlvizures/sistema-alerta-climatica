@@ -69,6 +69,16 @@ La API obtiene del sensor su variable, unidad y origen. Un `409` indica, entre o
 
 Filtros: `dateFrom`, `dateTo` sobre fecha de detección, `communityId`, `sensorId`, `phenomenon`, `level`, `status` y `variable`. Los valores de estado en API se conservan como `Open`, `Acknowledged`, `Closed`; se presentan como Activa, Atendida, Cerrada. Las operaciones toman al responsable del JWT, conservan el historial y auditan el cambio. Consulta [Ciclo de vida de alertas](ciclo-vida-alertas.md).
 
+## Eventos de riesgo
+
+| Verbo y ruta | Propósito | Acceso | Códigos relevantes |
+|---|---|---|---|
+| `GET /api/events` | Historial filtrado y paginado de incidentes persistidos. | Administrator / Operator / ConsultationUser | `200`, `400`, `401`, `403` |
+| `GET /api/events/{id}` | Detalle con sensores, alertas y trazabilidad. | Administrator / Operator / ConsultationUser | `200`, `401`, `403`, `404` |
+| `GET /api/events/statistics` | Totales, activos/cerrados y distribuciones del filtro completo. | Administrator / Operator / ConsultationUser | `200`, `400`, `401`, `403` |
+
+Filtros compartidos: `from`, `to`, `communityId`, `phenomenon`, `level`, `status`. Listado: `page`, `pageSize`. Estados `Open`/`Closed` se presentan como Activo/Cerrado. Los tres endpoints usan la policy `ConsultEvents`; no hay escritura manual de eventos. Consulta [Eventos](eventos.md) para el modelo, evidencia representativa, responsabilidad e integración.
+
 ## Dashboard, bitácora y health
 
 | Verbo y ruta | Propósito | Acceso | Códigos relevantes |

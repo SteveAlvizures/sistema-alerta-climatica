@@ -76,7 +76,8 @@ public sealed class AuthorizationTests
             {
                 var expected = endpoint.Policy is null ? HttpStatusCode.NoContent
                     : role is null ? HttpStatusCode.Unauthorized
-                    : role == "Administrator" || (role == "Operator" && endpoint.Policy == AuthorizationPolicies.OperateSystem)
+                    : role == "Administrator" || (role == "Operator" && endpoint.Policy is AuthorizationPolicies.OperateSystem or AuthorizationPolicies.ConsultEvents)
+                        || (role == "ConsultationUser" && endpoint.Policy == AuthorizationPolicies.ConsultEvents)
                         ? HttpStatusCode.NoContent : HttpStatusCode.Forbidden;
                 Assert.Equal(expected, (await client.GetAsync(endpoint.Path)).StatusCode);
             }

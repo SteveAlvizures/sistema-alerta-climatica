@@ -231,7 +231,7 @@ public sealed class AlertLifecycleHttpTests
             builder.Services.AddApplicationServices(); builder.Services.AddSingleton<TimeProvider>(clock);
             builder.Services.AddScoped<IAlertRepository, AlertRepository>(); builder.Services.AddScoped<ICommunityRepository, CommunityRepository>();
             builder.Services.AddScoped<ISensorRepository, SensorRepository>(); builder.Services.AddScoped<ISensorReadingRepository, SensorReadingRepository>();
-            builder.Services.AddScoped<IAlertRuleRepository, AlertRuleRepository>(); builder.Services.AddScoped<IEventRepository, EventRepository>();
+            builder.Services.AddScoped<IAlertRuleRepository, AlertRuleRepository>(); builder.Services.AddScoped<IEventRepository, EventRepository>(); builder.Services.AddScoped<IEventHistoryRepository, EventHistoryRepository>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>(); builder.Services.AddScoped<AuthService>();
             builder.Services.AddClimateAuthentication(new JwtOptions("academic-test-signing-key-more-than-32-characters", "test", "test", 60));
             builder.Services.AddClimateAuthorization();
