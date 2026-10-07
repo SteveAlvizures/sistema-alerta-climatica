@@ -10,12 +10,12 @@ namespace ClimateAlert.Infrastructure.Persistence;
 public sealed class CommunityRepository(ClimateAlertDbContext dbContext) : ICommunityRepository
 {
     public async Task<IReadOnlyList<Community>> GetAllAsync(CancellationToken cancellationToken) =>
-        await dbContext.Communities.AsNoTracking().OrderBy(community => community.Name)
+        await dbContext.Communities.AsNoTracking().Include(item => item.Sensors).OrderBy(community => community.Name)
             .ThenBy(community => community.Location).ToListAsync(cancellationToken);
 
     public Task<Community?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken)
     {
-        IQueryable<Community> query = dbContext.Communities;
+        IQueryable<Community> query = dbContext.Communities.Include(item => item.Sensors);
         if (!trackChanges) query = query.AsNoTracking();
         return query.SingleOrDefaultAsync(community => community.Id == id, cancellationToken);
     }
@@ -33,6 +33,19 @@ public sealed class CommunityRepository(ClimateAlertDbContext dbContext) : IComm
             || await dbContext.Events.AsNoTracking().AnyAsync(climateEvent => climateEvent.CommunityId == id, cancellationToken);
     }
 
+    public async Task<(IReadOnlyList<Community> Items, int TotalCount)> GetPageAsync(string? search, bool? isActive,
+        string? municipality, string? department, int page, int pageSize, CancellationToken cancellationToken)
+    {
+        IQueryable<Community> query = dbContext.Communities.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(search)) { string text = search.Trim(); query = query.Where(c => c.Name.Contains(text) || c.Location.Contains(text) || (c.Description != null && c.Description.Contains(text))); }
+        if (isActive.HasValue) query = query.Where(c => c.IsActive == isActive.Value);
+        if (!string.IsNullOrWhiteSpace(municipality)) { string text = municipality.Trim(); query = query.Where(c => c.Municipality != null && c.Municipality.Contains(text)); }
+        if (!string.IsNullOrWhiteSpace(department)) { string text = department.Trim(); query = query.Where(c => c.Department != null && c.Department.Contains(text)); }
+        int count = await query.CountAsync(cancellationToken);
+        return (await query.Include(c => c.Sensors).OrderBy(c => c.Name).ThenBy(c => c.Id)
+            .Skip((int)Math.Min((long)(page - 1) * pageSize, int.MaxValue)).Take(pageSize).ToListAsync(cancellationToken), count);
+    }
+
     public void Add(Community community) => dbContext.Communities.Add(community);
     public void Remove(Community community) => dbContext.Communities.Remove(community);
 }
@@ -40,15 +53,15 @@ public sealed class CommunityRepository(ClimateAlertDbContext dbContext) : IComm
 public sealed class SensorRepository(ClimateAlertDbContext dbContext) : ISensorRepository
 {
     public async Task<IReadOnlyList<Sensor>> GetAllAsync(CancellationToken cancellationToken) =>
-        await dbContext.Sensors.AsNoTracking().OrderBy(sensor => sensor.Code).ToListAsync(cancellationToken);
+        await dbContext.Sensors.AsNoTracking().Include(s => s.Community).OrderBy(sensor => sensor.Code).ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<Sensor>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken) =>
-        await dbContext.Sensors.AsNoTracking().Where(sensor => sensor.CommunityId == communityId)
+        await dbContext.Sensors.AsNoTracking().Include(s => s.Community).Where(sensor => sensor.CommunityId == communityId)
             .OrderBy(sensor => sensor.Code).ToListAsync(cancellationToken);
 
     public Task<Sensor?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken)
     {
-        IQueryable<Sensor> query = dbContext.Sensors;
+        IQueryable<Sensor> query = dbContext.Sensors.Include(s => s.Community);
         if (!trackChanges) query = query.AsNoTracking();
         return query.SingleOrDefaultAsync(sensor => sensor.Id == id, cancellationToken);
     }
@@ -71,6 +84,33 @@ public sealed class SensorRepository(ClimateAlertDbContext dbContext) : ISensorR
                 && sensor.Origin == ClimateAlert.Domain.Enums.SensorOrigin.Simulated)
             .OrderBy(sensor => sensor.Code)
             .ToListAsync(cancellationToken);
+
+    public Task<bool> CodeExistsAsync(string code, Guid? excludingId, CancellationToken cancellationToken) =>
+        dbContext.Sensors.AnyAsync(s => s.Code == code && (!excludingId.HasValue || s.Id != excludingId.Value), cancellationToken);
+    public async Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken) =>
+        await dbContext.SensorReadings.AnyAsync(r => r.SensorId == id, cancellationToken)
+        || await dbContext.AlertRules.AnyAsync(r => r.SensorId == id, cancellationToken);
+
+    public async Task<(IReadOnlyList<Sensor> Items, int TotalCount)> GetPageAsync(Guid? communityId, SensorType? type,
+        ClimateVariable? variable, bool? isActive, string? code, string? search,
+        int page, int pageSize, CancellationToken cancellationToken)
+    {
+        IQueryable<Sensor> query = dbContext.Sensors.AsNoTracking();
+        if (communityId.HasValue) query = query.Where(s => s.CommunityId == communityId.Value);
+        if (type.HasValue)
+        {
+            ClimateVariable measured = SensorTypes.VariableFor(type.Value);
+            bool legacy = type.Value != SensorType.ReservoirLevel;
+            query = query.Where(s => s.Type == type.Value || (legacy && s.Type == null && s.MeasurementType == measured));
+        }
+        if (variable.HasValue) query = query.Where(s => s.MeasurementType == variable.Value);
+        if (isActive.HasValue) { SensorStatus status = isActive.Value ? SensorStatus.Active : SensorStatus.Inactive; query = query.Where(s => s.Status == status); }
+        if (!string.IsNullOrWhiteSpace(code)) { string text = code.Trim(); query = query.Where(s => s.Code.Contains(text)); }
+        if (!string.IsNullOrWhiteSpace(search)) { string text = search.Trim(); query = query.Where(s => s.Name.Contains(text) || s.Code.Contains(text) || s.Location.Contains(text)); }
+        int count = await query.CountAsync(cancellationToken);
+        return (await query.Include(s => s.Community).OrderBy(s => s.Code).ThenBy(s => s.Id)
+            .Skip((int)Math.Min((long)(page - 1) * pageSize, int.MaxValue)).Take(pageSize).ToListAsync(cancellationToken), count);
+    }
 
     public void Add(Sensor sensor) => dbContext.Sensors.Add(sensor);
 }

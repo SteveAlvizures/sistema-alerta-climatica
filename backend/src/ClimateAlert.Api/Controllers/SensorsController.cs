@@ -12,8 +12,12 @@ namespace ClimateAlert.Api.Controllers;
 public sealed class SensorsController(SensorService service, AuditActionService audit) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<SensorResponse>>> GetAll(CancellationToken cancellationToken) =>
-        Ok(await service.GetAllAsync(cancellationToken));
+    public async Task<IActionResult> GetAll([FromQuery] Guid? communityId = null, [FromQuery] SensorType? type = null,
+        [FromQuery] ClimateVariable? variable = null, [FromQuery] bool? isActive = null,
+        [FromQuery] string? code = null, [FromQuery] string? search = null,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) =>
+        Request.Query.Count == 0 ? Ok(await service.GetAllAsync(cancellationToken))
+        : Ok(await service.GetPageAsync(communityId, type, variable, isActive, code, search, page, pageSize, cancellationToken));
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<SensorResponse>> GetById(Guid id, CancellationToken cancellationToken) =>
@@ -56,9 +60,12 @@ public sealed class SensorsController(SensorService service, AuditActionService 
     public async Task<ActionResult<SensorResponse>> Update(
         Guid id, UpdateSensorRequest request, CancellationToken cancellationToken)
     {
+        SensorResponse previous = await service.GetByIdAsync(id, cancellationToken);
         SensorResponse updated = await service.UpdateAsync(id, request, cancellationToken);
         await audit.RecordAsync(User, "SensorEditado", "Sensor", updated.Id,
             $"Se actualizaron los datos administrativos del sensor {updated.Code}.", cancellationToken);
+        if (updated.Status != previous.Status)
+            await audit.RecordAsync(User, updated.IsActive ? "SensorActivado" : "SensorDesactivado", "Sensor", id, $"Sensor {updated.Code}: active={updated.IsActive}.", cancellationToken);
         return Ok(updated);
     }
 }

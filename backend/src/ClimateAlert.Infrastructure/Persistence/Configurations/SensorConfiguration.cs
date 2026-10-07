@@ -15,9 +15,14 @@ public sealed class SensorConfiguration : IEntityTypeConfiguration<Sensor>
         builder.Property(sensor => sensor.Name).HasMaxLength(150).IsRequired();
         builder.Property(sensor => sensor.MeasurementType).HasConversion<string>().HasMaxLength(40).IsRequired();
         builder.Property(sensor => sensor.Origin).HasConversion<string>().HasMaxLength(20).IsRequired();
-        builder.Property(sensor => sensor.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(sensor => sensor.Status).IsConcurrencyToken().HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(sensor => sensor.Location).HasMaxLength(250).IsRequired();
         builder.Property(sensor => sensor.DeviceCode).HasMaxLength(120);
+        builder.Ignore(sensor => sensor.IsActive);
+        builder.Property(sensor => sensor.Type).HasConversion<string>().HasMaxLength(40);
+        builder.Property(sensor => sensor.Unit).HasMaxLength(30);
+        builder.Property(sensor => sensor.InstallationDate).HasColumnType("date");
+        builder.Property(sensor => sensor.Description).HasMaxLength(1000);
         builder.Property(sensor => sensor.LastCommunicationAt).HasColumnType("datetimeoffset");
         builder.Property(sensor => sensor.CreatedAt).HasColumnType("datetimeoffset").IsRequired();
         builder.HasIndex(sensor => new { sensor.CommunityId, sensor.Code }).IsUnique();

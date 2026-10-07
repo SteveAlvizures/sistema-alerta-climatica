@@ -9,6 +9,8 @@ public interface ICommunityRepository
     Task<Community?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken);
     Task<bool> ExistsAsync(string name, string location, Guid? excludingId, CancellationToken cancellationToken);
     Task<bool> HasDependenciesAsync(Guid id, CancellationToken cancellationToken);
+    Task<(IReadOnlyList<Community> Items, int TotalCount)> GetPageAsync(string? search, bool? isActive,
+        string? municipality, string? department, int page, int pageSize, CancellationToken cancellationToken) => throw new NotSupportedException();
     void Add(Community community);
     void Remove(Community community);
 }
@@ -21,6 +23,11 @@ public interface ISensorRepository
     Task<bool> ExistsAsync(Guid communityId, string code, CancellationToken cancellationToken);
     Task<IReadOnlyList<string>> GetCodesAsync(Guid communityId, string prefix, CancellationToken cancellationToken);
     Task<IReadOnlyList<Sensor>> GetActiveSimulatedAsync(CancellationToken cancellationToken);
+    Task<(IReadOnlyList<Sensor> Items, int TotalCount)> GetPageAsync(Guid? communityId, SensorType? type,
+        ClimateVariable? variable, bool? isActive, string? code, string? search,
+        int page, int pageSize, CancellationToken cancellationToken) => throw new NotSupportedException();
+    Task<bool> CodeExistsAsync(string code, Guid? excludingId, CancellationToken cancellationToken) => throw new NotSupportedException();
+    Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken) => throw new NotSupportedException();
     void Add(Sensor sensor);
 }
 

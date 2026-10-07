@@ -17,7 +17,8 @@ El login mantiene las cuentas existentes y emite los roles oficiales; el rol ant
 | `GET /api/communities` | Listar comunidades. | Público | `200` |
 | `GET /api/communities/{id}` | Consultar una comunidad. | Público | `200`, `404` |
 | `POST /api/communities` | Crear una comunidad. | Administrator / Operator | `201`, `400`, `401`, `403`, `409` |
-| `PUT /api/communities/{id}` | Actualizar nombre, ubicación y descripción. | Administrator / Operator | `200`, `400`, `401`, `403`, `404`, `409` |
+| `PUT /api/communities/{id}` | Actualizar los datos administrativos completos. | Administrator / Operator | `200`, `400`, `401`, `403`, `404`, `409` |
+| `PATCH /api/communities/{id}/status` | Activar/desactivar conservando el historial. | Administrator / Operator | `200`, `401`, `403`, `404` |
 | `DELETE /api/communities/{id}` | Eliminar una comunidad sin dependencias. | Administrator / Operator | `204`, `401`, `403`, `404`, `409` |
 
 ## Sensores
@@ -31,7 +32,9 @@ El login mantiene las cuentas existentes y emite los roles oficiales; el rol ant
 | `PUT /api/sensors/{id}` | Editar los campos permitidos. | Administrator / Operator | `200`, `400`, `401`, `403`, `404`, `409` |
 | `PATCH /api/sensors/{id}/status` | Activar o desactivar un sensor. | Administrator / Operator | `200`, `401`, `403`, `404` |
 
-`POST /api/sensors` recibe `communityId`, `measurementType`, `location` e `isActive`. El backend deriva el nombre y genera `SEN-{COMUNIDAD}-{VARIABLE}-{SECUENCIA}`. `PUT` recibe únicamente la nueva ubicación; actualiza el nombre derivado y conserva el código.
+Comunidades y sensores admiten filtros y paginación en sus GET de listado. Sin parámetros conservan la respuesta histórica como arreglo; con parámetros devuelven `PagedResponse`. Ambos listados y detalles incluyen los datos administrativos. Consulta [Gestión de comunidades y sensores](comunidades-sensores.md) para contratos, filtros, tipos, compatibilidad y migración.
+
+Sensores mantienen el POST mínimo anterior y el PUT de ubicación como alternativas de compatibilidad. Los contratos completos añaden nombre, código, tipo, unidad, instalación y descripción. Nombre y código se generan si se omiten. Las nuevas comunidades requieren datos administrativos y coordenadas válidas.
 
 ## Lecturas
 

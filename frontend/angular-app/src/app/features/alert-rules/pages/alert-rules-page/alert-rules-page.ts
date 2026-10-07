@@ -8,10 +8,10 @@ import { CommunityApiService } from '../../../../core/services/community-api.ser
 
 import { SensorApiService } from '../../../../core/services/sensor-api.service';
 
-const variables:Record<ClimateVariable,string>={Temperature:'Temperatura',RelativeHumidity:'Humedad relativa',WindSpeed:'Velocidad del viento',RainfallLevel:'Nivel de lluvia',RiverOrReservoirLevel:'Nivel de río o reservorio'};
+const variables:Record<ClimateVariable,string>={SmokeConcentration:'Humo/incendio',OtherEnvironmental:'Otro sensor ambiental',Temperature:'Temperatura',RelativeHumidity:'Humedad relativa',WindSpeed:'Velocidad del viento',RainfallLevel:'Nivel de lluvia',RiverOrReservoirLevel:'Nivel de río o reservorio'};
 const levels:Record<string,string>={Green:'Normal',Yellow:'Precaución',Orange:'Alerta',Red:'Emergencia'};
 const conditions:Record<string,string>={'>':'Mayor que','>=':'Mayor o igual que','<':'Menor que','<=':'Menor o igual que'};
-const units:Record<ClimateVariable,string>={Temperature:'°C',RelativeHumidity:'%',WindSpeed:'km/h',RainfallLevel:'mm',RiverOrReservoirLevel:'m'};
+const units:Record<ClimateVariable,string>={SmokeConcentration:'ppm',OtherEnvironmental:'u',Temperature:'°C',RelativeHumidity:'%',WindSpeed:'km/h',RainfallLevel:'mm',RiverOrReservoirLevel:'m'};
 const phenomena: Record<AlertRuleDto['phenomenon'], string> = {
   Flood: 'Inundación', Drought: 'Sequía', Storm: 'Tormenta', Frost: 'Helada', Wildfire: 'Incendio forestal',
 };

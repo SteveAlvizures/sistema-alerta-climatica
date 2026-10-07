@@ -282,8 +282,11 @@ public sealed class AlertEvaluationTests
             return rule;
         }
 
-        public Sensor AddSensor() => new(_community, "TEMP-02", "Second sensor", ClimateVariable.Temperature,
-            SensorOrigin.Simulated, "North", Now);
+        public Sensor AddSensor()
+        {
+            var sensor = new Sensor(_community, "TEMP-02", "Second sensor", ClimateVariable.Temperature, SensorOrigin.Simulated, "North", Now);
+            sensor.Activate(); return sensor;
+        }
 
         public SensorReading CreateReading(decimal value, DateTimeOffset? at = null, Sensor? sensor = null)
         {

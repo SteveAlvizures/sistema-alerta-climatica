@@ -31,7 +31,7 @@ public sealed class DashboardController(ClimateAlertDbContext database) : Contro
         var alerts = await database.Alerts.AsNoTracking().Where(item => item.CommunityId == community.Id && item.Status == AlertStatus.Open)
             .OrderByDescending(item => item.UpdatedAt).ToListAsync(cancellationToken);
 
-        var indicators = sensors.Select(sensor =>
+        var indicators = sensors.Where(sensor => sensor.IsActive).Select(sensor =>
         {
             var reading = readings.FirstOrDefault(item => item.SensorId == sensor.Id);
             var level = reading is null ? DangerLevel.Green : rules

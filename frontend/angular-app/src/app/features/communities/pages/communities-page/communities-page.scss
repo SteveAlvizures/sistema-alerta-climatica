@@ -13,10 +13,10 @@
 .community-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .form-field { display: grid; align-content: start; gap: .42rem; color: var(--text); font-size: .8rem; font-weight: 750; }
 .form-field--wide { grid-column: 1 / -1; }
-.form-field input, .form-field textarea { width: 100%; min-height: 2.8rem; padding: .75rem .85rem; border: 1px solid var(--border); border-radius: .65rem; background: var(--surface-muted); color: var(--text-strong); transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+.form-field input, .form-field select, .form-field textarea { width: 100%; min-height: 2.8rem; padding: .75rem .85rem; border: 1px solid var(--border); border-radius: .65rem; background: var(--surface-muted); color: var(--text-strong); transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
 .form-field textarea { min-height: 5.8rem; resize: vertical; line-height: 1.5; }
 .form-field input::placeholder, .form-field textarea::placeholder { color: var(--text-subtle); }
-.form-field input:focus, .form-field textarea:focus { border-color: var(--brand-accent); background: var(--surface); box-shadow: 0 0 0 .2rem var(--brand-soft); outline: 0; }
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: var(--brand-accent); background: var(--surface); box-shadow: 0 0 0 .2rem var(--brand-soft); outline: 0; }
 .form-actions { display: flex; justify-content: flex-end; gap: .6rem; }
 .primary-button, .secondary-button, .message button { min-height: 2.65rem; padding: .65rem 1rem; border: 1px solid var(--brand-accent); border-radius: .6rem; background: var(--brand); color: #fff; font-weight: 800; cursor: pointer; transition: transform .18s ease, opacity .18s ease; }
 .secondary-button { background: var(--surface); color: var(--brand-accent); }

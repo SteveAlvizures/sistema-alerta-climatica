@@ -28,6 +28,8 @@ public sealed class SimulatedReadingValueGenerator : ISimulatedReadingValueGener
         ClimateVariable.WindSpeed => hour is >= 11 and <= 17 ? 16m : 9m,
         ClimateVariable.RainfallLevel => RainTarget(),
         ClimateVariable.RiverOrReservoirLevel => .9m + _values.GetValueOrDefault(ClimateVariable.RainfallLevel) * .018m,
+        ClimateVariable.SmokeConcentration => 3m,
+        ClimateVariable.OtherEnvironmental => 20m,
         _ => throw new ArgumentOutOfRangeException(nameof(variable), variable, null)
     };
 
@@ -49,8 +51,8 @@ public sealed class SimulatedReadingValueGenerator : ISimulatedReadingValueGener
     private static decimal Clamp(ClimateVariable variable, decimal value) => variable switch
     { ClimateVariable.Temperature => Math.Clamp(value, 12m, 42m), ClimateVariable.RelativeHumidity => Math.Clamp(value, 30m, 100m),
       ClimateVariable.WindSpeed => Math.Clamp(value, 0m, 65m), ClimateVariable.RainfallLevel => Math.Clamp(value, 0m, 60m),
-      ClimateVariable.RiverOrReservoirLevel => Math.Clamp(value, .2m, 4m), _ => value };
+      ClimateVariable.RiverOrReservoirLevel => Math.Clamp(value, .2m, 4m), _ => Math.Max(0m, value) };
     private static string Unit(ClimateVariable variable) => variable switch
     { ClimateVariable.Temperature => "°C", ClimateVariable.RelativeHumidity => "%", ClimateVariable.WindSpeed => "km/h",
-      ClimateVariable.RainfallLevel => "mm", ClimateVariable.RiverOrReservoirLevel => "m", _ => string.Empty };
+      ClimateVariable.RainfallLevel => "mm", ClimateVariable.RiverOrReservoirLevel => "m", ClimateVariable.SmokeConcentration => "ppm", ClimateVariable.OtherEnvironmental => "u", _ => string.Empty };
 }

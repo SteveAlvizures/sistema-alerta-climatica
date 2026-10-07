@@ -1,4 +1,5 @@
 using ClimateAlert.Api.Authentication;
+using ClimateAlert.Api.Audit;
 using ClimateAlert.Application.Features.Communities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -7,12 +8,24 @@ namespace ClimateAlert.Api.Controllers;
 
 [ApiController]
 [Route("api/communities")]
-public sealed class CommunitiesController(CommunityService service) : ControllerBase
+public sealed class CommunitiesController(CommunityService service, AuditActionService audit) : ControllerBase
 {
     [HttpGet]
-    [ProducesResponseType<IReadOnlyList<CommunityResponse>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<CommunityResponse>>> GetAll(CancellationToken cancellationToken) =>
-        Ok(await service.GetAllAsync(cancellationToken));
+    public async Task<IActionResult> GetAll([FromQuery] string? search = null, [FromQuery] bool? isActive = null,
+        [FromQuery] string? municipality = null, [FromQuery] string? department = null,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken cancellationToken = default) =>
+        Request.Query.Count == 0 ? Ok(await service.GetAllAsync(cancellationToken))
+        : Ok(await service.GetPageAsync(search, isActive, municipality, department, page, pageSize, cancellationToken));
+
+    [HttpPatch("{id:guid}/status")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
+    public async Task<ActionResult<CommunityResponse>> ChangeStatus(Guid id, ChangeCommunityStatusRequest request, CancellationToken cancellationToken)
+    {
+        var result = await service.ChangeStatusAsync(id, request, cancellationToken);
+        await audit.RecordAsync(User, request.IsActive ? "ComunidadActivada" : "ComunidadDesactivada", "Community", id,
+            $"Community {result.Name}: active={result.IsActive}.", cancellationToken);
+        return Ok(result);
+    }
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType<CommunityResponse>(StatusCodes.Status200OK)]
@@ -29,6 +42,7 @@ public sealed class CommunitiesController(CommunityService service) : Controller
         CreateCommunityRequest request, CancellationToken cancellationToken)
     {
         CommunityResponse created = await service.CreateAsync(request, cancellationToken);
+        await audit.RecordAsync(User, "ComunidadCreada", "Community", created.Id, $"Community created: {created.Name}.", cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
@@ -39,8 +53,15 @@ public sealed class CommunitiesController(CommunityService service) : Controller
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CommunityResponse>> Update(
-        Guid id, UpdateCommunityRequest request, CancellationToken cancellationToken) =>
-        Ok(await service.UpdateAsync(id, request, cancellationToken));
+        Guid id, UpdateCommunityRequest request, CancellationToken cancellationToken)
+    {
+        var previous = await service.GetByIdAsync(id, cancellationToken);
+        var result = await service.UpdateAsync(id, request, cancellationToken);
+        await audit.RecordAsync(User, "ComunidadEditada", "Community", id, $"Community updated: {result.Name}.", cancellationToken);
+        if (previous.IsActive != result.IsActive)
+            await audit.RecordAsync(User, result.IsActive ? "ComunidadActivada" : "ComunidadDesactivada", "Community", id, $"Community {result.Name}: active={result.IsActive}.", cancellationToken);
+        return Ok(result);
+    }
 
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = AuthorizationPolicies.OperateSystem)]

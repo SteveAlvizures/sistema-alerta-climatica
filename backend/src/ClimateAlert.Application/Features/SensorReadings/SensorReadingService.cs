@@ -92,7 +92,7 @@ public sealed class SensorReadingService(
             throw new ValidationException("El valor de la lectura es obligatorio.");
         DateTimeOffset measuredAt = timeProvider.GetUtcNow();
         return await CreateAsync(new CreateSensorReadingRequest(
-            sensor.Id, sensor.MeasurementType, request.Value.Value, UnitFor(sensor.MeasurementType),
+            sensor.Id, sensor.MeasurementType, request.Value.Value, sensor.Unit ?? UnitFor(sensor.MeasurementType),
             measuredAt, sensor.Origin), cancellationToken);
     }
 
@@ -103,6 +103,8 @@ public sealed class SensorReadingService(
         ClimateVariable.WindSpeed => "km/h",
         ClimateVariable.RainfallLevel => "mm",
         ClimateVariable.RiverOrReservoirLevel => "m",
+        ClimateVariable.SmokeConcentration => "ppm",
+        ClimateVariable.OtherEnvironmental => "u",
         _ => throw new ValidationException("La variable climática no es válida.")
     };
 

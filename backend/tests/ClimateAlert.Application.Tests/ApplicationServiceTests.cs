@@ -18,7 +18,7 @@ public sealed class ApplicationServiceTests
     {
         TestContext context = new();
         CommunityResponse result = await context.Communities.CreateAsync(
-            new("El Pinar", "Alta Verapaz", "Comunidad rural"), default);
+            new("El Pinar", "Alta Verapaz", "Comunidad rural", "Coban", "Alta Verapaz", "Guatemala", 15m, -90m), default);
         Assert.Equal("El Pinar", result.Name);
     }
 
@@ -26,9 +26,9 @@ public sealed class ApplicationServiceTests
     public async Task RejectsDuplicateCommunity()
     {
         TestContext context = new();
-        await context.Communities.CreateAsync(new("El Pinar", "Alta Verapaz", null), default);
+        await context.Communities.CreateAsync(new("El Pinar", "Alta Verapaz", null, "Coban", "Alta Verapaz", "Guatemala", 15m, -90m), default);
         await Assert.ThrowsAsync<ConflictException>(() =>
-            context.Communities.CreateAsync(new("El Pinar", "Alta Verapaz", null), default));
+            context.Communities.CreateAsync(new("El Pinar", "Alta Verapaz", null, "Coban", "Alta Verapaz", "Guatemala", 15m, -90m), default));
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public sealed class ApplicationServiceTests
         TestContext context = new();
         Community community = context.AddCommunity();
         CommunityResponse updated = await context.Communities.UpdateAsync(
-            community.Id, new("El Pinar Nuevo", "Alta Verapaz", "Actualizada"), default);
+            community.Id, new("El Pinar Nuevo", "Alta Verapaz", "Actualizada", "Coban", "Alta Verapaz", "Guatemala", 15m, -90m), default);
         await context.Communities.DeleteAsync(community.Id, default);
         Assert.Equal("El Pinar Nuevo", updated.Name);
         await Assert.ThrowsAsync<NotFoundException>(() => context.Communities.GetByIdAsync(community.Id, default));

@@ -86,8 +86,11 @@ public sealed class AlertRepositoryIntegrityTests
     private static ClimateAlertDbContext CreateDatabase() => new(new DbContextOptionsBuilder<ClimateAlertDbContext>()
         .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
-    private static Sensor SensorFor(Community community, string code) => new(community, code, code,
-        ClimateVariable.RainfallLevel, SensorOrigin.Simulated, "Location", Now);
+    private static Sensor SensorFor(Community community, string code)
+    {
+        var sensor = new Sensor(community, code, code, ClimateVariable.RainfallLevel, SensorOrigin.Simulated, "Location", Now);
+        sensor.Activate(); return sensor;
+    }
 
     private static async Task EvaluateAndSave(ClimateAlertDbContext db, Guid sensorId, decimal value, DateTimeOffset at)
     {

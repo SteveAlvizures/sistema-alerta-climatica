@@ -6,7 +6,7 @@ import { CommunityApiService } from '../../../../core/services/community-api.ser
 import { SensorApiService } from '../../../../core/services/sensor-api.service';
 import { SensorReadingApiService } from '../../../../core/services/sensor-reading-api.service';
 
-const variableLabels: Record<ClimateVariable, string> = { Temperature: 'Temperatura', RelativeHumidity: 'Humedad relativa', WindSpeed: 'Velocidad del viento', RainfallLevel: 'Nivel de lluvia', RiverOrReservoirLevel: 'Nivel de río o reservorio' };
+const variableLabels: Record<ClimateVariable, string> = { SmokeConcentration: 'Humo/incendio', OtherEnvironmental: 'Otro sensor ambiental', Temperature: 'Temperatura', RelativeHumidity: 'Humedad relativa', WindSpeed: 'Velocidad del viento', RainfallLevel: 'Nivel de lluvia', RiverOrReservoirLevel: 'Nivel de río o reservorio' };
 @Component({ selector: 'app-history-page', imports: [FormsModule], templateUrl: './history-page.html', styleUrl: './history-page.scss' })
 export class HistoryPage implements OnInit {
   private readonly communitiesApi = inject(CommunityApiService); private readonly sensorsApi = inject(SensorApiService); private readonly readingsApi = inject(SensorReadingApiService);

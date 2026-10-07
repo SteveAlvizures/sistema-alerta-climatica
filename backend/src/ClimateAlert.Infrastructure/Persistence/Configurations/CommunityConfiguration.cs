@@ -14,6 +14,11 @@ public sealed class CommunityConfiguration : IEntityTypeConfiguration<Community>
         builder.Property(community => community.Name).HasMaxLength(150).IsRequired();
         builder.Property(community => community.Location).HasMaxLength(250).IsRequired();
         builder.Property(community => community.Description).HasMaxLength(1000);
+        builder.Property(community => community.Municipality).HasMaxLength(150);
+        builder.Property(community => community.Department).HasMaxLength(150);
+        builder.Property(community => community.Country).HasMaxLength(100);
+        builder.Property(community => community.Latitude).HasPrecision(10, 7);
+        builder.Property(community => community.Longitude).HasPrecision(10, 7);
         builder.Property(community => community.IsActive).IsRequired();
         builder.Property(community => community.CreatedAt).HasColumnType("datetimeoffset").IsRequired();
         builder.HasIndex(community => new { community.Name, community.Location }).IsUnique();

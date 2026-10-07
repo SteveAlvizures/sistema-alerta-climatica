@@ -3,7 +3,11 @@ export type ClimateVariable =
   | 'RelativeHumidity'
   | 'WindSpeed'
   | 'RainfallLevel'
-  | 'RiverOrReservoirLevel';
+  | 'RiverOrReservoirLevel'
+  | 'SmokeConcentration'
+  | 'OtherEnvironmental';
+
+export type SensorType = 'Temperature' | 'Humidity' | 'WindSpeed' | 'Rainfall' | 'RiverLevel' | 'ReservoirLevel' | 'SmokeFire' | 'OtherEnvironmental';
 
 export type ApiSensorOrigin = 'Simulated' | 'Physical';
 export type ApiSensorStatus = 'Active' | 'Inactive';
@@ -12,6 +16,12 @@ export type ApiAlertStatus = 'Open' | 'Acknowledged' | 'Closed';
 export type ApiClimatePhenomenon = 'Flood' | 'Drought' | 'Storm' | 'Frost' | 'Wildfire';
 
 export interface CommunityDto {
+  municipality?: string | null;
+  department?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  sensorCount?: number;
   id: string;
   name: string;
   location: string;
@@ -21,6 +31,12 @@ export interface CommunityDto {
 }
 
 export interface SensorDto {
+  type?: SensorType;
+  unit?: string;
+  installationDate?: string | null;
+  description?: string | null;
+  communityName?: string;
+  isActive?: boolean;
   id: string;
   communityId: string;
   code: string;

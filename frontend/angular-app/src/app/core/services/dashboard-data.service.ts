@@ -65,6 +65,8 @@ const measurementLabels: Record<ClimateVariable, string> = {
   RelativeHumidity: 'Humedad relativa',
   WindSpeed: 'Velocidad del viento',
   RainfallLevel: 'Nivel de lluvia',
+  SmokeConcentration: 'Humo/incendio',
+  OtherEnvironmental: 'Otro sensor ambiental',
   RiverOrReservoirLevel: 'Nivel de río o reservorio',
 };
 
@@ -353,7 +355,7 @@ export class DashboardDataService {
       level: mappedHighestAlert?.level ?? null,
       levelMessage: mappedHighestAlert?.message ?? 'Sin alertas activas para la comunidad seleccionada.',
       lastUpdated: latestDate ? new Date(latestDate) : new Date(),
-      indicators: items.map(({ sensor, reading }) => {
+      indicators: items.filter(item => item.sensor.status === 'Active' && indicatorDefinitions.some(def => def.variable === item.sensor.measurementType)).map(({ sensor, reading }) => {
         const definition = indicatorDefinitions.find(item => item.variable === sensor.measurementType)!;
         const sensorRules = rules.filter(rule => rule.variable === sensor.measurementType && (!rule.sensorId || rule.sensorId === sensor.id));
         const matchingRule = reading ? sensorRules.filter(rule => this.ruleMatches(rule, reading.value))

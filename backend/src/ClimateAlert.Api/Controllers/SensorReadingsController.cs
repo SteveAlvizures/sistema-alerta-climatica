@@ -43,6 +43,9 @@ public sealed class SensorReadingsController(
         await audit.RecordAsync(User, "CreateManualReading", "SensorReading", created.Id,
             $"Lectura manual registrada para sensor {sensor.Code} con valor {created.Value} {created.Unit}.",
             cancellationToken);
+        if (sensor.Origin == ClimateAlert.Domain.Enums.SensorOrigin.Simulated)
+            await audit.RecordAsync(User, "ValorSimuladoModificado", "Sensor", sensor.Id,
+                $"Simulated value changed: {sensor.Code}, {created.Value} {created.Unit}.", cancellationToken);
         return CreatedAtAction(nameof(GetLatest), new { sensorId = created.SensorId }, created);
     }
 }

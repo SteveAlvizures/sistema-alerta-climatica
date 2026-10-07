@@ -68,6 +68,7 @@ public static class DemoDataSeeder
                     database.Sensors.Add(sensor);
                 }
 
+                if (!sensor.IsActive) continue;
                 bool hasReadings = await database.SensorReadings.AnyAsync(item => item.SensorId == sensor.Id);
                 if (!hasReadings)
                 {

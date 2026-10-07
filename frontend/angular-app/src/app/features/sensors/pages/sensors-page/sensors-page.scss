@@ -13,7 +13,7 @@
 .form-field strong { color: var(--warning-text); }
 .form-field small { margin-left: .35rem; color: var(--text-subtle); font-size: .68rem; font-weight: 650; }
 .form-field--wide { grid-column: 1 / -1; }
-.form-field input, .form-field select { width: 100%; min-height: 2.8rem; padding: .72rem .85rem; border: 1px solid var(--border); border-radius: .65rem; background: var(--surface-muted); color: var(--text-strong); }
+.form-field input, .form-field select, .form-field textarea { width: 100%; min-height: 2.8rem; padding: .72rem .85rem; border: 1px solid var(--border); border-radius: .65rem; background: var(--surface-muted); color: var(--text-strong); }
 .form-field input:focus, .form-field select:focus { border-color: var(--brand-accent); background: var(--surface); box-shadow: 0 0 0 .2rem var(--brand-soft); outline: 0; }
 .form-actions { display: flex; justify-content: flex-end; }
 .form-actions { gap: .65rem; }

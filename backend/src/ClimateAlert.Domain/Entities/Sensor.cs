@@ -50,11 +50,29 @@ public sealed class Sensor
     public SensorStatus Status { get; private set; }
     public string Location { get; private set; } = null!;
     public string? DeviceCode { get; private set; }
+    public SensorType? Type { get; private set; }
+    public string? Unit { get; private set; }
+    public DateOnly? InstallationDate { get; private set; }
+    public string? Description { get; private set; }
+    public bool IsActive => Status == SensorStatus.Active;
     public DateTimeOffset? LastCommunicationAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public IReadOnlyCollection<SensorReading> Readings => _readings.AsReadOnly();
 
     public void Activate() => Status = SensorStatus.Active;
+
+    public void Reassign(Community community, ClimateVariable variable)
+    {
+        Community = community; CommunityId = community.Id; MeasurementType = variable;
+    }
+
+    public void Configure(SensorType type, string unit, DateOnly? installationDate, string? description)
+    {
+        if (SensorTypes.VariableFor(type) != MeasurementType)
+            throw new ArgumentException("Sensor type must match its measured variable.");
+        Type = type; Unit = Required(unit, nameof(unit)); InstallationDate = installationDate;
+        Description = Normalize(description);
+    }
 
     public void Deactivate() => Status = SensorStatus.Inactive;
 

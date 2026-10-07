@@ -6,5 +6,7 @@ public enum ClimateVariable
     RelativeHumidity,
     WindSpeed,
     RainfallLevel,
-    RiverOrReservoirLevel
+    RiverOrReservoirLevel,
+    SmokeConcentration,
+    OtherEnvironmental
 }

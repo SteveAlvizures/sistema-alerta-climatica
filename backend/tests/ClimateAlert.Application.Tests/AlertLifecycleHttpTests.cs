@@ -200,7 +200,7 @@ public sealed class AlertLifecycleHttpTests
         public override DateTimeOffset GetUtcNow() => Now;
     }
 
-    private sealed class TestHost : IAsyncDisposable
+    internal sealed class TestHost : IAsyncDisposable
     {
         private readonly WebApplication app;
         private readonly DbContextOptions<ClimateAlertDbContext> options;
@@ -230,6 +230,8 @@ public sealed class AlertLifecycleHttpTests
             builder.Services.AddDbContext<ClimateAlertDbContext>(db => db.UseInMemoryDatabase(name));
             builder.Services.AddApplicationServices(); builder.Services.AddSingleton<TimeProvider>(clock);
             builder.Services.AddScoped<IAlertRepository, AlertRepository>(); builder.Services.AddScoped<ICommunityRepository, CommunityRepository>();
+            builder.Services.AddScoped<ISensorRepository, SensorRepository>(); builder.Services.AddScoped<ISensorReadingRepository, SensorReadingRepository>();
+            builder.Services.AddScoped<IAlertRuleRepository, AlertRuleRepository>(); builder.Services.AddScoped<IEventRepository, EventRepository>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>(); builder.Services.AddScoped<AuthService>();
             builder.Services.AddClimateAuthentication(new JwtOptions("academic-test-signing-key-more-than-32-characters", "test", "test", 60));
             builder.Services.AddClimateAuthorization();
@@ -260,6 +262,7 @@ public sealed class AlertLifecycleHttpTests
         private static Alert CreateAlert(Community community, string code, ClimatePhenomenon phenomenon, DangerLevel level, DateTimeOffset at)
         {
             var sensor = new Sensor(community, code, "Sensor " + code, ClimateVariable.RainfallLevel, SensorOrigin.Simulated, "Location", at);
+            sensor.Activate();
             var reading = new SensorReading(sensor, sensor.MeasurementType, 15m, "mm", at, at, sensor.Origin);
             var rule = new AlertRule(community, "RULE-" + code, "Rule " + code, phenomenon, sensor.MeasurementType, level, 10m, 20m, at, at, message: "Initial risk message");
             var alert = new Alert(rule, reading, rule.Message, at);

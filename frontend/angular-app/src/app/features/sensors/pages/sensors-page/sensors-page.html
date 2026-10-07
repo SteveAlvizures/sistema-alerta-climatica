@@ -33,16 +33,12 @@
         </select>
       </label>
 
-      <label class="form-field">
-        <span>Variable</span>
-        <select name="measurementType" [(ngModel)]="measurementType">
-          <option value="Temperature">Temperatura</option>
-          <option value="RelativeHumidity">Humedad relativa</option>
-          <option value="WindSpeed">Velocidad del viento</option>
-          <option value="RainfallLevel">Nivel de lluvia</option>
-          <option value="RiverOrReservoirLevel">Nivel de río o reservorio</option>
-        </select>
-      </label>
+      <label class="form-field"><span>Tipo *</span><select name="measurementType" [(ngModel)]="sensorType" (ngModelChange)="selectType()">@for (type of types; track type.value) { <option [value]="type.value">{{ type.label }}</option> }</select></label>
+      <label class="form-field"><span>Nombre (automático si se omite)</span><input name="name" [(ngModel)]="name" maxlength="150" /></label>
+      <label class="form-field"><span>Código (automático si se omite)</span><input name="code" [(ngModel)]="code" maxlength="80" /></label>
+      <label class="form-field"><span>Unidad *</span><input name="unit" [(ngModel)]="unit" [placeholder]="unitFor(measurementType)" maxlength="30" /></label>
+      <label class="form-field"><span>Fecha de instalación *</span><input type="date" name="installationDate" [(ngModel)]="installationDate" required /></label>
+      <label class="form-field form-field--wide"><span>Descripción</span><textarea name="description" [(ngModel)]="description" maxlength="1000"></textarea></label>
 
       <label class="form-field">
         <span>Ubicación o referencia <strong aria-hidden="true">*</strong></span>
@@ -71,10 +67,10 @@
     </form>
   </section>
   } @else {
-    <aside class="message">Modo consulta: inicia sesión como administrador para agregar, editar o cambiar el estado de sensores.</aside>
+    <aside class="message">Modo consulta: inicia sesión como administrador u operador para agregar, editar o cambiar el estado de sensores.</aside>
   }
 
-  @if (editingSensor) {
+  @if (canAdminister() && editingSensor) {
     <section class="form-panel edit-panel" aria-labelledby="edit-sensor-title">
       <div class="section-heading"><div><p class="section-heading__eyebrow">Configuración administrativa</p><h2 id="edit-sensor-title">Editar sensor</h2></div><p>El código, la variable, el origen y el historial se conservan.</p></div>
       <form class="sensor-form" (ngSubmit)="saveEdit()">
@@ -86,7 +82,7 @@
     </section>
   }
 
-  @if (readingSensor) {
+  @if (canAdminister() && readingSensor) {
     <section class="form-panel edit-panel" aria-labelledby="manual-reading-title">
       <div class="section-heading"><div><p class="section-heading__eyebrow">Nueva medición</p><h2 id="manual-reading-title">Registrar lectura manual</h2></div><p>La lectura se guardará en el historial y atravesará las reglas activas.</p></div>
       <form class="sensor-form" (ngSubmit)="registerManualReading()">
@@ -112,6 +108,14 @@
     }
   </div>
 
+  <form class="sensor-form form-panel" (ngSubmit)="applyFilters()" aria-label="Filtros de sensores">
+    <label class="form-field"><span>Comunidad</span><select name="filterCommunity" [(ngModel)]="selectedCommunityId"><option value="">Todas</option>@for (community of communities; track community.id) { <option [value]="community.id">{{ community.name }}{{ community.isActive ? '' : ' (inactiva)' }}</option> }</select></label>
+    <label class="form-field"><span>Tipo</span><select name="typeFilter" [(ngModel)]="typeFilter"><option value="">Todos</option>@for (type of types; track type.value) { <option [value]="type.value">{{ type.label }}</option> }</select></label>
+    <label class="form-field"><span>Estado</span><select name="statusFilter" [(ngModel)]="statusFilter"><option value="">Todos</option><option value="true">Activo</option><option value="false">Inactivo</option></select></label>
+    <label class="form-field"><span>Código</span><input name="codeFilter" [(ngModel)]="codeFilter" /></label>
+    <label class="form-field"><span>Buscar</span><input name="search" [(ngModel)]="search" /></label>
+    <button class="primary-button" type="submit" [disabled]="loading">Aplicar filtros</button>
+  </form>
   <section class="records-section" aria-labelledby="sensors-title">
     <div class="section-heading section-heading--records">
       <div>
@@ -119,7 +123,7 @@
         <h2 id="sensors-title">Sensores registrados</h2>
       </div>
       @if (!loading && sensors.length > 0) {
-        <span class="record-count">{{ sensors.length }} en la comunidad</span>
+        <span class="record-count">{{ totalCount }} resultados</span>
       }
     </div>
 
@@ -148,7 +152,11 @@
             <p class="sensor-card__code">{{ sensor.code }}</p>
 
             <dl class="sensor-details">
-              <div><dt>Tipo</dt><dd>{{ variableLabel(sensor.measurementType) }}</dd></div>
+              <div><dt>Tipo</dt><dd>{{ typeLabel(sensor) }}</dd></div>
+              <div><dt>Comunidad</dt><dd>{{ sensor.communityName || communityName(sensor) }}</dd></div>
+              <div><dt>Unidad</dt><dd>{{ sensor.unit || unitFor(sensor.measurementType) }}</dd></div>
+              <div><dt>Instalación</dt><dd>{{ sensor.installationDate || 'Sin fecha histórica registrada' }}</dd></div>
+              <div><dt>Descripción</dt><dd>{{ sensor.description || 'Sin descripción' }}</dd></div>
               <div><dt>Ubicación</dt><dd>{{ sensor.location }}</dd></div>
               <div><dt>Origen</dt><dd>{{ sensor.origin === 'Simulated' ? 'Simulado' : 'Físico' }}</dd></div>
               <div><dt>Estado</dt><dd>{{ sensor.status === 'Active' ? 'Activo' : 'Inactivo' }}</dd></div>
@@ -179,4 +187,5 @@
       </div>
     }
   </section>
+  <nav class="form-actions" aria-label="Páginación de sensores"><button class="primary-button" type="button" [disabled]="loading || page <= 1" (click)="goToPage(page - 1)">Anterior</button><span>Página {{ page }} de {{ totalPages || 1 }} ? {{ totalCount }} resultados</span><button class="primary-button" type="button" [disabled]="loading || page >= totalPages" (click)="goToPage(page + 1)">Siguiente</button></nav>
 </section>

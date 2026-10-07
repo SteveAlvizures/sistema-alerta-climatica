@@ -1,4 +1,6 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription } from 'rxjs';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ElementRef, ViewChild } from '@angular/core';
 import { CommunityApiService } from '../../../../core/services/community-api.service';
@@ -7,9 +9,10 @@ import {
   SensorApiService,
   UpdateSensorRequest,
 } from '../../../../core/services/sensor-api.service';
-import { CommunityDto, SensorDto, SensorReadingDto } from '../../../../core/models/api.model';
+import { CommunityDto, SensorDto, SensorReadingDto, SensorType } from '../../../../core/models/api.model';
 import { SensorReadingApiService } from '../../../../core/services/sensor-reading-api.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { sensorTypes } from '../../../../core/models/sensor-types';
 import { RouterLink } from '@angular/router';
 
 @Component({
@@ -20,6 +23,8 @@ import { RouterLink } from '@angular/router';
 })
 export class SensorsPage implements OnInit {
   @ViewChild('editLocationInput') private editLocationInput?: ElementRef<HTMLInputElement>;
+  private readonly destroyRef = inject(DestroyRef);
+  private pageRequest?: Subscription;
   private readonly sensorApi = inject(SensorApiService);
   private readonly communityApi = inject(CommunityApiService);
   private readonly sensorReadingApi = inject(SensorReadingApiService);
@@ -37,6 +42,19 @@ export class SensorsPage implements OnInit {
   error = '';
   success = '';
 
+  readonly types = sensorTypes;
+  sensorType: SensorType = 'Temperature'; name = ''; code = ''; unit = '';
+  installationDate = new Date().toISOString().slice(0, 10); description = '';
+  editName = ''; editCode = ''; editCommunityId = ''; editType: SensorType = 'Temperature';
+  editUnit = ''; editInstallationDate = ''; editDescription = ''; editActive = true;
+  typeFilter = ''; statusFilter = ''; codeFilter = ''; search = '';
+  page = 1; pageSize = 20; totalCount = 0; totalPages = 0;
+  private appliedFilters = { communityId: '', type: '', isActive: '', code: '', search: '' };
+  applyFilters(): void { this.page = 1; this.appliedFilters = { communityId: this.selectedCommunityId, type: this.typeFilter, isActive: this.statusFilter, code: this.codeFilter.trim(), search: this.search.trim() }; this.fetchPage(); }
+  goToPage(page: number): void { if (this.loading || page < 1 || page > this.totalPages) return; this.page = page; this.fetchPage(); }
+  typeLabel(sensor: SensorDto): string { return this.types.find(t => t.value === sensor.type)?.label ?? this.variableLabel(sensor.measurementType); }
+  selectType(): void { const type = this.types.find(t => t.value === this.sensorType)!; this.measurementType = type.variable; this.unit = type.unit; }
+  selectEditType(): void { this.editUnit = this.types.find(t => t.value === this.editType)!.unit; }
   measurementType = 'Temperature';
   location = '';
   initialActive = true;
@@ -65,28 +83,15 @@ export class SensorsPage implements OnInit {
     });
   }
 
-  loadSensors(): void {
-    if (!this.selectedCommunityId) {
-      this.sensors = [];
-      return;
-    }
-
-    this.loading = true;
-    this.error = '';
-
-    this.sensorApi.getByCommunity(this.selectedCommunityId).subscribe({
-      next: (data) => {
-        this.sensors = data;
-        this.loadLatestReadings();
-        this.loading = false;
-      },
-      error: () => {
-        this.error = 'No se pudieron cargar los sensores.';
-        this.loading = false;
-      },
+  loadSensors(): void { this.applyFilters(); }
+  private fetchPage(): void {
+    this.loading = true; this.error = '';
+    this.pageRequest?.unsubscribe();
+    this.pageRequest = this.sensorApi.getPage({ page: this.page, pageSize: this.pageSize, ...this.appliedFilters }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: data => { this.sensors = data.data; this.totalCount = data.totalCount; this.totalPages = data.totalPages; this.loadLatestReadings(); this.loading = false; },
+      error: () => { this.error = 'No se pudieron cargar los sensores.'; this.loading = false; },
     });
   }
-
 
   loadLatestReadings(): void {
     this.sensors.forEach((sensor) => {
@@ -102,7 +107,7 @@ export class SensorsPage implements OnInit {
   }
 
   createSensor(): void {
-    if (!this.canAdminister()) return;
+    if (!this.canAdminister() || this.saving) return;
     this.error = '';
     this.success = '';
 
@@ -119,22 +124,26 @@ export class SensorsPage implements OnInit {
       measurementType: this.measurementType,
       location: this.location.trim(),
       isActive: this.initialActive,
+      name: this.name.trim() || undefined, code: this.code.trim() || undefined,
+      type: this.sensorType, unit: this.unit.trim() || this.unitFor(this.measurementType),
+      installationDate: this.installationDate, description: this.description.trim(),
     };
 
+    if (!this.installationDate) { this.error = 'La fecha de instalacion es obligatoria.'; return; }
     this.saving = true;
 
     this.sensorApi.create(request).subscribe({
       next: (sensor) => {
         this.sensors = [...this.sensors, sensor];
 
-        this.location = '';
+        this.location = ''; this.name = ''; this.code = ''; this.description = ''; this.fetchPage();
 
         this.saving = false;
         this.success = `Sensor creado correctamente: ${sensor.name} (${sensor.code}).`;
       },
-      error: () => {
+      error: (response) => {
         this.saving = false;
-        this.error = 'No se pudo registrar el sensor.';
+        this.error = response.error?.detail || 'No se pudo registrar el sensor.';
       },
     });
   }
@@ -149,9 +158,7 @@ export class SensorsPage implements OnInit {
 
     this.sensorApi.changeStatus(sensor.id, isActive).subscribe({
       next: (updatedSensor) => {
-        this.sensors = this.sensors.map((item) =>
-          item.id === updatedSensor.id ? updatedSensor : item,
-        );
+        this.fetchPage();
 
         this.success = isActive
           ? 'Sensor activado correctamente.'
@@ -165,13 +172,13 @@ export class SensorsPage implements OnInit {
 
   canAdminister(): boolean { return this.auth.canOperate(); }
   variableLabel(value: string): string { return ({ Temperature: 'Temperatura', RelativeHumidity: 'Humedad relativa', WindSpeed: 'Velocidad del viento', RainfallLevel: 'Nivel de lluvia', RiverOrReservoirLevel: 'Nivel de río o reservorio' } as Record<string, string>)[value] ?? value; }
-  unitFor(value: string): string { return ({ Temperature: '°C', RelativeHumidity: '%', WindSpeed: 'km/h', RainfallLevel: 'mm', RiverOrReservoirLevel: 'm' } as Record<string, string>)[value] ?? ''; }
+  unitFor(value: string): string { return ({ Temperature: '°C', RelativeHumidity: '%', WindSpeed: 'km/h', RainfallLevel: 'mm', SmokeConcentration: 'ppm', OtherEnvironmental: 'u', RiverOrReservoirLevel: 'm' } as Record<string, string>)[value] ?? ''; }
   generatedName(): string { return this.location.trim() ? `Sensor de ${this.variableLabel(this.measurementType).toLowerCase()} - ${this.location.trim()}` : 'Completa la ubicación o referencia'; }
   estimatedCode(): string {
     const community = this.communities.find((item) => item.id === this.selectedCommunityId);
     const communities: Record<string, string> = { 'Lanquín': 'LAN', Livingston: 'LIV', 'San Juan La Laguna': 'SJL', 'Santa Catarina Palopó': 'SCP', 'San Juan Chamelco': 'SJC', 'Todos Santos Cuchumatán': 'TSC' };
-    const variables: Record<string, string> = { Temperature: 'TEMP', RelativeHumidity: 'HUM', WindSpeed: 'WIND', RainfallLevel: 'RAIN', RiverOrReservoirLevel: 'RIVER' };
-    return community ? `SEN-${communities[community.name] ?? 'COM'}-${variables[this.measurementType]}-XX` : 'Selecciona una comunidad';
+    const types: Record<SensorType, string> = { Temperature: 'TEMP', Humidity: 'HUM', WindSpeed: 'WIND', Rainfall: 'RAIN', RiverLevel: 'RIVER', ReservoirLevel: 'RIVER', SmokeFire: 'SMOKE', OtherEnvironmental: 'ENV' };
+    return community ? `SEN-${communities[community.name] ?? 'COM'}-${types[this.sensorType] ?? 'VAR'}-XX` : 'Selecciona una comunidad';
   }
   communityName(sensor: SensorDto): string { return this.communities.find((item) => item.id === sensor.communityId)?.name ?? 'Comunidad'; }
 
@@ -179,6 +186,10 @@ export class SensorsPage implements OnInit {
     if (!this.canAdminister()) return;
     this.editingSensor = sensor;
     this.editLocation = sensor.location;
+    this.editName = sensor.name; this.editCode = sensor.code; this.editCommunityId = sensor.communityId;
+    this.editType = sensor.type ?? this.types.find(t => t.variable === sensor.measurementType)!.value;
+    this.editUnit = sensor.unit ?? this.unitFor(sensor.measurementType); this.editInstallationDate = sensor.installationDate ?? '';
+    this.editDescription = sensor.description ?? ''; this.editActive = sensor.status === 'Active';
     this.readingSensor = null;
     setTimeout(() => {
       this.editLocationInput?.nativeElement.focus();
@@ -191,11 +202,14 @@ export class SensorsPage implements OnInit {
   saveEdit(): void {
     if (!this.canAdminister()) return;
     if (!this.editingSensor || !this.editLocation.trim()) return;
-    const request: UpdateSensorRequest = { location: this.editLocation.trim() };
+    if (!this.editName.trim() || !this.editCode.trim() || !this.editCommunityId || !this.editUnit.trim() || !this.editInstallationDate) { this.error = 'Completa los datos administrativos del sensor.'; return; }
+    const request: UpdateSensorRequest = { location: this.editLocation.trim(), name: this.editName.trim(), code: this.editCode.trim(),
+      communityId: this.editCommunityId, type: this.editType, unit: this.editUnit.trim(), installationDate: this.editInstallationDate,
+      description: this.editDescription.trim(), isActive: this.editActive };
     this.saving = true; this.error = ''; this.success = '';
     this.sensorApi.update(this.editingSensor.id, request).subscribe({
-      next: (updated) => { this.sensors = this.sensors.map((item) => item.id === updated.id ? updated : item); this.editingSensor = null; this.saving = false; this.success = 'Sensor actualizado correctamente.'; },
-      error: () => { this.saving = false; this.error = 'No se pudo actualizar el sensor.'; },
+      next: (updated) => { this.sensors = this.sensors.map((item) => item.id === updated.id ? updated : item); this.editingSensor = null; this.saving = false; this.success = 'Sensor actualizado correctamente.'; this.fetchPage(); },
+      error: (response) => { this.saving = false; this.error = response.error?.detail || 'No se pudo actualizar el sensor.'; },
     });
   }
 

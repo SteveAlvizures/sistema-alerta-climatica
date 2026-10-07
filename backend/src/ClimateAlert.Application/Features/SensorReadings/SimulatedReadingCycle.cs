@@ -19,6 +19,7 @@ public sealed class SimulatedReadingCycle(
         foreach (Sensor sensor in activeSensors)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (sensor.Status != SensorStatus.Active || sensor.Origin != SensorOrigin.Simulated) continue;
             try
             {
                 SimulatedReadingValue generated = valueGenerator.Generate(sensor.MeasurementType);
@@ -28,7 +29,7 @@ public sealed class SimulatedReadingCycle(
                         sensor.Id,
                         sensor.MeasurementType,
                         generated.Value,
-                        generated.Unit,
+                        sensor.Unit ?? generated.Unit,
                         measuredAt,
                         SensorOrigin.Simulated),
                     cancellationToken);

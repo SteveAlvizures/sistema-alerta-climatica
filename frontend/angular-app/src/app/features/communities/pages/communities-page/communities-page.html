@@ -43,6 +43,13 @@
         />
       </label>
 
+      <label class="form-field"><span>Municipio *</span><input name="municipality" [(ngModel)]="municipality" required maxlength="150" /></label>
+      <label class="form-field"><span>Departamento *</span><input name="department" [(ngModel)]="department" required maxlength="150" /></label>
+      <label class="form-field"><span>País *</span><input name="country" [(ngModel)]="country" required maxlength="100" /></label>
+      <label class="form-field"><span>Latitud *</span><input name="latitude" type="number" step="any" [(ngModel)]="latitude" required min="-90" max="90" /></label>
+      <label class="form-field"><span>Longitud *</span><input name="longitude" type="number" step="any" [(ngModel)]="longitude" required min="-180" max="180" /></label>
+      <label class="form-field"><span>Estado</span><select name="isActive" [(ngModel)]="isActive"><option [ngValue]="true">Activa</option><option [ngValue]="false">Inactiva</option></select></label>
+
       <label class="form-field form-field--wide">
         <span>Descripción</span>
         <textarea
@@ -63,7 +70,7 @@
     </form>
   </section>
   } @else {
-    <aside class="message">Modo consulta: inicia sesión como administrador para registrar comunidades.</aside>
+    <aside class="message">Modo consulta: inicia sesión como administrador u operador para registrar comunidades.</aside>
   }
 
   <div class="feedback" aria-live="polite">
@@ -83,6 +90,13 @@
     }
   </div>
 
+  <form class="community-form form-panel" (ngSubmit)="applyFilters()" aria-label="Filtros de comunidades">
+    <label class="form-field"><span>Buscar</span><input name="search" [(ngModel)]="search" /></label>
+    <label class="form-field"><span>Estado</span><select name="statusFilter" [(ngModel)]="statusFilter"><option value="">Todos</option><option value="true">Activa</option><option value="false">Inactiva</option></select></label>
+    <label class="form-field"><span>Municipio</span><input name="municipalityFilter" [(ngModel)]="municipalityFilter" /></label>
+    <label class="form-field"><span>Departamento</span><input name="departmentFilter" [(ngModel)]="departmentFilter" /></label>
+    <button class="primary-button" [disabled]="loading" type="submit">Aplicar filtros</button>
+  </form>
   <section class="records-section" aria-labelledby="communities-title">
     <div class="section-heading section-heading--records">
       <div>
@@ -90,7 +104,7 @@
         <h2 id="communities-title">Comunidades registradas</h2>
       </div>
       @if (!loading && communities.length > 0) {
-        <span class="record-count">{{ communities.length }} registradas</span>
+        <span class="record-count">{{ totalCount }} registradas</span>
       }
     </div>
 
@@ -110,18 +124,21 @@
           <article class="community-card" [class.community-card--editing]="editingId === community.id">
             <div class="community-card__topline">
               <span class="community-card__icon" aria-hidden="true">◇</span>
-              <span class="community-card__status">Registrada</span>
+              <span class="community-card__status">{{ community.isActive ? 'Activa' : 'Inactiva' }}</span>
             </div>
             <h3>{{ community.name }}</h3>
             <p class="community-card__location">
               <span aria-hidden="true">●</span>{{ community.location }}
             </p>
+            <p>{{ community.municipality || 'Municipio pendiente' }} &middot; {{ community.department || 'Departamento pendiente' }} &middot; {{ community.country || 'País pendiente' }}</p>
+            <p>{{ community.sensorCount ?? 0 }} sensores asociados</p>
             <p class="community-card__description">
               {{ community.description || 'Sin descripción registrada.' }}
             </p>
             @if (canAdminister()) {
               <div class="community-card__actions">
                 <button type="button" (click)="editCommunity(community)">Editar</button>
+                <button type="button" (click)="changeStatus(community)" [disabled]="!!deletingId">{{ community.isActive ? 'Desactivar' : 'Activar' }}</button>
                 <button type="button" class="danger-button" (click)="deleteCommunity(community)" [disabled]="deletingId === community.id">{{ deletingId === community.id ? 'Eliminando...' : 'Eliminar' }}</button>
               </div>
             }
@@ -130,4 +147,9 @@
       </div>
     }
   </section>
+  <nav class="form-actions" aria-label="Páginación de comunidades">
+    <button type="button" class="secondary-button" [disabled]="loading || page <= 1" (click)="goToPage(page - 1)">Anterior</button>
+    <span>Página {{ page }} de {{ totalPages || 1 }} ? {{ totalCount }} resultados</span>
+    <button type="button" class="secondary-button" [disabled]="loading || page >= totalPages" (click)="goToPage(page + 1)">Siguiente</button>
+  </nav>
 </section>

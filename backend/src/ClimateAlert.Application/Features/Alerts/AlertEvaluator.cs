@@ -11,6 +11,8 @@ public sealed class AlertEvaluator(
 {
     public async Task EvaluateAsync(SensorReading reading, CancellationToken cancellationToken)
     {
+        if (reading.Sensor.Status != SensorStatus.Active) return;
+
         if (await alerts.ExistsForReadingAsync(reading.Id, cancellationToken))
         {
             return;
