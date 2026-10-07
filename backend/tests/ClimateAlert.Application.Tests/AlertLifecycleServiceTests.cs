@@ -10,6 +10,7 @@ namespace ClimateAlert.Application.Tests;
 public sealed class AlertLifecycleServiceTests
 {
     private static readonly DateTimeOffset StartedAt = new(2026, 8, 19, 12, 0, 0, TimeSpan.Zero);
+    private static readonly Guid ResponsibleId = Guid.NewGuid();
     private static readonly DateTimeOffset ActionAt = StartedAt.AddMinutes(30);
 
     [Fact]
@@ -18,7 +19,7 @@ public sealed class AlertLifecycleServiceTests
         TestContext context = new();
         Alert alert = context.AddAlert();
 
-        AlertResponse response = await context.Service.AcknowledgeAsync(alert.Id, default);
+        AlertResponse response = await context.Service.AcknowledgeAsync(alert.Id, ResponsibleId, default);
 
         Assert.Equal(AlertStatus.Acknowledged, response.Status);
         Assert.Equal(ActionAt, response.UpdatedAt);
@@ -30,23 +31,20 @@ public sealed class AlertLifecycleServiceTests
     {
         TestContext context = new();
         Alert alert = context.AddAlert();
-        await context.Service.AcknowledgeAsync(alert.Id, default);
+        await context.Service.AcknowledgeAsync(alert.Id, ResponsibleId, default);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => context.Service.AcknowledgeAsync(alert.Id, default));
+            () => context.Service.AcknowledgeAsync(alert.Id, ResponsibleId, default));
     }
 
     [Fact]
-    public async Task ResolvesOpenAlertAndPersistsOnce()
+    public async Task RejectsManualClosureOfOpenAlert()
     {
         TestContext context = new();
         Alert alert = context.AddAlert();
-
-        AlertResponse response = await context.Service.ResolveAsync(alert.Id, default);
-
-        Assert.Equal(AlertStatus.Closed, response.Status);
-        Assert.Equal(ActionAt, response.ClosedAt);
-        Assert.Equal(1, context.UnitOfWork.SaveCalls);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => context.Service.ResolveAsync(alert.Id, ResponsibleId, default));
+        Assert.Equal(AlertStatus.Open, alert.Status);
+        Assert.Equal(0, context.UnitOfWork.SaveCalls);
     }
 
     [Fact]
@@ -56,7 +54,7 @@ public sealed class AlertLifecycleServiceTests
         Alert alert = context.AddAlert();
         alert.Acknowledge(StartedAt.AddMinutes(10));
 
-        AlertResponse response = await context.Service.ResolveAsync(alert.Id, default);
+        AlertResponse response = await context.Service.ResolveAsync(alert.Id, ResponsibleId, default);
 
         Assert.Equal(AlertStatus.Closed, response.Status);
     }
@@ -66,10 +64,11 @@ public sealed class AlertLifecycleServiceTests
     {
         TestContext context = new();
         Alert alert = context.AddAlert();
-        await context.Service.ResolveAsync(alert.Id, default);
+        alert.Acknowledge(StartedAt.AddMinutes(10), ResponsibleId);
+        await context.Service.ResolveAsync(alert.Id, ResponsibleId, default);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => context.Service.ResolveAsync(alert.Id, default));
+            () => context.Service.ResolveAsync(alert.Id, ResponsibleId, default));
     }
 
     [Fact]
@@ -78,7 +77,7 @@ public sealed class AlertLifecycleServiceTests
         TestContext context = new();
 
         await Assert.ThrowsAsync<NotFoundException>(
-            () => context.Service.ResolveAsync(Guid.NewGuid(), default));
+            () => context.Service.ResolveAsync(Guid.NewGuid(), ResponsibleId, default));
     }
 
     [Fact]
@@ -89,7 +88,8 @@ public sealed class AlertLifecycleServiceTests
         Alert second = context.AddAlert();
         ClimateEvent climateEvent = context.AssignToEvent(first, second);
 
-        await context.Service.ResolveAsync(first.Id, default);
+        first.Acknowledge(StartedAt.AddMinutes(10), ResponsibleId);
+        await context.Service.ResolveAsync(first.Id, ResponsibleId, default);
 
         Assert.Equal(EventStatus.Open, climateEvent.Status);
         Assert.Equal(AlertStatus.Open, second.Status);
@@ -100,9 +100,10 @@ public sealed class AlertLifecycleServiceTests
     {
         TestContext context = new();
         Alert alert = context.AddAlert();
+        alert.Acknowledge(StartedAt.AddMinutes(10), ResponsibleId);
         ClimateEvent climateEvent = context.AssignToEvent(alert);
 
-        await context.Service.ResolveAsync(alert.Id, default);
+        await context.Service.ResolveAsync(alert.Id, ResponsibleId, default);
 
         Assert.Equal(EventStatus.Closed, climateEvent.Status);
         Assert.Equal(ActionAt, climateEvent.EndedAt);
@@ -121,7 +122,7 @@ public sealed class AlertLifecycleServiceTests
                 _alerts,
                 new EmptyCommunityRepository(),
                 UnitOfWork,
-                new FixedTimeProvider(ActionAt));
+                new FixedTimeProvider(ActionAt), new FakeAudit());
         }
 
         public Alert AddAlert()
@@ -209,6 +210,11 @@ public sealed class AlertLifecycleServiceTests
             SaveCalls++;
             return Task.FromResult(1);
         }
+    }
+
+    private sealed class FakeAudit : IAlertLifecycleAudit
+    {
+        public Task QueueAsync(Guid responsibleId, Alert alert, string action, DateTimeOffset at, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider

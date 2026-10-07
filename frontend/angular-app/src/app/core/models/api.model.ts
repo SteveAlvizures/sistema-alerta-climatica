@@ -63,6 +63,21 @@ export interface PagedResponse<T> {
 }
 
 export interface AlertDto {
+  communityName?: string;
+  sensorName?: string;
+  sensorCode?: string;
+  ruleName?: string;
+  ruleCode?: string;
+  statusLabel?: string;
+  minValue?: number | null;
+  maxValue?: number | null;
+  usesRange?: boolean | null;
+  comparisonOperator?: string | null;
+  acknowledgedAt?: string | null;
+  acknowledgedById?: string | null;
+  acknowledgedByName?: string | null;
+  closedById?: string | null;
+  closedByName?: string | null;
   id: string;
   communityId: string;
   ruleId: string;

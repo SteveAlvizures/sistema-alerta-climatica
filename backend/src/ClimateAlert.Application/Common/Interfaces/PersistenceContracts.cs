@@ -56,7 +56,9 @@ public interface IAlertRepository
     Task<IReadOnlyList<Alert>> GetAllAsync(CancellationToken cancellationToken);
     Task<(IReadOnlyList<Alert> Items, int TotalCount, int PreventiveCount, int HighCount, int CriticalCount)> GetPageAsync(
         Guid? communityId, ClimateVariable? variable, DangerLevel? level,
-        int page, int pageSize, CancellationToken cancellationToken) =>
+        int page, int pageSize, CancellationToken cancellationToken,
+        Guid? sensorId = null, ClimatePhenomenon? phenomenon = null, AlertStatus? status = null,
+        DateTimeOffset? dateFrom = null, DateTimeOffset? dateTo = null) =>
         throw new NotSupportedException();
     Task<IReadOnlyList<Alert>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken);
     Task<Alert?> GetByIdAsync(Guid id, CancellationToken cancellationToken);

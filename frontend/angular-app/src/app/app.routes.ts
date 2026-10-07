@@ -50,6 +50,10 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'alerts/:id',
+        loadComponent: () => import('./features/alerts/pages/alert-detail-page/alert-detail-page').then(component => component.AlertDetailPage),
+      },
+      {
         path: 'history',
         loadComponent: () =>
           import('./features/history/pages/history-page/history-page').then(

@@ -283,22 +283,23 @@ describe('DashboardDataService', () => {
 
       expect(acknowledge).toHaveBeenCalledOnceWith('alert-1');
       expect(getByCommunity).toHaveBeenCalledTimes(2);
-      expect(service.dashboard()?.alert?.apiStatus).toBe('Acknowledged');
+      expect(service.dashboard()?.alert).toBeNull();
+      expect(service.dashboard()?.activeAlerts).toEqual([]);
     });
 
-    it('resolves an Open alert and refreshes to no active alert', () => {
+    it('does not close an active alert directly', () => {
       const { service, resolve } = createLifecycle('Open', 'Closed');
       service.updateSelectedAlert('resolve');
 
-      expect(resolve).toHaveBeenCalledOnceWith('alert-1');
-      expect(service.dashboard()?.level).toBeNull();
-      expect(service.dashboard()?.alert).toBeNull();
+      expect(resolve).not.toHaveBeenCalled();
+      expect(service.dashboard()?.alert?.apiStatus).toBe('Open');
     });
 
-    it('resolves an Acknowledged alert', () => {
+    it('does not present an attended alert as active', () => {
       const { service, resolve } = createLifecycle('Acknowledged', 'Closed');
       service.updateSelectedAlert('resolve');
-      expect(resolve).toHaveBeenCalledOnceWith('alert-1');
+      expect(resolve).not.toHaveBeenCalled();
+      expect(service.dashboard()?.activeAlerts).toEqual([]);
     });
 
     it('keeps real dashboard data and exposes a clear transition error', () => {
@@ -307,18 +308,18 @@ describe('DashboardDataService', () => {
       service.updateSelectedAlert('acknowledge');
 
       expect(service.dashboard()?.alert?.id).toBe('alert-1');
-      expect(service.alertActionError()).toContain('No fue posible reconocer');
+      expect(service.alertActionError()).toContain('No fue posible atender');
       expect(service.alertActionInProgress()).toBeFalse();
     });
 
     it('prevents duplicate alert requests while one is pending', () => {
       const pending = new Subject<AlertDto>();
-      const { service, resolve } = createLifecycle();
-      resolve.and.returnValue(pending);
-      service.updateSelectedAlert('resolve');
-      service.updateSelectedAlert('resolve');
+      const { service, acknowledge } = createLifecycle();
+      acknowledge.and.returnValue(pending);
+      service.updateSelectedAlert('acknowledge');
+      service.updateSelectedAlert('acknowledge');
 
-      expect(resolve).toHaveBeenCalledTimes(1);
+      expect(acknowledge).toHaveBeenCalledTimes(1);
       expect(service.alertActionInProgress()).toBeTrue();
     });
   });

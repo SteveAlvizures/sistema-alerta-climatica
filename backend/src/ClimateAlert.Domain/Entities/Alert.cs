@@ -44,6 +44,7 @@ public sealed class Alert
         RuleId = rule.Id;
         SupportingReadingId = supportingReading.Id;
         ActivationPointSnapshot = rule.ActivationPoint;
+        CaptureCondition(rule);
         Level = rule.DangerLevel;
         Phenomenon = rule.Phenomenon;
         Message = message.Trim();
@@ -64,6 +65,10 @@ public sealed class Alert
     public Guid SupportingReadingId { get; private set; }
     public SensorReading SupportingReading { get; private set; } = null!;
     public decimal ActivationPointSnapshot { get; private set; }
+    public decimal? LowerLimitSnapshot { get; private set; }
+    public decimal? UpperLimitSnapshot { get; private set; }
+    public bool? UsesRangeSnapshot { get; private set; }
+    public string? ComparisonOperatorSnapshot { get; private set; }
     public DangerLevel Level { get; private set; }
     public ClimatePhenomenon Phenomenon { get; private set; }
     public AlertStatus Status { get; private set; }
@@ -71,6 +76,11 @@ public sealed class Alert
     public DateTimeOffset DetectedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
     public DateTimeOffset? ClosedAt { get; private set; }
+    public DateTimeOffset? AcknowledgedAt { get; private set; }
+    public Guid? AcknowledgedById { get; private set; }
+    public User? AcknowledgedBy { get; private set; }
+    public Guid? ClosedById { get; private set; }
+    public User? ClosedBy { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public Guid? EventId { get; private set; }
     public Event? Event { get; private set; }
@@ -111,6 +121,14 @@ public sealed class Alert
 
         Status = AlertStatus.Acknowledged;
         UpdatedAt = acknowledgedAt;
+        AcknowledgedAt = acknowledgedAt;
+    }
+
+    public void Acknowledge(DateTimeOffset acknowledgedAt, Guid responsibleId)
+    {
+        if (responsibleId == Guid.Empty) throw new ArgumentException("A responsible user is required.", nameof(responsibleId));
+        Acknowledge(acknowledgedAt);
+        AcknowledgedById = responsibleId;
     }
 
     public void Transition(AlertRule rule, SensorReading supportingReading, string message, DateTimeOffset updatedAt)
@@ -134,6 +152,7 @@ public sealed class Alert
         Update(rule.DangerLevel, message, updatedAt);
         Rule = rule;
         ActivationPointSnapshot = rule.ActivationPoint;
+        CaptureCondition(rule);
         RuleId = rule.Id;
         SupportingReading = supportingReading;
         SupportingReadingId = supportingReading.Id;
@@ -154,6 +173,23 @@ public sealed class Alert
         Status = AlertStatus.Closed;
         ClosedAt = closedAt;
         UpdatedAt = closedAt;
+    }
+
+    public void Close(DateTimeOffset closedAt, Guid responsibleId)
+    {
+        if (responsibleId == Guid.Empty) throw new ArgumentException("A responsible user is required.", nameof(responsibleId));
+        if (Status != AlertStatus.Acknowledged)
+            throw new InvalidOperationException("Only an attended alert can be manually closed.");
+        Close(closedAt);
+        ClosedById = responsibleId;
+    }
+
+    private void CaptureCondition(AlertRule rule)
+    {
+        LowerLimitSnapshot = rule.LowerLimit;
+        UpperLimitSnapshot = rule.UpperLimit;
+        UsesRangeSnapshot = rule.UsesRange;
+        ComparisonOperatorSnapshot = rule.ComparisonOperator;
     }
 
     internal void AssignToEvent(Event climateEvent)

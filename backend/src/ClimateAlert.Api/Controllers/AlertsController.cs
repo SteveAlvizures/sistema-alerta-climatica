@@ -2,15 +2,14 @@ using ClimateAlert.Api.Authentication;
 using ClimateAlert.Application.Features.Alerts;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using ClimateAlert.Api.Audit;
-using ClimateAlert.Application.Features.SensorReadings;
+using System.Security.Claims;
 using ClimateAlert.Domain.Enums;
 
 namespace ClimateAlert.Api.Controllers;
 
 [ApiController]
 [Route("api/alerts")]
-public sealed class AlertsController(AlertService service, AuditActionService audit) : ControllerBase
+public sealed class AlertsController(AlertService service) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<AlertPageResponse>> GetPage(
@@ -19,8 +18,14 @@ public sealed class AlertsController(AlertService service, AuditActionService au
         [FromQuery] Guid? communityId = null,
         [FromQuery] ClimateVariable? variable = null,
         [FromQuery] DangerLevel? level = null,
+        [FromQuery] Guid? sensorId = null,
+        [FromQuery] ClimatePhenomenon? phenomenon = null,
+        [FromQuery] AlertStatus? status = null,
+        [FromQuery] DateTimeOffset? dateFrom = null,
+        [FromQuery] DateTimeOffset? dateTo = null,
         CancellationToken cancellationToken = default) =>
-        Ok(await service.GetPageAsync(communityId, variable, level, page, pageSize, cancellationToken));
+        Ok(await service.GetPageAsync(communityId, variable, level, page, pageSize, cancellationToken,
+            sensorId, phenomenon, status, dateFrom, dateTo));
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<AlertResponse>> GetById(
@@ -40,9 +45,7 @@ public sealed class AlertsController(AlertService service, AuditActionService au
         Guid id,
         CancellationToken cancellationToken)
     {
-        AlertResponse updated = await service.AcknowledgeAsync(id, cancellationToken);
-        await audit.RecordAsync(User, "AlertaReconocida", "Alert", updated.Id,
-            $"Se reconoció la alerta: {updated.Message}", cancellationToken);
+        AlertResponse updated = await service.AcknowledgeAsync(id, ResponsibleId(), cancellationToken);
         return Ok(updated);
     }
 
@@ -52,9 +55,10 @@ public sealed class AlertsController(AlertService service, AuditActionService au
         Guid id,
         CancellationToken cancellationToken)
     {
-        AlertResponse updated = await service.ResolveAsync(id, cancellationToken);
-        await audit.RecordAsync(User, "AlertaResuelta", "Alert", updated.Id,
-            $"Se resolvió la alerta: {updated.Message}", cancellationToken);
+        AlertResponse updated = await service.ResolveAsync(id, ResponsibleId(), cancellationToken);
         return Ok(updated);
     }
+
+    private Guid ResponsibleId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? User.FindFirstValue("sub") ?? throw new InvalidOperationException("Missing authenticated identity."));
 }

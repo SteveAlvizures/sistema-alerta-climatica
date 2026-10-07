@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<AlertRuleService>();
         services.AddScoped<AlertService>();
         services.AddScoped<AuditActionService>();
+        services.AddScoped<IAlertLifecycleAudit, AlertLifecycleAudit>();
         services.AddScoped<UserManagementService>();
         services.AddScoped<IAlertEvaluator, AlertEvaluator>();
         services.AddSingleton(TimeProvider.System);

@@ -82,7 +82,7 @@ const phenomenonLabels: Record<ApiClimatePhenomenon, string> = {
   Frost: 'Helada', Wildfire: 'Incendio forestal',
 };
 const alertStatusLabels: Record<ApiAlertStatus, string> = {
-  Open: 'Abierta', Acknowledged: 'Reconocida', Closed: 'Cerrada',
+  Open: 'Activa', Acknowledged: 'Atendida', Closed: 'Cerrada',
 };
 
 @Injectable({ providedIn: 'root' })
@@ -178,7 +178,7 @@ export class DashboardDataService {
     const alert = this.apiDashboard()?.alert;
     if (this.source() !== 'api' || !alert?.id || this.alertActionInProgress()) return;
     if (action === 'acknowledge' && alert.apiStatus !== 'Open') return;
-    if (action === 'resolve' && alert.apiStatus === 'Closed') return;
+    if (action === 'resolve' && alert.apiStatus !== 'Acknowledged') return;
 
     this.alertActionInProgress.set(true);
     this.alertActionError.set(null);
@@ -201,8 +201,8 @@ export class DashboardDataService {
         this.alertActionInProgress.set(false);
         this.alertActionError.set(
           action === 'acknowledge'
-            ? 'No fue posible reconocer la alerta. Inténtalo de nuevo.'
-            : 'No fue posible resolver la alerta. Inténtalo de nuevo.',
+            ? 'No fue posible atender la alerta. Inténtalo de nuevo.'
+            : 'No fue posible cerrar la alerta. Inténtalo de nuevo.',
         );
       },
     });
@@ -322,7 +322,7 @@ export class DashboardDataService {
       .filter((item): item is SensorWithReading & { reading: SensorReadingDto } => item.reading !== null)
       .sort((left, right) => Date.parse(right.reading.measuredAt) - Date.parse(left.reading.measuredAt));
     const activeAlerts = alerts
-      .filter((alert) => alert.status === 'Open' || alert.status === 'Acknowledged')
+      .filter((alert) => alert.status === 'Open')
       .sort((left, right) => dangerLevelPriority[right.level] - dangerLevelPriority[left.level]
         || Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
     const highestAlert = activeAlerts[0];

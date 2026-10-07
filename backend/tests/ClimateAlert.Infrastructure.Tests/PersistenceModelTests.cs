@@ -86,7 +86,9 @@ public sealed class PersistenceModelTests
         Assert.NotNull(alert.FindProperty(nameof(Alert.Status)));
         Assert.NotNull(alert.FindProperty(nameof(Alert.UpdatedAt)));
         Assert.NotNull(alert.FindProperty(nameof(Alert.ClosedAt)));
-        Assert.Null(alert.FindProperty("AcknowledgedAt"));
+        Assert.NotNull(alert.FindProperty(nameof(Alert.AcknowledgedAt)));
+        Assert.NotNull(alert.FindProperty(nameof(Alert.AcknowledgedById)));
+        Assert.NotNull(alert.FindProperty(nameof(Alert.ClosedById)));
     }
 
     [Fact]

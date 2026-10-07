@@ -13,12 +13,16 @@ public sealed class AlertConfiguration : IEntityTypeConfiguration<Alert>
         builder.Property(alert => alert.Id).ValueGeneratedNever();
         builder.Property(alert => alert.Level).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(alert => alert.Phenomenon).HasConversion<string>().HasMaxLength(30).IsRequired();
-        builder.Property(alert => alert.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(alert => alert.Status).HasConversion<string>().HasMaxLength(20).IsRequired().IsConcurrencyToken();
         builder.Property(alert => alert.ActivationPointSnapshot).HasPrecision(18, 4);
+        builder.Property(alert => alert.LowerLimitSnapshot).HasPrecision(18, 4);
+        builder.Property(alert => alert.UpperLimitSnapshot).HasPrecision(18, 4);
+        builder.Property(alert => alert.ComparisonOperatorSnapshot).HasMaxLength(2);
         builder.Property(alert => alert.Message).HasMaxLength(1000).IsRequired();
         builder.Property(alert => alert.DetectedAt).HasColumnType("datetimeoffset").IsRequired();
-        builder.Property(alert => alert.UpdatedAt).HasColumnType("datetimeoffset").IsRequired();
+        builder.Property(alert => alert.UpdatedAt).HasColumnType("datetimeoffset").IsRequired().IsConcurrencyToken();
         builder.Property(alert => alert.ClosedAt).HasColumnType("datetimeoffset");
+        builder.Property(alert => alert.AcknowledgedAt).HasColumnType("datetimeoffset");
         builder.Property(alert => alert.CreatedAt).HasColumnType("datetimeoffset").IsRequired();
         builder.HasIndex(alert => new { alert.CommunityId, alert.Status, alert.DetectedAt });
 
@@ -30,5 +34,9 @@ public sealed class AlertConfiguration : IEntityTypeConfiguration<Alert>
             .WithMany(climateEvent => climateEvent.Alerts)
             .HasForeignKey(alert => alert.EventId)
             .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(alert => alert.AcknowledgedBy).WithMany()
+            .HasForeignKey(alert => alert.AcknowledgedById).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(alert => alert.ClosedBy).WithMany()
+            .HasForeignKey(alert => alert.ClosedById).OnDelete(DeleteBehavior.Restrict);
     }
 }

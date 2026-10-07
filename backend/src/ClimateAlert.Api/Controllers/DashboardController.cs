@@ -28,8 +28,8 @@ public sealed class DashboardController(ClimateAlertDbContext database) : Contro
             .ToListAsync(cancellationToken);
         var rules = await database.AlertRules.AsNoTracking().Where(item => item.CommunityId == community.Id && item.IsActive)
             .ToListAsync(cancellationToken);
-        var alerts = await database.Alerts.AsNoTracking().Where(item => item.CommunityId == community.Id)
-            .OrderByDescending(item => item.UpdatedAt).Take(20).ToListAsync(cancellationToken);
+        var alerts = await database.Alerts.AsNoTracking().Where(item => item.CommunityId == community.Id && item.Status == AlertStatus.Open)
+            .OrderByDescending(item => item.UpdatedAt).ToListAsync(cancellationToken);
 
         var indicators = sensors.Select(sensor =>
         {

@@ -58,11 +58,13 @@ La API obtiene del sensor su variable, unidad y origen. Un `409` indica, entre o
 
 | Verbo y ruta | Propósito | Acceso | Códigos relevantes |
 |---|---|---|---|
-| `GET /api/alerts` | Listar alertas. | Público | `200` |
-| `GET /api/alerts/{id}` | Consultar una alerta. | Público | `200`, `404` |
+| `GET /api/alerts` | Listar y filtrar alertas con paginación. | Público | `200`, `400` |
+| `GET /api/alerts/{id}` | Detalle, responsables y trazabilidad de una alerta. | Público | `200`, `404` |
 | `GET /api/communities/{id}/alerts` | Listar alertas de una comunidad. | Público | `200`, `404` |
-| `PATCH /api/alerts/{id}/acknowledge` | Marcar una alerta como reconocida. | Administrator / Operator | `200`, `401`, `403`, `404`, `409` |
-| `PATCH /api/alerts/{id}/resolve` | Resolver y cerrar una alerta. | Administrator / Operator | `200`, `401`, `403`, `404`, `409` |
+| `PATCH /api/alerts/{id}/acknowledge` | Atender una alerta Activa. | Administrator / Operator | `200`, `401`, `403`, `404`, `409` |
+| `PATCH /api/alerts/{id}/resolve` | Cerrar una alerta Atendida. | Administrator / Operator | `200`, `401`, `403`, `404`, `409` |
+
+Filtros: `dateFrom`, `dateTo` sobre fecha de detección, `communityId`, `sensorId`, `phenomenon`, `level`, `status` y `variable`. Los valores de estado en API se conservan como `Open`, `Acknowledged`, `Closed`; se presentan como Activa, Atendida, Cerrada. Las operaciones toman al responsable del JWT, conservan el historial y auditan el cambio. Consulta [Ciclo de vida de alertas](ciclo-vida-alertas.md).
 
 ## Dashboard, bitácora y health
 

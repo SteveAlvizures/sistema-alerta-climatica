@@ -158,26 +158,33 @@ public sealed class AlertRuleRepository(ClimateAlertDbContext dbContext) : IAler
 public sealed class AlertRepository(ClimateAlertDbContext dbContext) : IAlertRepository
 {
     public async Task<IReadOnlyList<Alert>> GetAllAsync(CancellationToken cancellationToken) =>
-        await dbContext.Alerts.AsNoTracking().Include(alert => alert.Rule).Include(alert => alert.SupportingReading).OrderByDescending(alert => alert.UpdatedAt)
+        await dbContext.Alerts.AsNoTracking().Include(alert => alert.Community).Include(alert => alert.AcknowledgedBy).Include(alert => alert.ClosedBy).Include(alert => alert.Rule).Include(alert => alert.SupportingReading).ThenInclude(reading => reading.Sensor).OrderByDescending(alert => alert.DetectedAt).ThenByDescending(alert => alert.Id)
             .ToListAsync(cancellationToken);
 
     public async Task<(IReadOnlyList<Alert> Items, int TotalCount, int PreventiveCount, int HighCount, int CriticalCount)> GetPageAsync(
         Guid? communityId, ClimateVariable? variable, DangerLevel? level,
-        int page, int pageSize, CancellationToken cancellationToken)
+        int page, int pageSize, CancellationToken cancellationToken,
+        Guid? sensorId = null, ClimatePhenomenon? phenomenon = null, AlertStatus? status = null,
+        DateTimeOffset? dateFrom = null, DateTimeOffset? dateTo = null)
     {
         IQueryable<Alert> query = dbContext.Alerts.AsNoTracking();
         if (communityId.HasValue) query = query.Where(alert => alert.CommunityId == communityId.Value);
         if (variable.HasValue) query = query.Where(alert => alert.SupportingReading.Variable == variable.Value);
         if (level.HasValue) query = query.Where(alert => alert.Level == level.Value);
 
+        if (sensorId.HasValue) query = query.Where(alert => alert.SupportingReading.SensorId == sensorId.Value);
+        if (phenomenon.HasValue) query = query.Where(alert => alert.Phenomenon == phenomenon.Value);
+        if (status.HasValue) query = query.Where(alert => alert.Status == status.Value);
+        if (dateFrom.HasValue) query = query.Where(alert => alert.DetectedAt >= dateFrom.Value);
+        if (dateTo.HasValue) query = query.Where(alert => alert.DetectedAt <= dateTo.Value);
         int totalCount = await query.CountAsync(cancellationToken);
         int preventiveCount = await query.CountAsync(alert => alert.Level == DangerLevel.Yellow, cancellationToken);
         int highCount = await query.CountAsync(alert => alert.Level == DangerLevel.Orange, cancellationToken);
         int criticalCount = await query.CountAsync(alert => alert.Level == DangerLevel.Red, cancellationToken);
         IReadOnlyList<Alert> items = await query
-            .Include(alert => alert.Rule).Include(alert => alert.SupportingReading)
-            .OrderByDescending(alert => alert.UpdatedAt)
-            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Include(alert => alert.Community).Include(alert => alert.AcknowledgedBy).Include(alert => alert.ClosedBy).Include(alert => alert.Rule).Include(alert => alert.SupportingReading).ThenInclude(reading => reading.Sensor)
+            .OrderByDescending(alert => alert.DetectedAt).ThenByDescending(alert => alert.Id)
+            .Skip((int)Math.Min((long)(page - 1) * pageSize, int.MaxValue)).Take(pageSize)
             .ToListAsync(cancellationToken);
         return (items, totalCount, preventiveCount, highCount, criticalCount);
     }
@@ -185,16 +192,16 @@ public sealed class AlertRepository(ClimateAlertDbContext dbContext) : IAlertRep
     public async Task<IReadOnlyList<Alert>> GetByCommunityAsync(
         Guid communityId,
         CancellationToken cancellationToken) =>
-        await dbContext.Alerts.AsNoTracking().Include(alert => alert.Rule).Include(alert => alert.SupportingReading).Where(alert => alert.CommunityId == communityId)
-            .OrderByDescending(alert => alert.UpdatedAt).ToListAsync(cancellationToken);
+        await dbContext.Alerts.AsNoTracking().Include(alert => alert.Community).Include(alert => alert.AcknowledgedBy).Include(alert => alert.ClosedBy).Include(alert => alert.Rule).Include(alert => alert.SupportingReading).ThenInclude(reading => reading.Sensor).Where(alert => alert.CommunityId == communityId)
+            .OrderByDescending(alert => alert.DetectedAt).ThenByDescending(alert => alert.Id).ToListAsync(cancellationToken);
 
     public Task<Alert?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
-        dbContext.Alerts.AsNoTracking().Include(alert => alert.Rule).Include(alert => alert.SupportingReading).SingleOrDefaultAsync(alert => alert.Id == id, cancellationToken);
+        dbContext.Alerts.AsNoTracking().Include(alert => alert.Community).Include(alert => alert.AcknowledgedBy).Include(alert => alert.ClosedBy).Include(alert => alert.Rule).Include(alert => alert.SupportingReading).ThenInclude(reading => reading.Sensor).SingleOrDefaultAsync(alert => alert.Id == id, cancellationToken);
 
     public Task<Alert?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Alerts
-            .Include(alert => alert.Rule)
-            .Include(alert => alert.SupportingReading)
+            .Include(alert => alert.Community).Include(alert => alert.AcknowledgedBy).Include(alert => alert.ClosedBy).Include(alert => alert.Rule)
+            .Include(alert => alert.SupportingReading).ThenInclude(reading => reading.Sensor)
             .Include(alert => alert.Event)
             .ThenInclude(climateEvent => climateEvent!.Alerts)
             .SingleOrDefaultAsync(alert => alert.Id == id, cancellationToken);
@@ -204,7 +211,7 @@ public sealed class AlertRepository(ClimateAlertDbContext dbContext) : IAlertRep
     {
         // Do not filter by rule activation/validity: those incidents still need reconciliation.
         var persisted = await dbContext.Alerts
-            .Include(alert => alert.SupportingReading)
+            .Include(alert => alert.SupportingReading).ThenInclude(reading => reading.Sensor)
             .Include(alert => alert.Event).ThenInclude(climateEvent => climateEvent!.Alerts)
             .Where(alert => alert.SupportingReading.SensorId == sensorId
                 && alert.SupportingReading.Variable == variable && alert.Status != AlertStatus.Closed)
@@ -261,6 +268,10 @@ public sealed class UnitOfWork(ClimateAlertDbContext dbContext) : IUnitOfWork
         try
         {
             return await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictException("La alerta cambio durante la operacion. Actualiza la consulta e intenta nuevamente.");
         }
         catch (DbUpdateException exception) when (
             exception.InnerException is SqlException { Number: 2601 or 2627 })

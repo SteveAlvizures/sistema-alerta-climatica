@@ -84,14 +84,14 @@ export class SimulatedClimateService implements OnDestroy {
         phenomenon: 'Inundación',
         message: 'Se mantiene vigilancia preventiva por el comportamiento reciente de la lluvia y del cauce.',
         occurredAt: `Actualizada hoy · ${timeLabel}`,
-        status: 'Abierta',
+        status: 'Activa',
         tone: 'yellow',
         hasEvent: true,
       },
       activeAlerts: [{
         level: 'Precaución', phenomenon: 'Inundación',
         message: 'Se mantiene vigilancia preventiva por el comportamiento reciente de la lluvia y del cauce.',
-        occurredAt: `Actualizada hoy · ${timeLabel}`, status: 'Abierta', tone: 'yellow', hasEvent: true,
+        occurredAt: `Actualizada hoy · ${timeLabel}`, status: 'Activa', tone: 'yellow', hasEvent: true,
         community: 'El Pinar', variable: 'Nivel de lluvia', value: `${scenario.rain} mm`,
       }],
       recentEvents: [

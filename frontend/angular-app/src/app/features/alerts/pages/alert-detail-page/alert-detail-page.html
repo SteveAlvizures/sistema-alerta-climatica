@@ -1,0 +1,29 @@
+<section class="detail-page">
+  <a routerLink="/alerts">← Volver a alertas</a>
+  <header><p>Seguimiento del incidente</p><h1>Detalle de alerta</h1></header>
+  @if (loading()) { <p aria-live="polite">Cargando detalle…</p> }
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  @if (alert(); as item) {
+    <article class="panel">
+      <div class="heading"><h2>{{ item.communityName || item.communityId }}</h2><span class="status">{{ statusLabel(item) }}</span></div>
+      <p class="message">{{ item.message }}</p>
+      <dl>
+        <div><dt>Fecha y hora de detección</dt><dd>{{ formatDate(item.detectedAt) }}</dd></div>
+        <div><dt>Última actualización</dt><dd>{{ formatDate(item.updatedAt) }}</dd></div>
+        <div><dt>Sensor</dt><dd><a [routerLink]="['/sensors', item.sensorId]">{{ item.sensorName || item.sensorId }}</a><small>{{ item.sensorCode }}</small></dd></div>
+        <div><dt>Fenómeno</dt><dd>{{ phenomenonLabels[item.phenomenon] }}</dd></div>
+        <div><dt>Nivel</dt><dd>{{ levelLabels[item.level] }}</dd></div>
+        <div><dt>Variable</dt><dd>{{ variableLabels[item.variable] }}</dd></div>
+        <div><dt>Valor detectado</dt><dd>{{ item.detectedValue }} {{ item.unit }}</dd></div>
+        <div><dt>Umbral / rango detectado</dt><dd>{{ conditionLabel(item) }}</dd></div>
+        <div><dt>Regla</dt><dd>{{ item.ruleName || item.ruleId }}<small>{{ item.ruleCode }} · {{ item.ruleId }}</small></dd></div>
+        <div><dt>Lectura de soporte</dt><dd>{{ item.supportingReadingId }}</dd></div>
+        <div><dt>Evento relacionado</dt><dd>{{ item.eventId || 'Sin evento asociado' }}</dd></div>
+        <div><dt>Identificador de alerta</dt><dd>{{ item.id }}</dd></div>
+        <div><dt>Atendida por</dt><dd>{{ item.acknowledgedByName || item.acknowledgedById || 'Sin responsable registrado' }}<small>{{ formatDate(item.acknowledgedAt) }}</small></dd></div>
+        <div><dt>Cerrada por</dt><dd>{{ item.closedByName || item.closedById || (item.closedAt ? 'Sistema automático o cierre histórico' : 'Sin cierre') }}<small>{{ item.closedAt ? formatDate(item.closedAt) : 'Pendiente' }}</small></dd></div>
+      </dl>
+      <app-alert-actions [alert]="item" (changed)="alert.set($event)" />
+    </article>
+  }
+</section>

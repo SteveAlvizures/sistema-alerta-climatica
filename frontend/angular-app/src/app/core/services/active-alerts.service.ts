@@ -15,7 +15,7 @@ export class ActiveAlertsService {
   );
 
   refresh(): void {
-    this.api.getAll().subscribe({
+    this.api.getAll('Open').subscribe({
       next: (alerts) => {
         this.alerts.set(alerts.filter((alert) => alert.status === 'Open' && alert.level !== 'Green'));
         this.loadError.set(false);
