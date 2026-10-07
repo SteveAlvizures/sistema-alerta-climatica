@@ -29,12 +29,18 @@ export class AuthService {
       this.currentSession.set(session);
     }));
   }
-  logout(): void { sessionStorage.removeItem(storageKey); this.currentSession.set(null); }
+  logout(): void {
+    if (this.validSession()) {
+      this.http.post<void>(`${this.baseUrl}/auth/logout`, {}).subscribe({ error: () => {} });
+    }
+    this.clearSession();
+  }
+  private clearSession(): void { sessionStorage.removeItem(storageKey); this.currentSession.set(null); }
   token(): string | null { return this.validSession()?.accessToken ?? null; }
   private validSession(): AuthSession | null {
     const session = this.currentSession();
     if (!session || new Date(session.expiresAt).getTime() <= Date.now()) {
-      if (session) this.logout();
+      if (session) this.clearSession();
       return null;
     }
     return session;

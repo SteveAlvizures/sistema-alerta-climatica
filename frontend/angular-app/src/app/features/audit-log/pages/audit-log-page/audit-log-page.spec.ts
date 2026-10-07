@@ -15,4 +15,13 @@ describe('AuditLogPage', () => {
   it('navigates only when the backend metadata permits it', () => { const page = fixture.componentInstance as any; page.next(); expect(getPage.calls.mostRecent().args[0]).toBe(2); page.hasPrevious = true; page.previous(); expect(getPage.calls.mostRecent().args[0]).toBe(1); });
   it('returns to page one when page size changes', () => { const page = fixture.componentInstance as any; page.page = 2; page.pageSize = 10; page.changePageSize(); expect(getPage.calls.mostRecent().args.slice(0, 2)).toEqual([1, 10]); });
   it('distinguishes no filtered results from an empty audit log', () => { getPage.and.returnValue(of(result({ data: [], totalCount: 0, totalPages: 0, hasNext: false }))); const page = fixture.componentInstance as any; page.load(); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('No existen registros de auditoría disponibles.'); page.draftFilters.username = 'Nadie'; page.applyFilters(); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('No se encontraron registros para los filtros seleccionados.'); });
+  it('renders labels for the completed audit catalog and historical manual readings', () => {
+    const page = fixture.componentInstance as any;
+    expect(page.actionLabel('Logout')).toBe('Cierre de sesi\u00f3n');
+    expect(page.actionLabel('ReglaEditada')).toBe('Regla editada');
+    expect(page.actionLabel('LecturaManualCreada')).toBe('Lectura manual creada');
+    expect(page.actionLabel('ComunidadEliminada')).toBe('Comunidad eliminada');
+    expect(page.actionLabel('CreateManualReading')).toContain('hist\u00f3rica');
+    expect(page.entityLabel('SensorReading')).toBe('Lectura');
+  });
 });

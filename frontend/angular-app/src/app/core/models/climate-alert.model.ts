@@ -17,6 +17,7 @@ export interface ClimateAlert {
 }
 
 export interface RecentClimateEvent {
+  id?: string;
   title: string;
   detail: string;
   occurredAt: string;

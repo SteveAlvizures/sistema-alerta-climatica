@@ -59,13 +59,13 @@ public sealed class AuditActionService(ClimateAlertDbContext database, TimeProvi
         if (!string.IsNullOrWhiteSpace(username))
         {
             string text = username.Trim();
-            query = query.Where(item => item.User.Name.Contains(text));
+            query = query.Where(item => item.User.Name.Contains(text) || item.User.Email.Contains(text));
         }
 
         if (!string.IsNullOrWhiteSpace(action))
         {
             string normalizedAction = action.Trim();
-            query = query.Where(item => item.Action == normalizedAction);
+            query = query.Where(item => item.Action == normalizedAction || (normalizedAction == "LecturaManualCreada" && item.Action == "CreateManualReading"));
         }
 
         if (!string.IsNullOrWhiteSpace(entity))
@@ -79,7 +79,8 @@ public sealed class AuditActionService(ClimateAlertDbContext database, TimeProvi
 
         int totalCount = await query.CountAsync(cancellationToken);
         IReadOnlyList<AuditActionResponse> data = await query.OrderByDescending(item => item.OccurredAt)
-            .Skip((page - 1) * pageSize)
+            .ThenByDescending(item => item.Id)
+            .Skip((int)Math.Min((long)(page - 1) * pageSize, int.MaxValue))
             .Take(pageSize)
             .Select(item => new AuditActionResponse(
                 item.Id, item.OccurredAt, item.User.Name, item.Action, item.AffectedEntity,

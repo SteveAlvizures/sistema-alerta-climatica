@@ -60,6 +60,7 @@ public sealed class AuthorizationTests
             var http = method.GetCustomAttributes(true).OfType<HttpMethodAttribute>().Single();
             if (!http.HttpMethods.Contains("GET") && !anonymous)
                 Assert.Equal(controller == typeof(UsersController) ? AuthorizationPolicies.AdministratorOnly
+                    : controller == typeof(AuthController) ? AuthorizationPolicies.AuthenticatedUser
                     : AuthorizationPolicies.OperateSystem, permission?.Policy);
             string path = $"/probe/{controller.Name}/{method.Name}";
             var endpoint = app.MapGet(path, () => Microsoft.AspNetCore.Http.Results.NoContent());
@@ -76,7 +77,7 @@ public sealed class AuthorizationTests
             {
                 var expected = endpoint.Policy is null ? HttpStatusCode.NoContent
                     : role is null ? HttpStatusCode.Unauthorized
-                    : role == "Administrator" || (role == "Operator" && endpoint.Policy is AuthorizationPolicies.OperateSystem or AuthorizationPolicies.ConsultEvents)
+                    : endpoint.Policy == AuthorizationPolicies.AuthenticatedUser || role == "Administrator" || (role == "Operator" && endpoint.Policy is AuthorizationPolicies.OperateSystem or AuthorizationPolicies.ConsultEvents)
                         || (role == "ConsultationUser" && endpoint.Policy == AuthorizationPolicies.ConsultEvents)
                         ? HttpStatusCode.NoContent : HttpStatusCode.Forbidden;
                 Assert.Equal(expected, (await client.GetAsync(endpoint.Path)).StatusCode);

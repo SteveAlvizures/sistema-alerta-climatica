@@ -49,3 +49,12 @@ Consulta [Administración de usuarios](usuarios.md) para los endpoints y la demo
 - `409`: login duplicado o cambio administrativo que bloquearía el acceso propio.
 
 El manejador global no expone trazas ni detalles internos ante un `500`. En producción se usan HTTPS y secretos configurados fuera del código.
+
+## Bloque 8: sesiones y bitacora
+
+POST /api/auth/logout usa AuthenticatedUser y toma el actor del JWT. Es stateless: registra Logout,
+elimina la sesion del cliente y no revoca tokens ni agrega blacklist. GET /api/audit-actions sigue
+requiriendo AdministratorOnly (401 visitante, 403 Operator/ConsultationUser). Los filtros y nombres de
+usuario enviados solo afectan consultas, nunca determinan el autor auditado.
+GET /api/dashboard conserva acceso publico; sus eventos resumidos excluyen responsables de auditoria.
+El detalle /api/events/{id} y su ruta Angular conservan autenticacion. Ver [Auditoria](auditoria.md).

@@ -70,7 +70,9 @@ public sealed class CommunitiesController(CommunityService service, AuditActionS
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
+        var previous = await service.GetByIdAsync(id, cancellationToken);
         await service.DeleteAsync(id, cancellationToken);
+        await audit.RecordAsync(User, "ComunidadEliminada", "Community", id, $"Community deleted: {previous.Name}.", cancellationToken);
         return NoContent();
     }
 }

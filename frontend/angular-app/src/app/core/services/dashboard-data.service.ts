@@ -1,3 +1,4 @@
+import { DashboardApiService, DashboardSummary } from './dashboard-api.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import {
@@ -22,7 +23,7 @@ import {
   SensorDto,
   SensorReadingDto,
 } from '../models/api.model';
-import { ClimateAlert, DangerLevel, RecentClimateEvent } from '../models/climate-alert.model';
+import { ClimateAlert, DangerLevel } from '../models/climate-alert.model';
 import { ClimateDashboardState, ClimateTrendSeries, TrendMetric } from '../models/climate-dashboard.model';
 import { ClimateIndicator } from '../models/climate-indicator.model';
 import { ClimateSensor } from '../models/sensor.model';
@@ -89,6 +90,7 @@ const alertStatusLabels: Record<ApiAlertStatus, string> = {
 
 @Injectable({ providedIn: 'root' })
 export class DashboardDataService {
+  private readonly dashboardApi = inject(DashboardApiService);
   private readonly communityApi = inject(CommunityApiService);
   private readonly alertApi = inject(AlertApiService);
   private readonly sensorApi = inject(SensorApiService);
@@ -171,7 +173,7 @@ export class DashboardDataService {
 
   refreshSelected(): void {
     const community = this.communities().find(item => item.id === this.selectedCommunityId());
-    if (!community || this.source() !== 'api') return;
+    if (!community || this.source() !== 'api' || (this.activeRequest && !this.activeRequest.closed)) return;
     const version = this.beginRequest(true);
     this.observeOutcome(this.getCommunityOutcome(community), version, true);
   }
@@ -218,17 +220,18 @@ export class DashboardDataService {
 
   private getCommunityOutcome(community: CommunityDto): Observable<LoadOutcome> {
     return forkJoin({
+      summary: this.dashboardApi.get(community.id),
       sensors: this.sensorApi.getByCommunity(community.id),
       alerts: this.alertApi.getByCommunity(community.id),
       rules: this.alertRuleApi.getAll(),
     }).pipe(
-      switchMap(({ sensors, alerts, rules }): Observable<LoadOutcome> => {
+      switchMap(({ sensors, alerts, rules, summary }): Observable<LoadOutcome> => {
         const communityAlerts = alerts.filter((alert) => alert.communityId === community.id);
         const communityRules = rules.filter((rule) => rule.communityId === community.id && rule.isActive);
         if (sensors.length === 0) {
           return of({
             state: 'no-sensors',
-            dashboard: this.createApiDashboard(community, [], communityAlerts, [], communityRules),
+            dashboard: this.createApiDashboard(community, [], communityAlerts, [], communityRules, summary),
           });
         }
 
@@ -244,23 +247,17 @@ export class DashboardDataService {
           ),
         );
 
-        const historyRequests = sensors.map((sensor) =>
-          this.readingApi.getHistory(sensor.id, 1, 30).pipe(
-            map((response) => response.data),
-            catchError(() => of([] as SensorReadingDto[])),
-          ),
-        );
-        return forkJoin({ items: forkJoin(latestRequests), histories: forkJoin(historyRequests) }).pipe(
+        return forkJoin({ items: forkJoin(latestRequests), histories: of([summary.readingEvolution]) }).pipe(
           map(({ items, histories }) => ({
             state: 'ready' as const,
-            dashboard: this.createApiDashboard(community, items, communityAlerts, histories.flat(), communityRules),
+            dashboard: this.createApiDashboard(community, items, communityAlerts, histories.flat(), communityRules, summary),
           })),
           defaultIfEmpty({
             state: 'ready',
             dashboard: this.createApiDashboard(
               community,
               sensors.map((sensor) => ({ sensor, reading: null })),
-              communityAlerts, [], communityRules,
+              communityAlerts, [], communityRules, summary,
             ),
           }),
         );
@@ -319,6 +316,7 @@ export class DashboardDataService {
     alerts: AlertDto[],
     history: SensorReadingDto[] = [],
     rules: AlertRuleDto[] = [],
+    summary?: DashboardSummary,
   ): ClimateDashboardState {
     const latestReadings = items
       .filter((item): item is SensorWithReading & { reading: SensorReadingDto } => item.reading !== null)
@@ -335,22 +333,9 @@ export class DashboardDataService {
       [...alerts].sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0]?.updatedAt,
     ].filter((value): value is string => Boolean(value));
     const latestDate = [...updateCandidates].sort((left, right) => Date.parse(right) - Date.parse(left))[0];
-    const alertEvents: RecentClimateEvent[] = alerts
-      .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))
-      .map((alert) => ({
-        title: `Alerta ${dangerLevelLabels[alert.level]}`,
-        detail: `${alert.message} Estado: ${alertStatusLabels[alert.status]}.`,
-        occurredAt: this.formatDateTime(alert.updatedAt),
-        tone: alert.status === 'Closed' ? 'neutral' : dangerLevelTones[alert.level],
-      }));
-    const readingEvents: RecentClimateEvent[] = latestReadings.map(({ sensor, reading }) => ({
-      title: 'Lectura recibida',
-      detail: `${sensor.name}: ${reading.value} ${reading.unit}`,
-      occurredAt: this.formatDateTime(reading.measuredAt),
-      tone: 'green',
-    }));
 
     return {
+      kpis: summary ? { totalCommunities: summary.totalCommunities, activeSensors: summary.activeSensors, inactiveSensors: summary.inactiveSensors, activeAlerts: summary.activeAlerts } : undefined,
       communityName: community.name,
       level: mappedHighestAlert?.level ?? null,
       levelMessage: mappedHighestAlert?.message ?? 'Sin alertas activas para la comunidad seleccionada.',
@@ -378,7 +363,11 @@ export class DashboardDataService {
       sensors: items.map(({ sensor, reading }) => this.mapSensor(sensor, reading)),
       alert: mappedHighestAlert,
       activeAlerts: mappedActiveAlerts,
-      recentEvents: [...alertEvents, ...readingEvents].slice(0, 8),
+      recentEvents: (summary?.recentEvents ?? []).map(event => ({
+        id: event.id, title: `${phenomenonLabels[event.phenomenon]} \u00b7 ${dangerLevelLabels[event.level]}`,
+        detail: `${event.communityName} \u00b7 ${event.status === 'Open' ? 'Activo' : 'Cerrado'} \u00b7 ${event.description}`,
+        occurredAt: this.formatDateTime(event.occurredAt), tone: dangerLevelTones[event.level],
+      })),
       trend: this.createTrend(history, rules),
     };
   }

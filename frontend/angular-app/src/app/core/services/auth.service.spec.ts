@@ -55,9 +55,22 @@ describe('AuthService', () => {
       expiresAt: new Date(Date.now() + 60_000).toISOString(), name: 'Admin',
       email: 'admin@example.test', role: 'Administrator' });
     service.logout();
+    const logout = http.expectOne("/api/auth/logout");
+    expect(logout.request.method).toBe("POST");
+    expect(logout.request.headers.get("Authorization")).toBe("Bearer jwt-token");
+    logout.flush(null);
     expect(service.token()).toBeNull();
     expect(sessionStorage.getItem('vigia-rural-session')).toBeNull();
   });
+  it('clears local credentials even if logout auditing is unavailable', () => {
+    service.login({ username: 'account', password: 'secret' }).subscribe();
+    http.expectOne('/api/auth/login').flush({ accessToken: 'jwt', expiresAt: new Date(Date.now() + 60000).toISOString(), name: 'Account', email: 'account', role: 'Operator' });
+    service.logout();
+    expect(service.token()).toBeNull(); expect(service.isAuthenticated()).toBeFalse();
+    http.expectOne('/api/auth/logout').flush({}, { status: 503, statusText: 'Unavailable' });
+    expect(sessionStorage.getItem('vigia-rural-session')).toBeNull();
+  });
+
   for (const role of ['Administrator', 'Operator', 'ConsultationUser', 'User', 'Unknown']) {
     it(`enforces permissions for ${role}`, () => {
       service.login({ username: 'account', password: 'secret' }).subscribe();

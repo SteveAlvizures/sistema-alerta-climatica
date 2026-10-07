@@ -19,6 +19,7 @@ export interface ClimateTrendSeries {
 }
 
 export interface ClimateDashboardState {
+  kpis?: { totalCommunities: number; activeSensors: number; inactiveSensors: number; activeAlerts: number };
   communityName: string;
   level: DangerLevel | null;
   levelMessage: string;

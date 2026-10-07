@@ -37,9 +37,12 @@ public sealed class AlertRulesController(AlertRuleService service, AuditActionSe
     [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
     public async Task<ActionResult<AlertRuleResponse>> Update(Guid id, UpdateAlertRuleRequest request, CancellationToken cancellationToken)
     {
+        var previous = await service.GetByIdAsync(id, cancellationToken);
         var updated = await service.UpdateAsync(id, request, cancellationToken);
         await audit.RecordAsync(User, "ReglaEditada", "AlertRule", id,
             $"Se edito la regla {updated.Code}.", cancellationToken);
+        if (previous.IsActive != updated.IsActive)
+            await audit.RecordAsync(User, updated.IsActive ? "ReglaActivada" : "ReglaDesactivada", "AlertRule", id, $"Rule {updated.Code}: active={updated.IsActive}.", cancellationToken);
         return Ok(updated);
     }
 

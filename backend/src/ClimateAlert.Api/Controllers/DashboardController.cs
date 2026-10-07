@@ -1,3 +1,4 @@
+using ClimateAlert.Application.Features.Events;
 using ClimateAlert.Domain.Enums;
 using ClimateAlert.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,7 @@ namespace ClimateAlert.Api.Controllers;
 
 [ApiController]
 [Route("api/dashboard")]
-public sealed class DashboardController(ClimateAlertDbContext database) : ControllerBase
+public sealed class DashboardController(ClimateAlertDbContext database, EventService events) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] Guid? communityId, CancellationToken cancellationToken)
@@ -41,7 +42,23 @@ public sealed class DashboardController(ClimateAlertDbContext database) : Contro
                 unit = reading?.Unit, level, measuredAt = reading?.MeasuredAt };
         });
 
-        return Ok(new { communityId = community.Id, communityName = community.Name, indicators,
+        var totalCommunities = await database.Communities.CountAsync(cancellationToken);
+        // One correlated query keeps the existing latest-30 window per sensor in SQL.
+        var readingEvolution = await database.Sensors.AsNoTracking()
+            .Where(sensor => sensor.CommunityId == community.Id)
+            .SelectMany(sensor => database.SensorReadings.Where(item => item.SensorId == sensor.Id)
+                .OrderByDescending(item => item.MeasuredAt).ThenByDescending(item => item.Id).Take(30))
+            .Select(item => new { item.Id, item.SensorId, item.Variable, item.Value, item.Unit,
+                item.MeasuredAt, item.ReceivedAt, item.Origin }).ToListAsync(cancellationToken);
+        var eventPage = await events.GetPageAsync(new EventFilters(CommunityId: community.Id), 1, 8, cancellationToken);
+        // The public summary excludes responsible users and other administration metadata.
+        var recentEvents = eventPage.Data.Select(item => new { item.Id, item.OccurredAt, item.CommunityId,
+            item.CommunityName, item.Phenomenon, item.Level, item.Status, item.Description });
+        var distribution = Enum.GetValues<DangerLevel>().Select(level => new { level,
+            count = alerts.Count(item => item.Level == level) });
+        return Ok(new { totalCommunities, activeSensors = sensors.Count(item => item.IsActive),
+            inactiveSensors = sensors.Count(item => !item.IsActive), activeAlerts = alerts.Count,
+            alertDistributionByLevel = distribution, readingEvolution, recentEvents, communityId = community.Id, communityName = community.Name, indicators,
             sensors, alerts, lastUpdated = readings.OrderByDescending(item => item.ReceivedAt)
                 .FirstOrDefault()?.ReceivedAt });
     }

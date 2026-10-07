@@ -3,6 +3,7 @@ import { Subscription, timer } from 'rxjs';
 import { DangerLevel } from '../../../../core/models/climate-alert.model';
 import { DashboardDataService } from '../../../../core/services/dashboard-data.service';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
+import { ClimateTrend } from '../../components/climate-trend/climate-trend';
 import { AlertSummary } from '../../components/alert-summary/alert-summary';
 import { IndicatorCard } from '../../components/indicator-card/indicator-card';
 import { RecentHistory } from '../../components/recent-history/recent-history';
@@ -10,7 +11,7 @@ import { SensorStatus } from '../../components/sensor-status/sensor-status';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [StatusBadge, AlertSummary, IndicatorCard, RecentHistory, SensorStatus],
+  imports: [ClimateTrend, StatusBadge, AlertSummary, IndicatorCard, RecentHistory, SensorStatus],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.scss',
 })
@@ -19,7 +20,7 @@ export class DashboardPage implements OnInit, OnDestroy {
   protected readonly dangerLevels: DangerLevel[] = ['Normal', 'Precaución', 'Alerta', 'Emergencia'];
   private refreshSubscription?: Subscription;
 
-  ngOnInit(): void { this.refreshSubscription = timer(0, 15_000).subscribe(() => this.climate.refreshSelected()); }
+  ngOnInit(): void { this.refreshSubscription = timer(15_000, 15_000).subscribe(() => this.climate.refreshSelected()); }
   ngOnDestroy(): void { this.refreshSubscription?.unsubscribe(); }
   protected levelTone(level: DangerLevel): 'green' | 'yellow' | 'orange' | 'red' {
     return { Normal: 'green', 'Precaución': 'yellow', Alerta: 'orange', Emergencia: 'red' }[level] as 'green' | 'yellow' | 'orange' | 'red';

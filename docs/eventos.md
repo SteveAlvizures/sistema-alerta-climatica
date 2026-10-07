@@ -54,7 +54,7 @@ Estadísticas: total, active, closed, byPhenomenon (cinco categorías incluso co
 
 Módulo `/events` y detalle `/events/:id`, con guard autenticado y navegación lateral Eventos para sesiones existentes. Historial de lecturas y Bitácora se conservan separados. La página muestra filtros, paginación, etiquetas españolas, responsables, evidencia principal y estadísticas del filtro completo. El detalle enlaza sensores y alertas, incluyendo trazabilidad.
 
-El nuevo EventApiService permite consumir eventos reales desde el dashboard en Bloque 8. No se cambia su actividad sintética actual en este bloque: dashboard admite visitantes y los endpoints de eventos requieren autenticación. Cambiarlo ahora exigiría definir su comportamiento público/fallback y afectaría un flujo fuera de este alcance. Los indicadores actuales se conservan.
+Bloque 8 integra los ocho eventos persistidos mas recientes en GET /api/dashboard mediante EventService. El resumen publico no expone responsables; el detalle conserva autenticacion. Se reemplaza la actividad sintetica del modo API; ver [Dashboard](dashboard.md).
 
 ## Demostración
 

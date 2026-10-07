@@ -65,6 +65,20 @@ public sealed class AuditActionServiceTests
         Assert.False(result.HasPrevious); Assert.False(result.HasNext);
     }
 
+    [Fact]
+    public async Task CanonicalManualReadingFilterIncludesLegacyHistoryAndEmailSearch()
+    {
+        await using var database = CreateDatabase();
+        var user = AddUser(database, "Ana");
+        database.AuditActions.AddRange(new AuditAction(user, "CreateManualReading", "Legacy", "SensorReading", null, Start),
+            new AuditAction(user, "LecturaManualCreada", "Current", "SensorReading", null, Start.AddMinutes(1)));
+        await database.SaveChangesAsync();
+        var result = await new AuditActionService(database, TimeProvider.System)
+            .GetPageAsync(1, 1, user.Email, "LecturaManualCreada", "SensorReading", null, null, default);
+        Assert.Equal(2, result.TotalCount); Assert.Equal("LecturaManualCreada", Assert.Single(result.Data).Action);
+        Assert.True(result.HasNext); Assert.Equal(2, await database.AuditActions.CountAsync());
+    }
+
     private static ClimateAlertDbContext CreateDatabase() => new(new DbContextOptionsBuilder<ClimateAlertDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
     private static User AddUser(ClimateAlertDbContext database, string name) { User user = new(name, $"{Guid.NewGuid():N}@test", "hash", "Administrator", Start); database.Users.Add(user); return user; }
 }

@@ -1,7 +1,8 @@
+import { DashboardApiService } from './dashboard-api.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { EMPTY, Observable, of, Subject, throwError } from 'rxjs';
+import { EMPTY, map, Observable, of, Subject, throwError } from 'rxjs';
 import { AlertDto, CommunityDto, PagedResponse, SensorDto, SensorReadingDto } from '../models/api.model';
 import { ClimateDashboardState } from '../models/climate-dashboard.model';
 import { CommunityApiService } from './community-api.service';
@@ -38,7 +39,7 @@ const page = (data: SensorReadingDto[]): PagedResponse<SensorReadingDto> => ({ d
 
 describe('DashboardDataService', () => {
   beforeEach(() => TestBed.configureTestingModule({
-    providers: [{ provide: AlertRuleApiService, useValue: { getAll: () => of([]) } }],
+    providers: [{ provide: DashboardApiService, useValue: { get: () => of({ totalCommunities: 1, activeSensors: 0, inactiveSensors: 0, activeAlerts: 0, recentEvents: [], readingEvolution: [], alertDistributionByLevel: [] }) } }, { provide: AlertRuleApiService, useValue: { getAll: () => of([]) } }],
   }));
   function create(
     communitiesResult: Observable<CommunityDto[]>,
@@ -52,6 +53,7 @@ describe('DashboardDataService', () => {
     TestBed.configureTestingModule({
       providers: [
         DashboardDataService,
+        { provide: DashboardApiService, useValue: { get: () => historyResult.pipe(map(result => ({ totalCommunities: 1, activeSensors: 0, inactiveSensors: 0, activeAlerts: 0, recentEvents: [], readingEvolution: result.data, alertDistributionByLevel: [] }))) } },
         { provide: CommunityApiService, useValue: { getAll: () => communitiesResult } },
         { provide: AlertApiService, useValue: { getByCommunity: () => alertsResult } },
         { provide: SensorApiService, useValue: { getByCommunity: () => sensorsResult } },
@@ -115,6 +117,7 @@ describe('DashboardDataService', () => {
       { provide: SensorReadingApiService, useValue: { getLatest: (id: string) => of(readings.find(item => item.sensorId === id)!), getHistory: (id: string) => of(page(readings.filter(item => item.sensorId === id))) } },
       { provide: SimulatedClimateService, useValue: { dashboard: simulated } },
     ] });
+    TestBed.overrideProvider(DashboardApiService, { useValue: { get: () => of({ recentEvents: [], readingEvolution: readings }) } });
     const indicators = TestBed.inject(DashboardDataService).dashboard()!.indicators;
     expect(indicators.map(item => item.sensorId)).toEqual([sensor.id, peer.id]);
     expect(indicators[0].trend?.map(item => item.value)).toEqual([21]);
@@ -212,7 +215,7 @@ describe('DashboardDataService', () => {
     ]));
 
     expect(service.dashboard()?.level).toBe('Precaución');
-    expect(service.dashboard()?.recentEvents.length).toBe(1);
+    expect(service.dashboard()?.recentEvents).toEqual([]);
   });
 
   it('cancels an alert request when switching communities', () => {
@@ -250,6 +253,21 @@ describe('DashboardDataService', () => {
     expect(service.loadState()).toBe('error');
     expect(service.source()).toBe('api');
     expect(service.errorMessage()).toContain('No fue posible conectar');
+  });
+
+  it('uses persisted events and authoritative KPIs without creating reading or alert activity', () => {
+    const get = jasmine.createSpy().and.callFake((id: string) => of({ totalCommunities: 2, activeSensors: 1, inactiveSensors: 1, activeAlerts: 1,
+      readingEvolution: [], alertDistributionByLevel: [{ level: 'Yellow', count: 1 }],
+      recentEvents: [{ id: 'persisted-event', communityId: id, communityName: 'El Pinar', phenomenon: 'Flood', level: 'Yellow', status: 'Open', description: 'Persisted incident', occurredAt: '2026-08-19T12:00:00Z' }] }));
+    TestBed.overrideProvider(DashboardApiService, { useValue: { get } });
+    const service = create(of([community, secondCommunity]), of([]), EMPTY, of([alert, { ...alert, id: 'attended', status: 'Acknowledged' }]));
+    expect(service.dashboard()?.kpis).toEqual({ totalCommunities: 2, activeSensors: 1, inactiveSensors: 1, activeAlerts: 1 });
+    expect(service.dashboard()?.activeAlerts?.length).toBe(1);
+    const events = service.dashboard()!.recentEvents;
+    expect(events.length).toBe(1); expect(events[0].id).toBe('persisted-event');
+    expect(events[0].detail).toContain('Persisted incident');
+    service.selectCommunity(secondCommunity.id);
+    expect(get.calls.mostRecent().args).toEqual([secondCommunity.id]);
   });
 
   describe('alert lifecycle', () => {

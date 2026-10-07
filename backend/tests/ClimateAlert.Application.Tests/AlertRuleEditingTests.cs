@@ -46,7 +46,9 @@ public sealed class AlertRuleEditingTests
         var historical = await db.Alerts.SingleAsync();
         Assert.Equal("Original message", historical.Message); Assert.Equal(DangerLevel.Yellow, historical.Level);
         Assert.Equal(ClimatePhenomenon.Frost, historical.Phenomenon); Assert.Equal(30, historical.ActivationPointSnapshot);
-        var audit = await db.AuditActions.SingleAsync();
+        Assert.Equal(2, await db.AuditActions.CountAsync());
+        var audit = await db.AuditActions.SingleAsync(item => item.Action == "ReglaEditada");
+        Assert.Equal(rule.Id, (await db.AuditActions.SingleAsync(item => item.Action == "ReglaDesactivada")).AffectedRecordId);
         Assert.Equal("ReglaEditada", audit.Action); Assert.Equal(rule.Id, audit.AffectedRecordId);
     }
 }

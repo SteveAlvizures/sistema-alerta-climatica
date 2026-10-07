@@ -20,6 +20,9 @@ public sealed class AuditActionsController(AuditActionService service) : Control
         [FromQuery] string? entity = null,
         [FromQuery] DateTimeOffset? dateFrom = null,
         [FromQuery] DateTimeOffset? dateTo = null,
+        [FromQuery] string? user = null,
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null,
         CancellationToken cancellationToken = default) =>
-        Ok(await service.GetPageAsync(page, pageSize, username, action, entity, dateFrom, dateTo, cancellationToken));
+        Ok(await service.GetPageAsync(page, pageSize, user ?? username, action, entity, from ?? dateFrom, to ?? dateTo, cancellationToken));
 }

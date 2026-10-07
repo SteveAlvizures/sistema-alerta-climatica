@@ -35,3 +35,6 @@
 @media (max-width: 1180px) { .indicator-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .dashboard__detail-grid { grid-template-columns: 1fr; } .dashboard__aside { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 768px) { .dashboard__context { align-items: stretch; flex-direction: column; } .dashboard__context select { width: 100%; min-width: 0; } .community-overview { grid-template-columns: 1fr; } .danger-scale__levels { grid-template-columns: repeat(2, 1fr); } .indicator-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .dashboard__aside { grid-template-columns: 1fr; } .dashboard__section-heading { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 480px) { .community-overview__message { align-items: flex-start; flex-direction: column; } .indicator-grid { grid-template-columns: 1fr; } }
+
+.dashboard-kpis { display: flex; flex-wrap: wrap; gap: 1rem; }
+.dashboard-kpis div { display: grid; padding: 1rem; flex: 1; }

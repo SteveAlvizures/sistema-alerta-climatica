@@ -125,11 +125,11 @@ describe('API services', () => {
     const request = http.expectOne(candidate => candidate.url === '/api/audit-actions');
     expect(request.request.params.get('page')).toBe('2');
     expect(request.request.params.get('pageSize')).toBe('50');
-    expect(request.request.params.get('username')).toBe('Ana');
+    expect(request.request.params.get('user')).toBe('Ana');
     expect(request.request.params.get('action')).toBe('Login');
     expect(request.request.params.get('entity')).toBe('User');
-    expect(request.request.params.get('dateFrom')).toBe('2026-08-01T00:00:00.000Z');
-    expect(request.request.params.get('dateTo')).toBe('2026-08-02T23:59:59.999Z');
+    expect(request.request.params.get('from')).toBe(new Date('2026-08-01T00:00:00.000').toISOString());
+    expect(request.request.params.get('to')).toBe(new Date('2026-08-02T23:59:59.999').toISOString());
     request.flush({ data: [], pageIndex: 2, pageSize: 50, totalPages: 0, totalCount: 0, hasPrevious: true, hasNext: false });
   });
 });

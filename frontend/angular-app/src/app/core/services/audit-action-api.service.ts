@@ -13,11 +13,11 @@ export class AuditActionApiService {
 
   getPage(page = 1, pageSize = 20, filters: Partial<AuditActionFilters> = {}): Observable<PagedResponse<AuditActionDto>> {
     let params = new HttpParams().set('page', page).set('pageSize', pageSize);
-    if (filters.username) params = params.set('username', filters.username);
+    if (filters.username) params = params.set('user', filters.username);
     if (filters.action) params = params.set('action', filters.action);
     if (filters.entity) params = params.set('entity', filters.entity);
-    if (filters.dateFrom) params = params.set('dateFrom', `${filters.dateFrom}T00:00:00.000Z`);
-    if (filters.dateTo) params = params.set('dateTo', `${filters.dateTo}T23:59:59.999Z`);
+    if (filters.dateFrom) params = params.set('from', new Date(`${filters.dateFrom}T00:00:00.000`).toISOString());
+    if (filters.dateTo) params = params.set('to', new Date(`${filters.dateTo}T23:59:59.999`).toISOString());
     return this.http.get<PagedResponse<AuditActionDto>>(`${this.baseUrl}/audit-actions`, { params });
   }
 }

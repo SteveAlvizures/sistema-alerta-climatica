@@ -32,11 +32,20 @@
         </div>
       </div>
     </section>
+    @if (dashboard.kpis; as kpis) {
+      <section class="dashboard-kpis" aria-label="Resumen del sistema">
+        <div><strong>{{ kpis.totalCommunities }}</strong><span>Comunidades registradas (total global)</span></div>
+        <div><strong>{{ kpis.activeSensors }}</strong><span>Sensores activos</span></div>
+        <div><strong>{{ kpis.inactiveSensors }}</strong><span>Sensores inactivos</span></div>
+        <div><strong>{{ kpis.activeAlerts }}</strong><span>Alertas activas</span></div>
+      </section>
+    }
     <app-alert-summary [alerts]="dashboard.activeAlerts ?? []" />
     <section class="indicator-section" aria-labelledby="indicator-title">
       <div class="dashboard__section-heading"><div><p class="dashboard__eyebrow">Condiciones observadas</p><h2 id="indicator-title">Indicadores climáticos</h2></div><span>{{ climate.source() === 'api' ? 'Una tarjeta independiente por sensor' : 'Valores simulados · sin puntos de activación oficiales' }}</span></div>
       <div class="indicator-grid">@for (indicator of dashboard.indicators; track indicator.sensorId ?? indicator.name) { <app-indicator-card [indicator]="indicator" /> }</div>
     </section>
+    <app-climate-trend [series]="dashboard.trend" [source]="climate.source()" />
     <div class="dashboard__history"><app-recent-history [events]="dashboard.recentEvents" /></div>
     <div class="dashboard__detail-grid">
       <app-sensor-status [sensors]="dashboard.sensors" />

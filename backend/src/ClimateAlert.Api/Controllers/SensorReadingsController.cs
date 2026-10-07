@@ -40,7 +40,7 @@ public sealed class SensorReadingsController(
     {
         SensorReadingResponse created = await service.CreateManualAsync(request, cancellationToken);
         SensorResponse sensor = await sensorService.GetByIdAsync(created.SensorId, cancellationToken);
-        await audit.RecordAsync(User, "CreateManualReading", "SensorReading", created.Id,
+        await audit.RecordAsync(User, "LecturaManualCreada", "SensorReading", created.Id,
             $"Lectura manual registrada para sensor {sensor.Code} con valor {created.Value} {created.Unit}.",
             cancellationToken);
         if (sensor.Origin == ClimateAlert.Domain.Enums.SensorOrigin.Simulated)

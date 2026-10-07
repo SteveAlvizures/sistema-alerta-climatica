@@ -107,3 +107,15 @@ Los DTOs excluyen hashes y tokens. Consulta [Administración de usuarios](usuari
 Los errores conocidos se devuelven como `ProblemDetails`. El manejador global reserva `500 Internal Server Error` para fallos no controlados y responde con un detalle genérico para no divulgar información sensible.
 
 Consulta [CRUD y códigos HTTP](crud-y-http.md) y [Seguridad](seguridad.md).
+
+## Bloque 8: dashboard y auditoria
+
+- GET /api/dashboard?communityId={guid}, publico: agrega totalCommunities (global), activeSensors,
+  inactiveSensors, activeAlerts (solo Open), alertDistributionByLevel, readingEvolution y recentEvents.
+  Conserva campos anteriores. Ver [Dashboard](dashboard.md).
+- POST /api/auth/logout, AuthenticatedUser: 204 y auditoria del actor JWT; 401 sin autenticacion.
+- GET /api/audit-actions, AdministratorOnly: user/action/entity/from/to/page/pageSize; filtros antes
+  de paginacion y aliases anteriores compatibles. Ver [Auditoria](auditoria.md).
+- DELETE /api/communities/{id} agrega ComunidadEliminada tras una eliminacion permitida.
+- PUT /api/alert-rules/{id} agrega auditoria de estado cuando realmente cambia durante la edicion.
+- POST /api/sensor-readings escribe LecturaManualCreada; conserva ValorSimuladoModificado.
