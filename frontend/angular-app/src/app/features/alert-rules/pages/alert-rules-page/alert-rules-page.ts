@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { AlertRuleDto, ClimateVariable, CommunityDto, SensorDto } from '../../../../core/models/api.model';
@@ -18,7 +18,8 @@ const phenomena: Record<AlertRuleDto['phenomenon'], string> = {
 interface RuleFilters { communityId:string; variable:''|ClimateVariable; dangerLevel:''|'Green'|'Yellow'|'Orange'|'Red'; }
 const emptyRuleFilters=():RuleFilters=>({communityId:'',variable:'',dangerLevel:''});
 
-@Component({selector:'app-alert-rules-page',imports:[FormsModule],templateUrl:'./alert-rules-page.html',styleUrl:'./alert-rules-page.scss'})
+@Component({selector:'app-alert-rules-page',imports:[FormsModule],templateUrl:'./alert-rules-page.html',changeDetection: ChangeDetectionStrategy.Eager,
+styleUrl:'./alert-rules-page.scss'})
 export class AlertRulesPage implements OnInit {
   private readonly sensorsApi=inject(SensorApiService); protected sensors:SensorDto[]=[];
   protected availableSensors():SensorDto[]{return this.sensors.filter(s=>s.communityId===this.communityId&&s.measurementType===this.variable)}

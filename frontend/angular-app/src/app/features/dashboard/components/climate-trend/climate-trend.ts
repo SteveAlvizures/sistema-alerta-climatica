@@ -1,7 +1,8 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, computed, input, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, computed, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ClimateTrendSeries, TrendMetric } from '../../../../core/models/climate-dashboard.model';
 
-@Component({ selector: 'app-climate-trend', templateUrl: './climate-trend.html', styleUrl: './climate-trend.scss' })
+@Component({ selector: 'app-climate-trend', templateUrl: './climate-trend.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: './climate-trend.scss' })
 export class ClimateTrend implements AfterViewInit, OnDestroy {
   @ViewChild('chartContainer') private chartContainer?: ElementRef<HTMLElement>;
   private resizeObserver?: ResizeObserver;

@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { ClimateAlert } from '../../../../core/models/climate-alert.model';
 import { RouterLink } from '@angular/router';
 
@@ -6,6 +6,7 @@ import { RouterLink } from '@angular/router';
   selector: 'app-alert-summary',
   imports: [RouterLink],
   templateUrl: './alert-summary.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './alert-summary.scss',
 })
 export class AlertSummary {

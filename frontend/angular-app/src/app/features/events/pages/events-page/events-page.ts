@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -9,7 +9,8 @@ import { EventApiService } from '../../../../core/services/event-api.service';
 import { CommunityApiService } from '../../../../core/services/community-api.service';
 import { eventStatusLabels, formatEventDate, levelLabels, phenomenonLabels } from '../../event-presentation';
 
-@Component({ selector: 'app-events-page', imports: [FormsModule, RouterLink], templateUrl: './events-page.html', styleUrl: './events-page.scss' })
+@Component({ selector: 'app-events-page', imports: [FormsModule, RouterLink], templateUrl: './events-page.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: './events-page.scss' })
 export class EventsPage implements OnInit {
   private readonly api = inject(EventApiService);
   private readonly communityApi = inject(CommunityApiService);

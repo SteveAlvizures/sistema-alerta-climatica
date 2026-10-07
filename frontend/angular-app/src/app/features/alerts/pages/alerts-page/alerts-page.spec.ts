@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -9,7 +9,7 @@ import { alertTestData } from '../../alert-test-data';
 
 describe('AlertsPage', () => {
   let fixture: ComponentFixture<AlertsPage>; let http: HttpTestingController;
-  beforeEach(async () => { await TestBed.configureTestingModule({ imports: [AlertsPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), { provide: AuthService, useValue: { canOperate: () => false } }, { provide: ActiveAlertsService, useValue: { applyLifecycle: jasmine.createSpy() } }] }).compileComponents(); fixture = TestBed.createComponent(AlertsPage); http = TestBed.inject(HttpTestingController); fixture.detectChanges(); http.expectOne('/api/communities').flush([]); http.expectOne('/api/sensors').flush([]); fixture.detectChanges(); });
+  beforeEach(async () => { await TestBed.configureTestingModule({ imports: [AlertsPage], providers: [provideHttpClient(withXhr()), provideHttpClientTesting(), provideRouter([]), { provide: AuthService, useValue: { canOperate: () => false } }, { provide: ActiveAlertsService, useValue: { applyLifecycle: jasmine.createSpy() } }] }).compileComponents(); fixture = TestBed.createComponent(AlertsPage); http = TestBed.inject(HttpTestingController); fixture.detectChanges(); http.expectOne('/api/communities').flush([]); http.expectOne('/api/sensors').flush([]); fixture.detectChanges(); });
   afterEach(() => http.verify());
   it('starts without querying or showing alert results', () => { expect(fixture.nativeElement.textContent).toContain('Seleccione los filtros'); expect(fixture.nativeElement.querySelectorAll('.alert-card').length).toBe(0); });
   it('applies filters manually and clears back to the initial state', () => { (fixture.nativeElement.querySelector('.primary') as HTMLButtonElement).click(); const request = http.expectOne('/api/alerts?page=1&pageSize=20'); request.flush({ data: [], pageIndex:1, pageSize:20, totalCount:0, totalPages:0, hasPrevious:false, hasNext:false }); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('No se encontraron alertas'); const buttons = [...fixture.nativeElement.querySelectorAll('.filters button')] as HTMLButtonElement[]; buttons[1].click(); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Seleccione los filtros'); });

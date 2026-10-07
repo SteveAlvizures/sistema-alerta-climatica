@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -14,7 +14,7 @@ describe('AlertActions', () => {
   let active: jasmine.Spy;
   beforeEach(() => {
     role = 'Operator'; active = jasmine.createSpy();
-    TestBed.configureTestingModule({ imports: [AlertActions], providers: [provideHttpClient(), provideHttpClientTesting(),
+    TestBed.configureTestingModule({ imports: [AlertActions], providers: [provideHttpClient(withXhr()), provideHttpClientTesting(),
       { provide: AuthService, useValue: { canOperate: () => role === 'Administrator' || role === 'Operator' } },
       { provide: ActiveAlertsService, useValue: { applyLifecycle: active } },
     ] });

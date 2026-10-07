@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { CommunityDto } from '../../../../core/models/api.model';
@@ -23,7 +23,7 @@ describe('CommunitiesPage', () => {
     await TestBed.configureTestingModule({
       imports: [CommunitiesPage],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideHttpClientTesting(),
         { provide: AuthService, useValue: { session: () => ({ role: 'Administrator' }), canOperate: () => true } },
       ],

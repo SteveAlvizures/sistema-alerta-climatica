@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -8,7 +8,7 @@ import { eventPage, eventStatistics, riskEvent } from '../../event-test-data';
 describe('EventsPage persisted event history', () => {
   let fixture: ComponentFixture<EventsPage>; let http: HttpTestingController;
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [EventsPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    TestBed.configureTestingModule({ imports: [EventsPage], providers: [provideHttpClient(withXhr()), provideHttpClientTesting(), provideRouter([])] });
     fixture = TestBed.createComponent(EventsPage); http = TestBed.inject(HttpTestingController); fixture.detectChanges();
     http.expectOne('/api/communities').flush([{ id: 'community-1', name: 'La Isla' }]);
     http.expectOne(r => r.url === '/api/events').flush(eventPage);

@@ -37,7 +37,8 @@ public sealed class DashboardController(ClimateAlertDbContext database, EventSer
             var reading = readings.FirstOrDefault(item => item.SensorId == sensor.Id);
             var level = reading is null ? DangerLevel.Green : rules
                 .Where(rule => rule.Variable == sensor.MeasurementType && (!rule.SensorId.HasValue || rule.SensorId == sensor.Id)
-                    && rule.Matches(reading.Value)).Select(rule => rule.DangerLevel).DefaultIfEmpty(DangerLevel.Green).Max();
+                    && rule.IsEnabled(reading.MeasuredAt) && rule.Matches(reading.Value))
+                .Select(rule => rule.DangerLevel).DefaultIfEmpty(DangerLevel.Green).Max();
             return new { sensorId = sensor.Id, variable = sensor.MeasurementType, value = reading?.Value,
                 unit = reading?.Unit, level, measuredAt = reading?.MeasuredAt };
         });
@@ -49,7 +50,7 @@ public sealed class DashboardController(ClimateAlertDbContext database, EventSer
             .SelectMany(sensor => database.SensorReadings.Where(item => item.SensorId == sensor.Id)
                 .OrderByDescending(item => item.MeasuredAt).ThenByDescending(item => item.Id).Take(30))
             .Select(item => new { item.Id, item.SensorId, item.Variable, item.Value, item.Unit,
-                item.MeasuredAt, item.ReceivedAt, item.Origin }).ToListAsync(cancellationToken);
+                item.MeasuredAt, item.ReceivedAt, item.Origin, item.SensorStatusAtMeasurement }).ToListAsync(cancellationToken);
         var eventPage = await events.GetPageAsync(new EventFilters(CommunityId: community.Id), 1, 8, cancellationToken);
         // The public summary excludes responsible users and other administration metadata.
         var recentEvents = eventPage.Data.Select(item => new { item.Id, item.OccurredAt, item.CommunityId,

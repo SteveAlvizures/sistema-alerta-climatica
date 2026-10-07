@@ -9,6 +9,31 @@ namespace ClimateAlert.Application.Tests;
 
 public sealed class DashboardAuditHttpTests
 {
+    [Theory]
+    [InlineData(-1, 1, "Red")]
+    [InlineData(1, 2, "Green")]
+    [InlineData(-2, -1, "Green")]
+    [InlineData(0, 0, "Red")]
+    public async Task DashboardIndicatorsRespectRuleValidityAtMeasurement(int fromMinutes, int untilMinutes, string expected)
+    {
+        await using var host = await AlertLifecycleHttpTests.TestHost.StartAsync();
+        await using (var db = host.Database())
+        {
+            foreach (var existing in await db.AlertRules.ToListAsync()) existing.Disable();
+            var sensor = await db.Sensors.Include(s => s.Community).SingleAsync(s => s.Id == host.SensorId);
+            db.AlertRules.Add(new ClimateAlert.Domain.Entities.AlertRule(sensor.Community, "VALIDITY", "Validity",
+                ClimateAlert.Domain.Enums.ClimatePhenomenon.Flood, sensor.MeasurementType,
+                ClimateAlert.Domain.Enums.DangerLevel.Red, 10, 20,
+                host.DetectedAt.AddMinutes(fromMinutes), host.Clock.Now,
+                host.DetectedAt.AddMinutes(untilMinutes), sensor));
+            await db.SaveChangesAsync();
+        }
+        var data = await host.GetAsync<JsonElement>($"/api/dashboard?communityId={host.CommunityId}");
+        var indicator = data.GetProperty("indicators").EnumerateArray()
+            .Single(i => i.GetProperty("sensorId").GetGuid() == host.SensorId);
+        Assert.Equal(expected, indicator.GetProperty("level").GetString());
+    }
+
     [Fact]
     public async Task DashboardScopesPersistedDataAndCountsGlobalCommunities()
     {

@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ClimateIndicator } from '../../../../core/models/climate-indicator.model';
 
@@ -6,6 +6,7 @@ import { ClimateIndicator } from '../../../../core/models/climate-indicator.mode
   selector: 'app-indicator-card',
   imports: [RouterLink],
   templateUrl: './indicator-card.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './indicator-card.scss',
 })
 export class IndicatorCard {

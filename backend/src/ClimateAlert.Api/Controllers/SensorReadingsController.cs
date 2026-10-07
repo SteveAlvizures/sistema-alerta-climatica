@@ -8,6 +8,7 @@ using ClimateAlert.Application.Features.Sensors;
 namespace ClimateAlert.Api.Controllers;
 
 [ApiController]
+[ServiceFilter(typeof(AtomicAdministrativeOperationFilter))]
 public sealed class SensorReadingsController(
     SensorReadingService service,
     SensorService sensorService,

@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<AlertService>();
         services.AddScoped<ClimateAlert.Application.Features.Events.EventService>();
         services.AddScoped<AuditActionService>();
+        services.AddScoped<AtomicAdministrativeOperationFilter>();
         services.AddScoped<IAlertLifecycleAudit, AlertLifecycleAudit>();
         services.AddScoped<UserManagementService>();
         services.AddScoped<IAlertEvaluator, AlertEvaluator>();

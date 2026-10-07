@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
@@ -6,7 +6,8 @@ import { RiskEventDetailDto } from '../../../../core/models/event.model';
 import { EventApiService } from '../../../../core/services/event-api.service';
 import { alertStatusLabels, conditionLabel, eventStatusLabels, formatEventDate, levelLabels, phenomenonLabels } from '../../event-presentation';
 
-@Component({ selector: 'app-event-detail-page', imports: [RouterLink], templateUrl: './event-detail-page.html', styleUrl: '../events-page/events-page.scss' })
+@Component({ selector: 'app-event-detail-page', imports: [RouterLink], templateUrl: './event-detail-page.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: '../events-page/events-page.scss' })
 export class EventDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(EventApiService);

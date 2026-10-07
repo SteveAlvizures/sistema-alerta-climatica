@@ -1,6 +1,6 @@
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ElementRef, ViewChild } from '@angular/core';
 import { CommunityApiService } from '../../../../core/services/community-api.service';
@@ -19,6 +19,7 @@ import { RouterLink } from '@angular/router';
   selector: 'app-sensors-page',
   imports: [FormsModule, RouterLink],
   templateUrl: './sensors-page.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './sensors-page.scss',
 })
 export class SensorsPage implements OnInit {

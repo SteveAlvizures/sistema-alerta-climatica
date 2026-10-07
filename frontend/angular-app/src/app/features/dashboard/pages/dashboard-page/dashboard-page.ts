@@ -1,4 +1,4 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Subscription, timer } from 'rxjs';
 import { DangerLevel } from '../../../../core/models/climate-alert.model';
 import { DashboardDataService } from '../../../../core/services/dashboard-data.service';
@@ -13,6 +13,7 @@ import { SensorStatus } from '../../components/sensor-status/sensor-status';
   selector: 'app-dashboard-page',
   imports: [ClimateTrend, StatusBadge, AlertSummary, IndicatorCard, RecentHistory, SensorStatus],
   templateUrl: './dashboard-page.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './dashboard-page.scss',
 })
 export class DashboardPage implements OnInit, OnDestroy {

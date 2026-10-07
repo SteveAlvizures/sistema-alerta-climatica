@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -12,7 +12,7 @@ import { conditionLabel } from '../../alert-presentation';
 describe('AlertDetailPage', () => {
   let fixture: ComponentFixture<AlertDetailPage>; let http: HttpTestingController;
   beforeEach(() => {
-    TestBed.configureTestingModule({ imports: [AlertDetailPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]),
+    TestBed.configureTestingModule({ imports: [AlertDetailPage], providers: [provideHttpClient(withXhr()), provideHttpClientTesting(), provideRouter([]),
       { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id: 'alert-1' })) } },
       { provide: AuthService, useValue: { canOperate: () => false } },
       { provide: ActiveAlertsService, useValue: { applyLifecycle: jasmine.createSpy() } },

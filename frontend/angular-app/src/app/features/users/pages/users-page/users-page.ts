@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
@@ -13,7 +13,8 @@ const roleLabels: Record<UserRole, string> = {
 
 @Component({
   selector: 'app-users-page', imports: [FormsModule],
-  templateUrl: './users-page.html', styleUrl: './users-page.scss',
+  templateUrl: './users-page.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: './users-page.scss',
 })
 export class UsersPage implements OnInit {
   private readonly api = inject(UserApiService);

@@ -17,6 +17,7 @@ public sealed class SensorReadingConfiguration : IEntityTypeConfiguration<Sensor
         builder.Property(reading => reading.MeasuredAt).HasColumnType("datetimeoffset").IsRequired();
         builder.Property(reading => reading.ReceivedAt).HasColumnType("datetimeoffset").IsRequired();
         builder.Property(reading => reading.Origin).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(reading => reading.SensorStatusAtMeasurement).HasConversion<string>().HasMaxLength(20);
         builder.Property(reading => reading.CreatedAt).HasColumnType("datetimeoffset").IsRequired();
         builder.HasIndex(reading => new { reading.SensorId, reading.MeasuredAt });
     }

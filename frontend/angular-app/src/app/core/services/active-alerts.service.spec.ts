@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { ActiveAlertsService } from './active-alerts.service';
@@ -6,7 +6,7 @@ import { alertTestData } from '../../features/alerts/alert-test-data';
 
 describe('ActiveAlertsService', () => {
   let http: HttpTestingController;
-  beforeEach(() => { TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] }); http = TestBed.inject(HttpTestingController); });
+  beforeEach(() => { TestBed.configureTestingModule({ providers: [provideHttpClient(withXhr()), provideHttpClientTesting()] }); http = TestBed.inject(HttpTestingController); });
   afterEach(() => http.verify());
   it('fetches active alerts on all pages, keeping an accurate count beyond the first 50', () => {
     const service = TestBed.inject(ActiveAlertsService); service.refresh();

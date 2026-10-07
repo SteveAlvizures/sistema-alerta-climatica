@@ -8,6 +8,7 @@ namespace ClimateAlert.Api.Controllers;
 
 [ApiController]
 [Route("api/communities")]
+[ServiceFilter(typeof(AtomicAdministrativeOperationFilter))]
 public sealed class CommunitiesController(CommunityService service, AuditActionService audit) : ControllerBase
 {
     [HttpGet]

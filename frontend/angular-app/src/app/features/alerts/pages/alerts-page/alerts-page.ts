@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -10,7 +10,8 @@ import { SensorApiService } from '../../../../core/services/sensor-api.service';
 import { AlertActions } from '../../components/alert-actions/alert-actions';
 import { alertStatusLabels, conditionLabel, formatAlertDate, levelLabels, phenomenonLabels, variableLabels } from '../../alert-presentation';
 
-@Component({ selector: 'app-alerts-page', imports: [FormsModule, RouterLink, AlertActions], templateUrl: './alerts-page.html', styleUrl: './alerts-page.scss' })
+@Component({ selector: 'app-alerts-page', imports: [FormsModule, RouterLink, AlertActions], templateUrl: './alerts-page.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: './alerts-page.scss' })
 export class AlertsPage implements OnInit {
   private readonly alertsApi = inject(AlertApiService);
   private readonly communitiesApi = inject(CommunityApiService);

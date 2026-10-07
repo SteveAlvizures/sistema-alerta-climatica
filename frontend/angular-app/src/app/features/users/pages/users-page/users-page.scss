@@ -12,8 +12,7 @@ input, select { min-width: 0; width: 100%; min-height: 2.65rem; padding: .65rem 
 input:focus, select:focus { outline: 2px solid var(--brand-accent); outline-offset: 2px; }
 small, .hint { color: var(--text-muted); font-size: .75rem; font-weight: 400; }
 .hint, .form-actions { grid-column: 1 / -1; }
-.form-actions, .filter-actions, .row-actions, .role-actions, .pagination, .pagination > div { display: flex; align-items: center; gap: .6rem; }
-.form-actions { justify-content: flex-end; }
+.filter-actions, .row-actions, .role-actions, .pagination, .pagination > div { display: flex; align-items: center; gap: .6rem; }
 button { min-height: 2.5rem; padding: .6rem .8rem; border: 1px solid var(--brand-border); border-radius: .55rem; background: var(--brand); color: #fff; font-weight: 800; cursor: pointer; }
 button.secondary { background: var(--brand-soft); color: var(--brand-accent); }
 button:disabled { opacity: .5; cursor: default; }

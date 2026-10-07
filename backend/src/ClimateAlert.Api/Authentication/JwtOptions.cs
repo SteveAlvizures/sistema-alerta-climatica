@@ -16,11 +16,16 @@ public sealed record JwtOptions(string Key, string Issuer, string Audience, int 
             throw new InvalidOperationException("JWT_KEY must contain at least 24 characters.");
         }
 
+        string? configuredMinutes = configuration["JWT_EXPIRATION_MINUTES"];
+        int minutes = 60;
+        if (configuredMinutes is not null && (!int.TryParse(configuredMinutes, out minutes) || minutes <= 0))
+            throw new InvalidOperationException("JWT_EXPIRATION_MINUTES must be a positive integer.");
+
         return new JwtOptions(
             key,
             configuration["JWT_ISSUER"] ?? "climate-alert-api",
             configuration["JWT_AUDIENCE"] ?? "climate-alert-client",
-            int.TryParse(configuration["JWT_EXPIRATION_MINUTES"], out int minutes) ? minutes : 60);
+            minutes);
     }
 }
 

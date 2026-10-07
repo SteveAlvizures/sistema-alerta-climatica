@@ -110,10 +110,10 @@ public sealed class SensorReadingService(
 
     private static SensorReadingResponse Map(SensorReading reading) => new(
         reading.Id, reading.SensorId, reading.Variable, reading.Value, reading.Unit,
-        reading.MeasuredAt, reading.ReceivedAt, reading.Origin);
+        reading.MeasuredAt, reading.ReceivedAt, reading.Origin, reading.SensorStatusAtMeasurement);
 
     private static HistoryReadingResponse MapHistory(SensorReading reading) => new(
         reading.Id, reading.SensorId, reading.Sensor.CommunityId, reading.Sensor.Name, reading.Sensor.Code,
         reading.Sensor.Community.Name, reading.Variable, reading.Value, reading.Unit,
-        reading.MeasuredAt, reading.ReceivedAt, reading.Origin);
+        reading.MeasuredAt, reading.ReceivedAt, reading.Origin, reading.SensorStatusAtMeasurement);
 }

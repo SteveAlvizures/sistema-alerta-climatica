@@ -342,7 +342,8 @@ export class DashboardDataService {
       lastUpdated: latestDate ? new Date(latestDate) : new Date(),
       indicators: items.filter(item => item.sensor.status === 'Active' && indicatorDefinitions.some(def => def.variable === item.sensor.measurementType)).map(({ sensor, reading }) => {
         const definition = indicatorDefinitions.find(item => item.variable === sensor.measurementType)!;
-        const sensorRules = rules.filter(rule => rule.variable === sensor.measurementType && (!rule.sensorId || rule.sensorId === sensor.id));
+        const sensorRules = rules.filter(rule => rule.variable === sensor.measurementType && (!rule.sensorId || rule.sensorId === sensor.id)
+          && (!reading || this.ruleIsEnabled(rule, reading.measuredAt)));
         const matchingRule = reading ? sensorRules.filter(rule => this.ruleMatches(rule, reading.value))
           .sort((left, right) => dangerLevelPriority[right.dangerLevel] - dangerLevelPriority[left.dangerLevel])[0] : undefined;
         const status = matchingRule ? dangerLevelLabels[matchingRule.dangerLevel] : 'Normal';
@@ -437,9 +438,21 @@ export class DashboardDataService {
   }
 
   private ruleMatches(rule: AlertRuleDto, value: number): boolean {
+    const min = rule.minValue ?? rule.lowerLimit;
+    const max = rule.maxValue ?? rule.upperLimit;
+    const hasValidRange = (min != null || max != null) && (min == null || max == null || min <= max);
+    if (rule.usesRange && hasValidRange) {
+      return (min == null || value >= min) && (max == null || value <= max);
+    }
     return rule.comparisonOperator === '>' ? value > rule.activationPoint
       : rule.comparisonOperator === '>=' ? value >= rule.activationPoint
       : rule.comparisonOperator === '<' ? value < rule.activationPoint
       : value <= rule.activationPoint;
+  }
+
+  private ruleIsEnabled(rule: AlertRuleDto, measuredAt: string): boolean {
+    const at = Date.parse(measuredAt);
+    return rule.isActive && at >= Date.parse(rule.validFrom)
+      && (!rule.validUntil || at <= Date.parse(rule.validUntil));
   }
 }

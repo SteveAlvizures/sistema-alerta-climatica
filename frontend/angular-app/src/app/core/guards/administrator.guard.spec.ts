@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, ChangeDetectionStrategy } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, UrlTree } from '@angular/router';
 import { AuthService } from '../services/auth.service';
@@ -6,9 +6,11 @@ import { administratorGuard } from './administrator.guard';
 import { routes } from '../../app.routes';
 import { RouterTestingHarness } from '@angular/router/testing';
 
-@Component({ template: 'Consulta pública' })
+@Component({ changeDetection: ChangeDetectionStrategy.Eager,
+ template: 'Consulta pública' })
 class PublicPage {}
-@Component({ template: 'Administración de usuarios' })
+@Component({ changeDetection: ChangeDetectionStrategy.Eager,
+ template: 'Administración de usuarios' })
 class ProtectedPage {}
 
 describe('administratorGuard', () => {

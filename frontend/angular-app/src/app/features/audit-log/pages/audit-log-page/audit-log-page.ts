@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuditActionDto } from '../../../../core/models/api.model';
 import { AuditActionApiService, AuditActionFilters } from '../../../../core/services/audit-action-api.service';
@@ -7,7 +7,8 @@ const emptyFilters = (): AuditActionFilters => ({ username: '', action: '', enti
 const actionLabels: Record<string, string> = { Logout: "Cierre de sesión", ComunidadEliminada: "Comunidad eliminada", ReglaEditada: "Regla editada", LecturaManualCreada: "Lectura manual creada", CreateManualReading: "Lectura manual creada (histórica)", ComunidadCreada: 'Comunidad creada', ComunidadEditada: 'Comunidad editada', ComunidadActivada: 'Comunidad activada', ComunidadDesactivada: 'Comunidad desactivada', ValorSimuladoModificado: 'Valor simulado modificado', AlertaAtendida: 'Alerta atendida', AlertaCerrada: 'Alerta cerrada', UsuarioCreado: 'Usuario creado', UsuarioEditado: 'Usuario editado', UsuarioActivado: 'Usuario activado', UsuarioDesactivado: 'Usuario desactivado', RolUsuarioCambiado: 'Rol de usuario cambiado', Login: 'Inicio de sesión', SensorCreado: 'Sensor creado', SensorEditado: 'Sensor editado', SensorActivado: 'Sensor activado', SensorDesactivado: 'Sensor desactivado', MonitoreoReiniciado: 'Monitoreo reiniciado', ReglaCreada: 'Regla creada', ReglaActivada: 'Regla activada', ReglaDesactivada: 'Regla desactivada', AlertaReconocida: 'Alerta reconocida', AlertaResuelta: 'Alerta resuelta' };
 const entityLabels: Record<string, string> = { SensorReading: 'Lectura', Community: 'Comunidad', User: 'Usuario', Sensor: 'Sensor', AlertRule: 'Regla', Alert: 'Alerta' };
 
-@Component({ selector: 'app-audit-log-page', imports: [FormsModule], templateUrl: './audit-log-page.html', styleUrl: './audit-log-page.scss' })
+@Component({ selector: 'app-audit-log-page', imports: [FormsModule], templateUrl: './audit-log-page.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: './audit-log-page.scss' })
 export class AuditLogPage implements OnInit {
   private readonly api = inject(AuditActionApiService);
   protected actions: AuditActionDto[] = []; protected loading = true; protected error = '';

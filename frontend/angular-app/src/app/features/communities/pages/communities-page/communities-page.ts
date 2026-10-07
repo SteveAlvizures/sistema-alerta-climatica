@@ -1,13 +1,14 @@
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, inject, OnInit, ViewChild, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommunityDto } from '../../../../core/models/api.model';
 import { CommunityApiService, CreateCommunityRequest } from '../../../../core/services/community-api.service';
 import { AuthService } from '../../../../core/services/auth.service';
 
-@Component({ selector: 'app-communities-page', imports: [FormsModule], templateUrl: './communities-page.html', styleUrl: './communities-page.scss' })
+@Component({ selector: 'app-communities-page', imports: [FormsModule], templateUrl: './communities-page.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: './communities-page.scss' })
 export class CommunitiesPage implements OnInit {
   @ViewChild('communityForm') private communityForm?: ElementRef<HTMLElement>;
   @ViewChild('communityName') private communityName?: ElementRef<HTMLInputElement>;

@@ -15,7 +15,7 @@
         } @else {
           <p class="hint">La edición conserva la contraseña. Puedes cambiar el rol en el listado.</p>
         }
-        <div class="form-actions"><button type="submit" [disabled]="saving || userForm.invalid">{{ saving ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Crear usuario' }}</button><button class="secondary" type="button" [disabled]="saving" (click)="cancelEdit()">{{ editingId ? 'Cancelar edición' : 'Limpiar' }}</button></div>
+        <div class="form-actions vr:flex vr:items-center vr:justify-end vr:gap-[.6rem]"><button type="submit" [disabled]="saving || userForm.invalid">{{ saving ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Crear usuario' }}</button><button class="secondary" type="button" [disabled]="saving" (click)="cancelEdit()">{{ editingId ? 'Cancelar edición' : 'Limpiar' }}</button></div>
       </form>
     </section>
     @if (success) { <p class="message message--success" role="status">{{ success }}</p> }

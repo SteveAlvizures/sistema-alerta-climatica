@@ -1,5 +1,5 @@
 import { sensorTypes } from '../../../../core/models/sensor-types';
-import { Component, HostListener, inject, OnDestroy, OnInit } from '@angular/core';
+import { Component, HostListener, inject, OnDestroy, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin, interval, Subscription } from 'rxjs';
 import { AlertRuleDto, ClimateVariable, CommunityDto, SensorDto, SensorReadingDto } from '../../../../core/models/api.model';
@@ -8,7 +8,8 @@ import { CommunityApiService } from '../../../../core/services/community-api.ser
 import { SensorApiService } from '../../../../core/services/sensor-api.service';
 import { SensorReadingApiService } from '../../../../core/services/sensor-reading-api.service';
 
-@Component({ selector: 'app-sensor-detail-page', imports: [RouterLink], templateUrl: './sensor-detail-page.html', styleUrl: './sensor-detail-page.scss' })
+@Component({ selector: 'app-sensor-detail-page', imports: [RouterLink], templateUrl: './sensor-detail-page.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: './sensor-detail-page.scss' })
 export class SensorDetailPage implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly sensors = inject(SensorApiService);

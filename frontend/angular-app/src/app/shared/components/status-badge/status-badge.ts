@@ -1,8 +1,9 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-status-badge',
   templateUrl: './status-badge.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './status-badge.scss',
 })
 export class StatusBadge {

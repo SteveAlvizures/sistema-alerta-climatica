@@ -6,6 +6,31 @@ namespace ClimateAlert.Infrastructure.Persistence;
 public sealed class ClimateAlertDbContext(DbContextOptions<ClimateAlertDbContext> options)
     : DbContext(options)
 {
+    private bool deferSaveChanges;
+
+    // Administrative HTTP actions stage business changes and audit rows together.
+    // The final SaveChanges uses EF's SQL transaction and normal execution strategy.
+    public IDisposable DeferSaveChanges()
+    {
+        if (deferSaveChanges) throw new InvalidOperationException("A save batch is already active.");
+        deferSaveChanges = true;
+        return new SaveBatch(this);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return deferSaveChanges ? Task.FromResult(0) : base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess) =>
+        deferSaveChanges ? 0 : base.SaveChanges(acceptAllChangesOnSuccess);
+
+    private sealed class SaveBatch(ClimateAlertDbContext database) : IDisposable
+    {
+        public void Dispose() => database.deferSaveChanges = false;
+    }
+
     public DbSet<User> Users => Set<User>();
     public DbSet<Community> Communities => Set<Community>();
     public DbSet<Sensor> Sensors => Set<Sensor>();

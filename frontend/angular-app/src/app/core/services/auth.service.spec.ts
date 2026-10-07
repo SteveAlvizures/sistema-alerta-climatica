@@ -1,4 +1,4 @@
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { API_BASE_URL } from '../config/api.config';
@@ -12,7 +12,7 @@ describe('AuthService', () => {
   beforeEach(() => {
     sessionStorage.clear();
     TestBed.configureTestingModule({ providers: [
-      provideHttpClient(withInterceptors([authInterceptor])),
+      provideHttpClient(withXhr(), withInterceptors([authInterceptor])),
       provideHttpClientTesting(),
       { provide: API_BASE_URL, useValue: '/api' },
     ] });

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
@@ -7,7 +7,8 @@ import { AlertApiService } from '../../../../core/services/alert-api.service';
 import { AlertActions } from '../../components/alert-actions/alert-actions';
 import { alertStatusLabels, conditionLabel, formatAlertDate, levelLabels, phenomenonLabels, variableLabels } from '../../alert-presentation';
 
-@Component({ selector: 'app-alert-detail-page', imports: [RouterLink, AlertActions], templateUrl: './alert-detail-page.html', styleUrl: './alert-detail-page.scss' })
+@Component({ selector: 'app-alert-detail-page', imports: [RouterLink, AlertActions], templateUrl: './alert-detail-page.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: './alert-detail-page.scss' })
 export class AlertDetailPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(AlertApiService);

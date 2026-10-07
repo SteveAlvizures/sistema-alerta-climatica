@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { DashboardDataService } from '../../core/services/dashboard-data.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { StatusBadge } from '../../shared/components/status-badge/status-badge';
@@ -7,7 +7,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { ActiveAlertsService } from '../../core/services/active-alerts.service';
 import { ApiDangerLevel } from '../../core/models/api.model';
 
-@Component({ selector: 'app-header', imports: [StatusBadge, RouterLink], templateUrl: './header.html', styleUrl: './header.scss' })
+@Component({ selector: 'app-header', imports: [StatusBadge, RouterLink], templateUrl: './header.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: './header.scss' })
 export class Header implements OnInit {
   protected readonly climate = inject(DashboardDataService);
   protected readonly themeService = inject(ThemeService);

@@ -20,12 +20,12 @@ public sealed record SensorReadingResponse(
     string Unit,
     DateTimeOffset MeasuredAt,
     DateTimeOffset ReceivedAt,
-    SensorOrigin Origin);
+    SensorOrigin Origin, SensorStatus? SensorStatusAtMeasurement = null);
 
 public sealed record HistoryReadingResponse(
     Guid Id, Guid SensorId, Guid CommunityId, string SensorName, string SensorCode,
     string CommunityName, ClimateVariable Variable, decimal Value, string Unit,
-    DateTimeOffset MeasuredAt, DateTimeOffset ReceivedAt, SensorOrigin Origin);
+    DateTimeOffset MeasuredAt, DateTimeOffset ReceivedAt, SensorOrigin Origin, SensorStatus? SensorStatusAtMeasurement = null);
 
 public sealed record PagedResponse<T>(
     IReadOnlyList<T> Data,

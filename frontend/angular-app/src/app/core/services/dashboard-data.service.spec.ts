@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { EMPTY, map, Observable, of, Subject, throwError } from 'rxjs';
-import { AlertDto, CommunityDto, PagedResponse, SensorDto, SensorReadingDto } from '../models/api.model';
+import { AlertDto, AlertRuleDto, CommunityDto, PagedResponse, SensorDto, SensorReadingDto } from '../models/api.model';
 import { ClimateDashboardState } from '../models/climate-dashboard.model';
 import { CommunityApiService } from './community-api.service';
 import { AlertApiService } from './alert-api.service';
@@ -65,6 +65,48 @@ describe('DashboardDataService', () => {
   }
 
   afterEach(() => TestBed.resetTestingModule());
+
+  ([
+    { value: 9, min: 10, max: 20, expected: 'Normal' },
+    { value: 10, min: 10, max: 20, expected: 'Emergencia' },
+    { value: 20, min: 10, max: 20, expected: 'Emergencia' },
+    { value: 21, min: 10, max: 20, expected: 'Normal' },
+    { value: 15, min: null, max: 20, expected: 'Emergencia' },
+    { value: 21, min: 10, max: null, expected: 'Emergencia' },
+  ] as const).forEach(({ value, min, max, expected }) => {
+    it(`uses the configured inclusive range ${min}..${max} for value ${value}`, () => {
+      const rule: AlertRuleDto = {
+        id: 'range-rule', communityId: community.id, sensorId: sensor.id, code: 'RULE', name: 'Range',
+        phenomenon: 'Frost', variable: 'Temperature', dangerLevel: 'Red',
+        lowerLimit: min, upperLimit: max, minValue: min, maxValue: max, usesRange: true,
+        comparisonOperator: min === null ? '<=' : '>=', activationPoint: min ?? max!, unit: 'C',
+        validFrom: '2026-08-19T11:00:00Z', validUntil: null, isActive: true, createdAt: community.createdAt,
+      };
+      TestBed.overrideProvider(AlertRuleApiService, { useValue: { getAll: () => of([rule]) } });
+      const reading: SensorReadingDto = { id: 'reading', sensorId: sensor.id, variable: 'Temperature',
+        value, unit: 'C', measuredAt: '2026-08-19T12:00:00Z', receivedAt: '2026-08-19T12:00:01Z', origin: 'Simulated' };
+      expect(create(of([community]), of([sensor]), of(reading)).dashboard()?.indicators[0].status).toBe(expected);
+    });
+  });
+
+  ([
+    { from: '2026-08-19T13:00:00Z', until: null, expected: 'Normal' },
+    { from: '2026-08-19T10:00:00Z', until: '2026-08-19T11:00:00Z', expected: 'Normal' },
+    { from: '2026-08-19T12:00:00Z', until: '2026-08-19T12:00:00Z', expected: 'Emergencia' },
+  ] as const).forEach(({ from, until, expected }) => {
+    it(`respects rule validity ${from}..${until} at measurement time`, () => {
+      const rule: AlertRuleDto = {
+        id: 'legacy-rule', communityId: community.id, sensorId: sensor.id, code: 'RULE', name: 'Legacy',
+        phenomenon: 'Frost', variable: 'Temperature', dangerLevel: 'Red', lowerLimit: 10, upperLimit: 20,
+        usesRange: false, comparisonOperator: '>', activationPoint: 10, unit: 'C',
+        validFrom: from, validUntil: until, isActive: true, createdAt: community.createdAt,
+      };
+      TestBed.overrideProvider(AlertRuleApiService, { useValue: { getAll: () => of([rule]) } });
+      const reading: SensorReadingDto = { id: 'reading', sensorId: sensor.id, variable: 'Temperature',
+        value: 21, unit: 'C', measuredAt: '2026-08-19T12:00:00Z', receivedAt: '2026-08-19T12:00:01Z', origin: 'Simulated' };
+      expect(create(of([community]), of([sensor]), of(reading)).dashboard()?.indicators[0].status).toBe(expected);
+    });
+  });
 
   it('starts in loading state', () => {
     const pending = new Subject<CommunityDto[]>();

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ClimateVariable, CommunityDto, HistoryReadingDto, SensorDto } from '../../../../core/models/api.model';
@@ -7,7 +7,8 @@ import { SensorApiService } from '../../../../core/services/sensor-api.service';
 import { SensorReadingApiService } from '../../../../core/services/sensor-reading-api.service';
 
 const variableLabels: Record<ClimateVariable, string> = { SmokeConcentration: 'Humo/incendio', OtherEnvironmental: 'Otro sensor ambiental', Temperature: 'Temperatura', RelativeHumidity: 'Humedad relativa', WindSpeed: 'Velocidad del viento', RainfallLevel: 'Nivel de lluvia', RiverOrReservoirLevel: 'Nivel de río o reservorio' };
-@Component({ selector: 'app-history-page', imports: [FormsModule], templateUrl: './history-page.html', styleUrl: './history-page.scss' })
+@Component({ selector: 'app-history-page', imports: [FormsModule], templateUrl: './history-page.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: './history-page.scss' })
 export class HistoryPage implements OnInit {
   private readonly communitiesApi = inject(CommunityApiService); private readonly sensorsApi = inject(SensorApiService); private readonly readingsApi = inject(SensorReadingApiService);
   protected communities: CommunityDto[] = []; protected sensors: SensorDto[] = []; protected items: HistoryReadingDto[] = [];
@@ -20,7 +21,8 @@ export class HistoryPage implements OnInit {
   protected get variableSummary(): string { return this.selectedVariable ? this.variableLabel(this.selectedVariable as ClimateVariable) : 'Todas'; }
   protected get querySummary(): string { return this.communities.find(item => item.id === this.selectedCommunityId)?.name ?? 'Todas las comunidades'; }
   protected variableLabel(variable: ClimateVariable): string { return variableLabels[variable]; }
-  protected originLabel(origin: string): string { return origin === 'Simulated' ? 'Simulado' : 'Manual'; }
+  protected originLabel(origin: string): string { return origin === 'Simulated' ? 'Simulado' : origin === 'Physical' ? 'Físico' : origin === 'Manual' ? 'Manual' : 'Desconocido'; }
+  protected sensorStateLabel(status: string | null | undefined): string { return status === 'Active' ? 'Activo' : status === 'Inactive' ? 'Inactivo' : 'No registrado (histórico)'; }
   protected formatDate(value: string): string { return new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
   protected onCommunityChange(): void { this.selectedSensorId = ''; this.pageIndex = 1; this.loadHistory(); }
   protected applyFilters(): void { this.pageIndex = 1; this.loadHistory(); }

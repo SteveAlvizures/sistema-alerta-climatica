@@ -1,12 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ThemeService } from '../../../../core/services/theme.service';
 
-@Component({ selector: 'app-login-page', imports: [FormsModule, RouterLink], templateUrl: './login-page.html', styleUrl: './login-page.scss' })
+@Component({ selector: 'app-login-page', imports: [FormsModule, RouterLink], templateUrl: './login-page.html', changeDetection: ChangeDetectionStrategy.Eager,
+ styleUrl: './login-page.scss' })
 export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);

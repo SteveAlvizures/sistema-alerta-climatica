@@ -19,7 +19,7 @@ public static class JwtAuthentication
                 ValidateIssuer = true, ValidIssuer = jwt.Issuer,
                 ValidateAudience = true, ValidAudience = jwt.Audience,
                 ValidateIssuerSigningKey = true, IssuerSigningKey = new SymmetricSecurityKey(jwt.SigningKey),
-                ValidateLifetime = true, ClockSkew = TimeSpan.FromMinutes(1)
+                ValidateLifetime = true, ClockSkew = TimeSpan.Zero
             };
             options.Events = new JwtBearerEvents { OnTokenValidated = ValidateCurrentUserAsync };
         });

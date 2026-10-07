@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { DashboardDataService } from '../../core/services/dashboard-data.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -15,6 +15,7 @@ interface NavigationItem {
 @Component({
   selector: 'app-sidebar',
   templateUrl: './sidebar.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './sidebar.scss',
 })
 export class Sidebar {

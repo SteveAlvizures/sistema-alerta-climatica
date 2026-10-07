@@ -9,6 +9,7 @@ namespace ClimateAlert.Api.Controllers;
 
 [ApiController]
 [Route("api/sensors")]
+[ServiceFilter(typeof(AtomicAdministrativeOperationFilter))]
 public sealed class SensorsController(SensorService service, AuditActionService audit) : ControllerBase
 {
     [HttpGet]

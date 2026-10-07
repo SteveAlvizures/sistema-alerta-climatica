@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using System.Text.Json.Serialization;
 using ClimateAlert.Api;
 using ClimateAlert.Api.Authentication;
@@ -21,6 +22,19 @@ builder.Services.AddClimateAuthentication(jwt);
 builder.Services.AddClimateAuthorization();
 builder.Services.AddScoped<AuthService>();
 
+string? trustedProxyNetwork = builder.Configuration["TRUSTED_PROXY_NETWORK"];
+if (!string.IsNullOrWhiteSpace(trustedProxyNetwork))
+{
+    var network = System.Net.IPNetwork.Parse(trustedProxyNetwork);
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownIPNetworks.Add(network);
+        // Only the immediate, trusted container proxy is processed.
+        options.ForwardLimit = 1;
+    });
+}
+
 const string developmentCorsPolicy = "DevelopmentFrontend";
 
 if (builder.Environment.IsDevelopment())
@@ -38,6 +52,7 @@ if (builder.Environment.IsDevelopment())
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())

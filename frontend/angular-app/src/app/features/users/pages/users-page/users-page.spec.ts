@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { API_BASE_URL } from '../../../../core/config/api.config';
@@ -25,7 +25,7 @@ describe('UsersPage administration', () => {
   beforeEach(() => {
     allowed = true;
     TestBed.configureTestingModule({ imports: [UsersPage], providers: [
-      provideHttpClient(), provideHttpClientTesting(), { provide: API_BASE_URL, useValue: '/api' },
+      provideHttpClient(withXhr()), provideHttpClientTesting(), { provide: API_BASE_URL, useValue: '/api' },
       { provide: AuthService, useValue: { canManageUsers: () => allowed } },
     ] });
     http = TestBed.inject(HttpTestingController);
@@ -33,6 +33,15 @@ describe('UsersPage administration', () => {
     fixture.detectChanges(); flushList();
   });
   afterEach(() => http.verify());
+
+  it('uses generated Tailwind utilities for the administrative form toolbar', () => {
+    const toolbar = fixture.nativeElement.querySelector('.form-actions') as HTMLElement;
+    const style = getComputedStyle(toolbar);
+    expect(style.display).toBe('flex');
+    expect(style.alignItems).toBe('center');
+    expect(style.justifyContent).toBe('flex-end');
+    expect(style.columnGap).toBe('9.6px');
+  });
 
   it('lists the name, login, role, state, creation and last access without password fields', () => {
     const text = fixture.nativeElement.textContent;

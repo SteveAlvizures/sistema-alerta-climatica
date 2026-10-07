@@ -51,6 +51,7 @@ export interface SensorDto {
 }
 
 export interface SensorReadingDto {
+  sensorStatusAtMeasurement?: ApiSensorStatus | null;
   id: string;
   sensorId: string;
   variable: ClimateVariable;

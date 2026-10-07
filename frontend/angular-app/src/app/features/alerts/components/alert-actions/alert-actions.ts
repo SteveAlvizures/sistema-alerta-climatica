@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, inject, input, output, signal } from '@angular/core';
+import { Component, DestroyRef, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AlertDto } from '../../../../core/models/api.model';
 import { AlertApiService } from '../../../../core/services/alert-api.service';
@@ -15,6 +15,7 @@ import { ActiveAlertsService } from '../../../../core/services/active-alerts.ser
     }
     @if (error()) { <p role="alert">{{ error() }}</p> }
   `,
+  changeDetection: ChangeDetectionStrategy.Eager,
   styles: `:host { display: block; } button { padding: .6rem .8rem; border: 1px solid var(--brand-border); border-radius: .55rem; background: var(--brand); color: white; font-weight: 800; cursor: pointer; } button:disabled { opacity: .55; cursor: wait; } p { color: var(--warning-text); font-size: .8rem; }`,
 })
 export class AlertActions {
