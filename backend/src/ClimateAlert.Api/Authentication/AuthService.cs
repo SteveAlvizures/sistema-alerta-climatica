@@ -22,9 +22,14 @@ public sealed class AuthService(
     {
         string username = request.Username?.Trim().ToLowerInvariant() ?? string.Empty;
         User? user = await database.Users.SingleOrDefaultAsync(
-            candidate => (candidate.Email.ToLower() == username || candidate.Name.ToLower() == username)
-                && candidate.IsActive,
-            cancellationToken);
+            candidate => candidate.Email.ToLower() == username && candidate.IsActive, cancellationToken);
+        if (user is null)
+        {
+            // Keep the old display-name login only when it identifies exactly one account.
+            var matches = await database.Users.Where(candidate => candidate.Name.ToLower() == username && candidate.IsActive)
+                .Take(2).ToListAsync(cancellationToken);
+            user = matches.Count == 1 ? matches[0] : null;
+        }
 
         if (user is null || string.IsNullOrWhiteSpace(request.Password)) return null;
 

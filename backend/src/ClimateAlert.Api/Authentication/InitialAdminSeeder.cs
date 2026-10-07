@@ -11,6 +11,9 @@ public static class InitialAdminSeeder
     {
         IConfiguration configuration = services.GetRequiredService<IConfiguration>();
         ClimateAlertDbContext database = services.GetRequiredService<ClimateAlertDbContext>();
+        // Bootstrap only an empty installation. Existing accounts belong to administrators,
+        // even if their login, role, status or password has changed since the first startup.
+        if (await database.Users.AnyAsync()) return;
         IPasswordHasher<User> hasher = services.GetRequiredService<IPasswordHasher<User>>();
         await SeedUserAsync(database, hasher, configuration,
             "INITIAL_ADMIN_USERNAME", "INITIAL_ADMIN_PASSWORD", "Administrador", "Administrator");

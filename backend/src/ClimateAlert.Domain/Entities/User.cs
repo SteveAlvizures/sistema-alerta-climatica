@@ -33,6 +33,18 @@ public sealed class User
 
     public void RegisterAccess(DateTimeOffset occurredAt) => LastAccessAt = occurredAt;
 
+    public void UpdateProfile(string name, string username)
+    {
+        string validName = Required(name, nameof(name));
+        string validUsername = Required(username, nameof(username)).ToLowerInvariant();
+        Name = validName;
+        Email = validUsername;
+    }
+
+    public void ChangeRole(string role) => Role = UserRoles.Normalize(Required(role, nameof(role)));
+
+    public void ChangeStatus(bool isActive) => IsActive = isActive;
+
     public void UpdateIdentity(string name, string username, string passwordHash, string role)
     {
         Name = Required(name, nameof(name));

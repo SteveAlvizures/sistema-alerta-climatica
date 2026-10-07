@@ -61,6 +61,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/alert-rules/pages/alert-rules-page/alert-rules-page').then((component) => component.AlertRulesPage),
       },
       {
+        path: 'users',
+        canActivate: [administratorGuard],
+        loadComponent: () => import('./features/users/pages/users-page/users-page').then((component) => component.UsersPage),
+      },
+      {
         path: 'audit-log',
         canActivate: [administratorGuard],
         loadComponent: () => import('./features/audit-log/pages/audit-log-page/audit-log-page').then((component) => component.AuditLogPage),

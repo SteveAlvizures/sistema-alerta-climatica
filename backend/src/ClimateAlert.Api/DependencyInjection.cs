@@ -6,6 +6,7 @@ using ClimateAlert.Application.Features.SensorReadings;
 using ClimateAlert.Application.Features.Sensors;
 using ClimateAlert.Domain.Entities;
 using ClimateAlert.Api.Audit;
+using ClimateAlert.Api.Users;
 using Microsoft.AspNetCore.Identity;
 
 namespace ClimateAlert.Api;
@@ -22,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<AlertRuleService>();
         services.AddScoped<AlertService>();
         services.AddScoped<AuditActionService>();
+        services.AddScoped<UserManagementService>();
         services.AddScoped<IAlertEvaluator, AlertEvaluator>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();

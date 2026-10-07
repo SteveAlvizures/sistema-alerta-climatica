@@ -32,8 +32,17 @@ describe('Sidebar role navigation', () => {
   });
   for (const role of ['Operator', 'ConsultationUser']) {
     it(`hides audit navigation for ${role}`, () => {
-      expect(labels(role)).not.toContain('Bit?cora');
+      expect(labels(role)).not.toContain('Bitácora');
     });
   }
+
+  for (const role of [null, 'Operator', 'ConsultationUser', 'User']) {
+    it(`hides user administration for ${role ?? 'visitors'}`, () => {
+      expect(labels(role)).not.toContain('Usuarios');
+    });
+  }
+  it('shows user administration to Administrator', () => {
+    expect(labels('Administrator')).toContain('Usuarios');
+  });
 
 });

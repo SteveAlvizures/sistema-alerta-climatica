@@ -59,7 +59,8 @@ public sealed class AuthorizationTests
             bool anonymous = attributes.OfType<AllowAnonymousAttribute>().Any();
             var http = method.GetCustomAttributes(true).OfType<HttpMethodAttribute>().Single();
             if (!http.HttpMethods.Contains("GET") && !anonymous)
-                Assert.Equal(AuthorizationPolicies.OperateSystem, permission?.Policy);
+                Assert.Equal(controller == typeof(UsersController) ? AuthorizationPolicies.AdministratorOnly
+                    : AuthorizationPolicies.OperateSystem, permission?.Policy);
             string path = $"/probe/{controller.Name}/{method.Name}";
             var endpoint = app.MapGet(path, () => Microsoft.AspNetCore.Http.Results.NoContent());
             if (permission is not null) endpoint.RequireAuthorization(permission);

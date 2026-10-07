@@ -1,13 +1,10 @@
 using System.Text.Json.Serialization;
-using System.Text;
 using ClimateAlert.Api;
 using ClimateAlert.Api.Authentication;
 using ClimateAlert.Api.Errors;
 using ClimateAlert.Infrastructure;
 using ClimateAlert.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,22 +17,7 @@ builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 JwtOptions jwt = builder.Configuration.GetJwtOptions();
-builder.Services.AddSingleton(jwt);
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = jwt.Issuer,
-            ValidateAudience = true,
-            ValidAudience = jwt.Audience,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(jwt.SigningKey),
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(1)
-        };
-    });
+builder.Services.AddClimateAuthentication(jwt);
 builder.Services.AddClimateAuthorization();
 builder.Services.AddScoped<AuthService>();
 

@@ -65,6 +65,7 @@ describe('AuthService', () => {
         expiresAt: new Date(Date.now() + 60_000).toISOString(), name: 'Account', email: 'account', role });
       expect(service.canOperate()).toBe(['Administrator', 'Operator'].includes(role));
       expect(service.canViewAudit()).toBe(role === 'Administrator');
+      expect(service.canManageUsers()).toBe(role === 'Administrator');
     });
   }
   it('denies expired sessions and visitors', () => {

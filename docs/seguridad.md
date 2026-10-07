@@ -1,45 +1,51 @@
 # Seguridad
 
-## Inicio de sesión
+## Inicio de sesión y JWT
 
-`POST /api/auth/login` recibe las credenciales por HTTPS en un despliegue seguro. El backend busca al usuario y verifica su contraseña con `PasswordHasher<User>`; no compara ni almacena contraseñas en texto plano.
+`POST /api/auth/login` verifica la contraseña con `PasswordHasher<User>` y emite un JWT firmado con issuer, audience, expiración, identidad y rol. Las claves y credenciales iniciales se obtienen de configuración; `.env` no se versiona.
 
-Si la autenticación es válida, `AuthService` emite un JWT firmado con issuer, audience, expiración e identidad del usuario, incluido su rol `User` o `Administrator`. El visitante no tiene usuario ni JWT. Las claves y credenciales se obtienen de configuración local; `.env` no se versiona.
+El login se almacena en la columna existente `Users.Email`. El backend prioriza ese identificador único; mantiene el acceso antiguo por nombre visible solo cuando identifica exactamente una cuenta. Se permiten nombres visibles repetidos sin romper el login.
 
-La demostración académica local usa `user` / `user` para el usuario de consulta y `admin` / `admin` para el administrador. No son credenciales apropiadas para producción y deben reemplazarse en cualquier otro entorno.
+Los roles oficiales son `Administrator`, `Operator` y `ConsultationUser`. Una cuenta persistida con el rol antiguo `User` se interpreta como `ConsultationUser`. El formato y firma de los JWT existentes se mantienen.
+
+En cada solicitud con un JWT válido, el backend comprueba que la cuenta exista y esté activa y utiliza su rol actual en la base de datos. Una desactivación invalida el acceso autenticado inmediatamente; un cambio de rol afecta los permisos sin esperar al vencimiento del JWT. Esto requiere una consulta adicional a la base de datos por solicitud autenticada.
 
 ## Sesión Angular
 
-Angular conserva la sesión vigente en `sessionStorage`. Esto limita su persistencia a la pestaña o sesión del navegador. El interceptor obtiene el token válido y agrega:
+Angular conserva la sesión en `sessionStorage`. El interceptor agrega `Authorization: Bearer <token>` cuando el token está vigente. Al cerrar sesión elimina la información local y vuelve a `/`.
 
-```http
-Authorization: Bearer <token>
-```
+El guard administrativo verifica una sesión vigente con rol `Administrator`. Las rutas `/users` y `/audit-log` usan ese guard; sus enlaces se ocultan para otros roles. Los menús reflejan el rol obtenido en el último login; si otro administrador cambia el rol, el backend aplica el cambio inmediatamente y un nuevo login actualiza la sesión visual.
 
-El servicio elimina sesiones expiradas. Al cerrar sesión borra token, usuario y rol de `sessionStorage`, y la aplicación vuelve a `/`.
+## Autorización backend
 
-## Guards y autorización
+| Capacidad | Visitante | ConsultationUser / User antiguo | Operator | Administrator |
+|---|---:|---:|---:|---:|
+| Consultas públicas actuales | Sí | Sí | Sí | Sí |
+| Escrituras de comunidades, sensores, lecturas, reglas y alertas | No | No | Sí | Sí |
+| Consultar bitácora | No | No | No | Sí |
+| Listar, consultar o administrar usuarios | No | No | No | Sí |
 
-El guard administrativo comprueba que la sesión esté vigente y que el rol sea `Administrator`. También se ocultan acciones administrativas tanto para visitantes como para usuarios con rol `User`.
+La policy `OperateSystem` exige `Administrator` u `Operator`. `AdministratorOnly` exige `Administrator` y protege todas las acciones de `UsersController`, incluidos los GET, y la bitácora. El guard mejora la interfaz; la seguridad real se aplica en backend.
 
-> El Guard de Angular mejora la experiencia del usuario, pero la seguridad real también es aplicada por el backend.
+## Administración de usuarios
 
-Un cliente puede omitir Angular y llamar directamente a la API. Por eso los Controllers protegen escrituras y bitácora mediante `[Authorize(Roles = "Administrator")]`.
+- Se devuelve un DTO explícito: Id, nombre, login, rol, estado, fecha de creación y último acceso. No se serializan entidades, hashes ni refresh tokens.
+- El login se normaliza a minúsculas y se comprueba su unicidad, también para cuentas inactivas. Se conserva el índice único existente. Los conflictos de unicidad de SQL Server devuelven `409`.
+- La contraseña de creación debe tener entre 8 y 128 caracteres y no estar formada solo por espacios. Se almacena únicamente su hash con `PasswordHasher<User>`.
+- `PUT` modifica solo nombre y login. No se implementa cambio de contraseña; campos extra como `passwordHash`, rol o estado no se aplican mediante ese endpoint.
+- La asignación de rol admite solo los tres roles oficiales. El alias `User` es de lectura y compatibilidad.
+- No se permite desactivar ni quitar el rol de administrador de la propia cuenta. También se comprueba que permanezca un administrador activo al desactivar o degradar una cuenta administrativa.
+- Cada cambio y su auditoría se guardan juntos mediante un único `SaveChangesAsync`; la auditoría identifica al administrador y al usuario afectado y nunca contiene contraseñas.
+- El seeder configura las cuentas iniciales solo cuando `Users` está vacío. No sobrescribe cuentas existentes ni recrea el login antiguo después de una edición.
 
-## Permisos
+Consulta [Administración de usuarios](usuarios.md) para los endpoints y la demostración manual.
 
-| Capacidad | Visitante | User | Administrator |
-|---|---:|---:|---:|
-| Consultar comunidades, sensores, historial, reglas y alertas | Sí | Sí | Sí |
-| Mantener una sesión identificada | No | Sí | Sí |
-| Crear, editar o eliminar comunidades | No | No | Sí |
-| Administrar sensores y reglas | No | No | Sí |
-| Reconocer o resolver alertas | No | No | Sí |
-| Consultar bitácora administrativa | No | No | Sí |
+## Respuestas HTTP
 
-## Respuestas de seguridad
+- `401`: falta un JWT válido, está vencido, la cuenta está inactiva o ya no existe.
+- `403`: la identidad es válida, pero el rol actual no permite la acción.
+- `400`: datos inválidos, rol desconocido o estado omitido.
+- `404`: usuario no encontrado.
+- `409`: login duplicado o cambio administrativo que bloquearía el acceso propio.
 
-- `401 Unauthorized`: falta un JWT válido, está vencido o no supera la validación.
-- `403 Forbidden`: el token es válido, pero el usuario no posee el rol requerido.
-
-El manejador global no devuelve trazas ni detalles internos ante un `500`. En producción deben usarse HTTPS, secretos robustos y almacenamiento seguro de configuración.
+El manejador global no expone trazas ni detalles internos ante un `500`. En producción se usan HTTPS y secretos configurados fuera del código.

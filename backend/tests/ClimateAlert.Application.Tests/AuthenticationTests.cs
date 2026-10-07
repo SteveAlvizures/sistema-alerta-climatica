@@ -87,6 +87,46 @@ public sealed class AuthenticationTests
             .LoginAsync(new("user", "incorrecta"), default));
     }
 
+    [Fact]
+    public async Task SeederPreservesEditedRenamedDemotedAndInactiveAccounts()
+    {
+        await using var database = CreateDatabase();
+        using var services = CreateServices(database);
+        await InitialAdminSeeder.SeedAsync(services);
+        var admin = await database.Users.SingleAsync(user => user.Email == "admin");
+        var hasher = services.GetRequiredService<IPasswordHasher<User>>();
+        string hash = hasher.HashPassword(admin, "Changed-Academic-123");
+        admin.UpdateIdentity("Modified account", "renamed-login", hash, "Operator");
+        admin.ChangeStatus(false);
+        await database.SaveChangesAsync();
+        await InitialAdminSeeder.SeedAsync(services);
+        Assert.Equal(2, await database.Users.CountAsync());
+        Assert.Equal("Modified account", admin.Name);
+        Assert.Equal("renamed-login", admin.Email);
+        Assert.Equal("Operator", admin.Role);
+        Assert.Equal(hash, admin.PasswordHash);
+        Assert.False(admin.IsActive);
+    }
+
+    [Fact]
+    public async Task UsernameLoginRemainsUnambiguousWithRepeatedDisplayNames()
+    {
+        await using var database = CreateDatabase();
+        using var services = CreateServices(database);
+        var hasher = services.GetRequiredService<IPasswordHasher<User>>();
+        foreach (string username in new[] { "first", "second" })
+        {
+            var user = new User("Same display name", username, "pending", "Operator", Now);
+            user.UpdateIdentity(user.Name, username, hasher.HashPassword(user, "Academic-Test-123"), user.Role);
+            database.Users.Add(user);
+        }
+        await database.SaveChangesAsync();
+        var auth = CreateAuthService(database, services);
+        Assert.NotNull(await auth.LoginAsync(new("first", "Academic-Test-123"), default));
+        Assert.NotNull(await auth.LoginAsync(new("second", "Academic-Test-123"), default));
+        Assert.Null(await auth.LoginAsync(new("Same display name", "Academic-Test-123"), default));
+    }
+
     private static ClimateAlertDbContext CreateDatabase()
     {
         DbContextOptions<ClimateAlertDbContext> options = new DbContextOptionsBuilder<ClimateAlertDbContext>()

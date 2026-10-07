@@ -20,6 +20,7 @@ export class AuthService {
   });
 
   canOperate(): boolean { return ['Administrator', 'Operator'].includes(this.validSession()?.role ?? ''); }
+  canManageUsers(): boolean { return this.canViewAudit(); }
   canViewAudit(): boolean { return this.validSession()?.role === 'Administrator'; }
 
   login(request: LoginRequest): Observable<AuthSession> {

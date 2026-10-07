@@ -53,6 +53,7 @@ export class Sidebar {
       route: '/communities',
       upcoming: false,
     },
+    { label: 'Usuarios', symbol: '♙', route: '/users', upcoming: false, administratorOnly: true },
     { label: 'Bitácora', symbol: '☷', route: '/audit-log', upcoming: false, administratorOnly: true },
   ];
 
