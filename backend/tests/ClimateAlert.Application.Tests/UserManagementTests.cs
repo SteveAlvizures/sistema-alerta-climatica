@@ -23,8 +23,7 @@ public sealed class UserManagementTests
     [Theory]
     [InlineData(null, HttpStatusCode.Unauthorized)]
     [InlineData("Operator", HttpStatusCode.Forbidden)]
-    [InlineData("ConsultationUser", HttpStatusCode.Forbidden)]
-    [InlineData("User", HttpStatusCode.Forbidden)]
+    [InlineData("Query", HttpStatusCode.Forbidden)]
     [InlineData("Administrator", HttpStatusCode.OK)]
     public async Task AllUserEndpointsEnforceAdministratorOnly(string? role, HttpStatusCode expected)
     {
@@ -39,7 +38,7 @@ public sealed class UserManagementTests
             new HttpRequestMessage(HttpMethod.Post, "/api/users") { Content = JsonContent.Create(new CreateUserRequest("New account", "new-account", "Academic-Test-123", "Operator")) },
             new HttpRequestMessage(HttpMethod.Put, path) { Content = JsonContent.Create(new UpdateUserRequest("Edited", "edited")) },
             new HttpRequestMessage(HttpMethod.Patch, path + "/status") { Content = JsonContent.Create(new ChangeUserStatusRequest(false)) },
-            new HttpRequestMessage(HttpMethod.Patch, path + "/role") { Content = JsonContent.Create(new ChangeUserRoleRequest("ConsultationUser")) }
+            new HttpRequestMessage(HttpMethod.Patch, path + "/role") { Content = JsonContent.Create(new ChangeUserRoleRequest("Query")) }
         })
         {
             using (request)
@@ -73,14 +72,14 @@ public sealed class UserManagementTests
                 new PasswordHasher<User>().VerifyHashedPassword(stored, stored.PasswordHash, "Academic-Test-123"));
         }
         using var duplicate = await host.Client.PostAsJsonAsync("/api/users",
-            new CreateUserRequest("Duplicate", "EXAMPLE-ACCOUNT", "Academic-Test-123", "ConsultationUser"));
+            new CreateUserRequest("Duplicate", "EXAMPLE-ACCOUNT", "Academic-Test-123", "Query"));
         Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
         using var edited = await host.Client.PutAsJsonAsync($"/api/users/{user.Id}", new UpdateUserRequest("Updated name", "updated-login"));
         Assert.Equal(HttpStatusCode.OK, edited.StatusCode);
         Assert.Equal("updated-login", (await edited.Content.ReadFromJsonAsync<UserResponse>())!.Username);
-        using var roleChanged = await host.Client.PatchAsJsonAsync($"/api/users/{user.Id}/role", new ChangeUserRoleRequest("ConsultationUser"));
+        using var roleChanged = await host.Client.PatchAsJsonAsync($"/api/users/{user.Id}/role", new ChangeUserRoleRequest("Query"));
         Assert.Equal(HttpStatusCode.OK, roleChanged.StatusCode);
-        Assert.Equal("ConsultationUser", (await roleChanged.Content.ReadFromJsonAsync<UserResponse>())!.Role);
+        Assert.Equal("Query", (await roleChanged.Content.ReadFromJsonAsync<UserResponse>())!.Role);
         foreach (bool active in new[] { false, true })
         {
             using var changed = await host.Client.PatchAsJsonAsync($"/api/users/{user.Id}/status", new ChangeUserStatusRequest(active));
@@ -124,24 +123,31 @@ public sealed class UserManagementTests
     }
 
     [Fact]
-    public async Task ListFiltersNameLoginRoleStatusAndPaginatesIncludingLegacyUsers()
+    public async Task ListFiltersNameLoginRoleStatusAndPaginates()
     {
         await using var host = await TestHost.StartAsync();
         await host.LoginAsAsync("Administrator");
         await using (var db = host.Database())
         {
-            var user = await db.Users.FindAsync(host.TargetId);
-            user!.UpdateProfile("Legacy Account", "legacy-login");
-            db.Entry(user).Property(candidate => candidate.Role).CurrentValue = "User";
+            var user = await db.Users
+                .Include(candidate => candidate.Role)
+                .SingleAsync(candidate => candidate.Id == host.TargetId);
+
+            Role queryRole = await db.Roles
+                .SingleAsync(candidate => candidate.Name == UserRoles.Query);
+
+            user.UpdateProfile("Query Account", "query-login");
+            user.ChangeRole(queryRole);
             user.ChangeStatus(false);
+
             await db.SaveChangesAsync();
         }
-        foreach (string search in new[] { "LEGACY", "legacy-login", "Account" })
+        foreach (string search in new[] { "QUERY", "query-login", "Account" })
         {
             var result = await host.Client.GetFromJsonAsync<PagedResponse<UserResponse>>(
-                $"/api/users?search={search}&role=ConsultationUser&isActive=false");
+                $"/api/users?search={search}&role=Query&isActive=false");
             Assert.Equal(host.TargetId, Assert.Single(result!.Data).Id);
-            Assert.Equal("ConsultationUser", result.Data[0].Role);
+            Assert.Equal("Query", result.Data[0].Role);
         }
         Assert.Empty((await host.Client.GetFromJsonAsync<PagedResponse<UserResponse>>("/api/users?isActive=true&role=Operator"))!.Data);
         var first = (await host.Client.GetFromJsonAsync<PagedResponse<UserResponse>>("/api/users?page=1&pageSize=1"))!;
@@ -165,8 +171,12 @@ public sealed class UserManagementTests
             new { name = "Edited", username = "edited", password = "Injected-123", passwordHash = "injected", role = "Administrator", isActive = false });
         Assert.Equal(HttpStatusCode.OK, edit.StatusCode);
         await using var db = host.Database();
-        var target = (await db.Users.FindAsync(host.TargetId))!;
-        Assert.True(target.IsActive); Assert.Equal("Operator", target.Role);
+        var target = await db.Users
+            .Include(candidate => candidate.Role)
+            .SingleAsync(candidate => candidate.Id == host.TargetId);
+
+        Assert.True(target.IsActive);
+        Assert.Equal(UserRoles.Operator, target.Role.Name);
         Assert.NotEqual(PasswordVerificationResult.Failed,
             new PasswordHasher<User>().VerifyHashedPassword(target, target.PasswordHash, TestHost.Password));
         Assert.Equal(PasswordVerificationResult.Failed,
@@ -192,15 +202,29 @@ public sealed class UserManagementTests
         await host.LoginAsAsync("Administrator");
         await using (var db = host.Database())
         {
-            var admin = (await db.Users.FindAsync(host.AdminId))!;
-            admin.ChangeRole("Operator");
+            var admin = await db.Users
+                .Include(candidate => candidate.Role)
+                .SingleAsync(candidate => candidate.Id == host.AdminId);
+
+            Role operatorRole = await db.Roles
+                .SingleAsync(candidate => candidate.Name == UserRoles.Operator);
+
+            admin.ChangeRole(operatorRole);
             await db.SaveChangesAsync();
         }
         Assert.Equal(HttpStatusCode.Forbidden, (await host.Client.GetAsync("/api/users")).StatusCode);
         await using (var db = host.Database())
         {
-            var admin = (await db.Users.FindAsync(host.AdminId))!;
-            admin.ChangeRole("Administrator"); admin.ChangeStatus(false);
+            var admin = await db.Users
+                .Include(candidate => candidate.Role)
+                .SingleAsync(candidate => candidate.Id == host.AdminId);
+
+            Role administratorRole = await db.Roles
+                .SingleAsync(candidate => candidate.Name == UserRoles.Administrator);
+
+            admin.ChangeRole(administratorRole);
+            admin.ChangeStatus(false);
+
             await db.SaveChangesAsync();
         }
         Assert.Equal(HttpStatusCode.Unauthorized, (await host.Client.GetAsync("/api/users")).StatusCode);
@@ -251,8 +275,29 @@ public sealed class UserManagementTests
             await app.StartAsync();
             var host = new TestHost(app, options);
             await using var database = host.Database();
-            var admin = Account("Administrator", "admin");
-            var target = Account("Operator", "target");
+            Role administratorRole = new(
+                UserRoles.AdministratorId,
+                UserRoles.Administrator,
+                "Administración completa del sistema.");
+
+            Role operatorRole = new(
+                UserRoles.OperatorId,
+                UserRoles.Operator,
+                "Operación y gestión del monitoreo climático.");
+
+            Role queryRole = new(
+                UserRoles.QueryId,
+                UserRoles.Query,
+                "Consulta y visualización de información.");
+
+            database.Roles.AddRange(
+                administratorRole,
+                operatorRole,
+                queryRole);
+
+            var admin = Account(administratorRole, "admin");
+            var target = Account(operatorRole, "target");
+
             database.Users.AddRange(admin, target);
             await database.SaveChangesAsync();
             host.AdminId = admin.Id; host.TargetId = target.Id;
@@ -263,8 +308,18 @@ public sealed class UserManagementTests
             string username = role == "Administrator" ? "admin" : "target";
             await using (var db = Database())
             {
-                var user = (await db.Users.FindAsync(role == "Administrator" ? AdminId : TargetId))!;
-                db.Entry(user).Property(candidate => candidate.Role).CurrentValue = role;
+                var user = await db.Users
+                    .Include(candidate => candidate.Role)
+                    .SingleAsync(candidate =>
+                        candidate.Id == (role == UserRoles.Administrator
+                            ? AdminId
+                            : TargetId));
+
+                Role persistedRole = await db.Roles
+                    .SingleAsync(candidate => candidate.Name == role);
+
+                user.ChangeRole(persistedRole);
+
                 await db.SaveChangesAsync();
             }
             using var response = await Client.PostAsJsonAsync("/api/auth/login", new LoginRequest(username, Password));
@@ -272,10 +327,21 @@ public sealed class UserManagementTests
             var session = (await response.Content.ReadFromJsonAsync<LoginResponse>())!;
             Client.DefaultRequestHeaders.Authorization = new("Bearer", session.AccessToken);
         }
-        private static User Account(string role, string username)
+        private static User Account(Role role, string username)
         {
-            var user = new User(username, username, "pending", role, DateTimeOffset.UtcNow);
-            user.UpdateIdentity(username, username, new PasswordHasher<User>().HashPassword(user, Password), role);
+            var user = new User(
+                username,
+                username,
+                "pending",
+                role,
+                DateTimeOffset.UtcNow);
+
+            user.UpdateIdentity(
+                username,
+                username,
+                new PasswordHasher<User>().HashPassword(user, Password),
+                role);
+
             return user;
         }
         public async ValueTask DisposeAsync()

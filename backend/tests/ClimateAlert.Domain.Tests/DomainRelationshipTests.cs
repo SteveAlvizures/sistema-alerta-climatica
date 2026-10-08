@@ -61,7 +61,17 @@ public sealed class DomainRelationshipTests
     public void UserPreservesRefreshTokensAndAuditActions()
     {
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        User user = new("Community operator", "operator@example.test", "protected-hash", "Operator", now);
+        Role role = new(
+            UserRoles.OperatorId,
+            UserRoles.Operator,
+            "Operación y gestión del monitoreo climático.");
+
+        User user = new(
+            "Community operator",
+            "operator@example.test",
+            "protected-hash",
+            role,
+            now);
         RefreshToken token = new(user, "protected-token-hash", now, now.AddDays(1));
         AuditAction action = new(user, "SensorActivated", "Sensor was enabled.", "Sensor", Guid.NewGuid(), now);
 

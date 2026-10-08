@@ -154,7 +154,7 @@ describe('SensorsPage administration', () => {
     expect(component.success).toBe('Lectura registrada correctamente.');
     expect(component.latestReadings[sensor.id]?.value).toBe(31.5);
   });
-  for (const name of ['Operator', 'ConsultationUser', 'User']) {
+  for (const name of ['Operator', 'Query', 'User']) {
     it(`shows write controls only for operational role ${name}`, () => {
       role.set({ role: name }); fixture.detectChanges();
       expect(!!fixture.nativeElement.querySelector('[aria-labelledby="sensor-form-title"] form')).toBe(name === 'Operator');

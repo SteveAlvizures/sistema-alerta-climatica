@@ -25,8 +25,20 @@ public sealed class AlertRuleEditingTests
             ClimateVariable.Temperature, DangerLevel.Yellow, 30, null, now, now, message: "Original message");
         var reading = new SensorReading(sensor, ClimateVariable.Temperature, 31, "C", now, now, SensorOrigin.Simulated);
         var alert = new Alert(rule, reading, rule.Message, now); alert.Close(now);
-        var user = new User("Admin", "admin@test", "hash", "Administrator", now);
-        db.AddRange(community, sensor, rule, reading, alert, user); await db.SaveChangesAsync();
+        var administratorRole = new Role(
+            UserRoles.AdministratorId,
+            UserRoles.Administrator,
+            "Administración completa del sistema.");
+
+        var user = new User(
+            "Admin",
+            "admin@test",
+            "hash",
+            administratorRole,
+            now);
+
+        db.AddRange(administratorRole, community, sensor, rule, reading, alert, user);
+        await db.SaveChangesAsync();
         var service = new AlertRuleService(new AlertRuleRepository(db), new CommunityRepository(db),
             new SensorRepository(db), new UnitOfWork(db), TimeProvider.System);
         var controller = new AlertRulesController(service, new AuditActionService(db, TimeProvider.System))

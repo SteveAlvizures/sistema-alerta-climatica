@@ -8,7 +8,7 @@ import { UserApiService, UserDto, UserFilters, UserRole } from '../../../../core
 
 const emptyFilters = (): UserFilters => ({ search: '', role: '', isActive: '' });
 const roleLabels: Record<UserRole, string> = {
-  Administrator: 'Administrador', Operator: 'Operador', ConsultationUser: 'Usuario de consulta',
+  Administrator: 'Administrador', Operator: 'Operador', Query: 'Usuario de consulta',
 };
 
 @Component({
@@ -40,7 +40,7 @@ export class UsersPage implements OnInit {
   name = '';
   username = '';
   password = '';
-  role: UserRole = 'ConsultationUser';
+  role: UserRole = 'Query';
 
   ngOnInit(): void { this.load(); }
   canManage(): boolean { return this.auth.canManageUsers(); }
@@ -75,7 +75,7 @@ export class UsersPage implements OnInit {
     this.password = ''; this.error = ''; this.success = '';
   }
   cancelEdit(): void {
-    this.editingId = ''; this.name = ''; this.username = ''; this.password = ''; this.role = 'ConsultationUser';
+    this.editingId = ''; this.name = ''; this.username = ''; this.password = ''; this.role = 'Query';
   }
   save(): void {
     if (!this.canManage() || this.saving) return;

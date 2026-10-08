@@ -19,7 +19,7 @@ public static class AuthorizationPolicies
             options.AddPolicy(AdministratorOnly, policy => policy.RequireAuthenticatedUser()
                 .RequireRole(UserRoles.Administrator));
             options.AddPolicy(ConsultEvents, policy => policy.RequireAuthenticatedUser()
-                .RequireRole(UserRoles.Administrator, UserRoles.Operator, UserRoles.ConsultationUser));
+                .RequireRole(UserRoles.Administrator, UserRoles.Operator, UserRoles.Query));
         });
         return services;
     }

@@ -98,7 +98,7 @@ public sealed class DashboardAuditHttpTests
 
     [Theory]
     [InlineData(null, 401)]
-    [InlineData("ConsultationUser", 204)]
+    [InlineData("Query", 204)]
     [InlineData("Operator", 204)]
     [InlineData("Administrator", 204)]
     public async Task LogoutAuditsAuthenticatedJwtActorAndKeepsJwtStateless(string? role, int expected)
@@ -118,7 +118,7 @@ public sealed class DashboardAuditHttpTests
 
     [Theory]
     [InlineData(null, 401)]
-    [InlineData("ConsultationUser", 403)]
+    [InlineData("Query", 403)]
     [InlineData("Operator", 403)]
     [InlineData("Administrator", 200)]
     public async Task AuditAuthorizationAndCanonicalFilters(string? role, int expected)

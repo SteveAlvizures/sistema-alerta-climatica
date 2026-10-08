@@ -71,7 +71,7 @@ describe('AuthService', () => {
     expect(sessionStorage.getItem('vigia-rural-session')).toBeNull();
   });
 
-  for (const role of ['Administrator', 'Operator', 'ConsultationUser', 'User', 'Unknown']) {
+  for (const role of ['Administrator', 'Operator', 'Query', 'User', 'Unknown']) {
     it(`enforces permissions for ${role}`, () => {
       service.login({ username: 'account', password: 'secret' }).subscribe();
       http.expectOne('/api/auth/login').flush({ accessToken: 'jwt',

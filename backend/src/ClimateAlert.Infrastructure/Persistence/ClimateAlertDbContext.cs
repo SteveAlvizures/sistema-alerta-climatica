@@ -32,6 +32,7 @@ public sealed class ClimateAlertDbContext(DbContextOptions<ClimateAlertDbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
     public DbSet<Community> Communities => Set<Community>();
     public DbSet<Sensor> Sensors => Set<Sensor>();
     public DbSet<SensorReading> SensorReadings => Set<SensorReading>();

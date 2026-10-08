@@ -84,7 +84,7 @@ describe('CommunitiesPage', () => {
     http.expectNone('/api/communities/temporary-7/status');
   });
 
-  it('hides forms and write actions for ConsultationUser', () => {
+  it('hides forms and write actions for Query', () => {
     TestBed.inject(AuthService).canOperate = () => false; fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('input[name="name"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('.community-card__actions')).toBeNull();

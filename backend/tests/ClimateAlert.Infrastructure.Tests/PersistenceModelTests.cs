@@ -9,18 +9,18 @@ namespace ClimateAlert.Infrastructure.Tests;
 public sealed class PersistenceModelTests
 {
     [Fact]
-    public void ModelContainsNineDomainEntities()
+    public void ModelContainsTenDomainEntities()
     {
         using ClimateAlertDbContext context = CreateContext();
         Type[] expectedEntities =
         [
             typeof(User), typeof(Community), typeof(Sensor), typeof(SensorReading),
             typeof(AlertRule), typeof(Alert), typeof(ClimateEvent), typeof(AuditAction),
-            typeof(RefreshToken)
+            typeof(RefreshToken), typeof(Role)
         ];
 
         Assert.All(expectedEntities, entityType => Assert.NotNull(context.Model.FindEntityType(entityType)));
-        Assert.Equal(9, context.Model.GetEntityTypes().Count());
+        Assert.Equal(10, context.Model.GetEntityTypes().Count());
     }
 
     [Fact]

@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using ClimateAlert.Domain.Entities;
 using ClimateAlert.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -10,7 +9,13 @@ using Microsoft.IdentityModel.Tokens;
 namespace ClimateAlert.Api.Authentication;
 
 public sealed record LoginRequest(string Username, string Password);
-public sealed record LoginResponse(string AccessToken, DateTimeOffset ExpiresAt, string Name, string Email, string Role);
+
+public sealed record LoginResponse(
+    string AccessToken,
+    DateTimeOffset ExpiresAt,
+    string Name,
+    string Email,
+    string Role);
 
 public sealed class AuthService(
     ClimateAlertDbContext database,
@@ -18,28 +23,60 @@ public sealed class AuthService(
     JwtOptions options,
     TimeProvider timeProvider)
 {
-    public async Task<LoginResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
+    public async Task<LoginResponse?> LoginAsync(
+        LoginRequest request,
+        CancellationToken cancellationToken)
     {
         string username = request.Username?.Trim().ToLowerInvariant() ?? string.Empty;
-        User? user = await database.Users.SingleOrDefaultAsync(
-            candidate => candidate.Email.ToLower() == username && candidate.IsActive, cancellationToken);
+
+        User? user = await database.Users
+            .Include(candidate => candidate.Role)
+            .SingleOrDefaultAsync(
+                candidate =>
+                    candidate.Email.ToLower() == username &&
+                    candidate.IsActive,
+                cancellationToken);
+
         if (user is null)
         {
-            // Keep the old display-name login only when it identifies exactly one account.
-            var matches = await database.Users.Where(candidate => candidate.Name.ToLower() == username && candidate.IsActive)
-                .Take(2).ToListAsync(cancellationToken);
+            var matches = await database.Users
+                .Include(candidate => candidate.Role)
+                .Where(candidate =>
+                    candidate.Name.ToLower() == username &&
+                    candidate.IsActive)
+                .Take(2)
+                .ToListAsync(cancellationToken);
+
             user = matches.Count == 1 ? matches[0] : null;
         }
 
-        if (user is null || string.IsNullOrWhiteSpace(request.Password)) return null;
+        if (user is null || string.IsNullOrWhiteSpace(request.Password))
+            return null;
 
-        PasswordVerificationResult result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
-        if (result == PasswordVerificationResult.Failed) return null;
+        PasswordVerificationResult result =
+            passwordHasher.VerifyHashedPassword(
+                user,
+                user.PasswordHash,
+                request.Password);
+
+        if (result == PasswordVerificationResult.Failed)
+            return null;
 
         DateTimeOffset now = timeProvider.GetUtcNow();
-        DateTimeOffset expiresAt = now.AddMinutes(options.ExpirationMinutes);
+        DateTimeOffset expiresAt =
+            now.AddMinutes(options.ExpirationMinutes);
+
         user.RegisterAccess(now);
-        database.AuditActions.Add(new AuditAction(user, "Login", "Inicio de sesión exitoso.", "User", user.Id, now));
+
+        database.AuditActions.Add(
+            new AuditAction(
+                user,
+                "Login",
+                "Inicio de sesión exitoso.",
+                "User",
+                user.Id,
+                now));
+
         await database.SaveChangesAsync(cancellationToken);
 
         Claim[] claims =
@@ -47,16 +84,27 @@ public sealed class AuthService(
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
             new(ClaimTypes.Name, user.Name),
-            new(ClaimTypes.Role, UserRoles.Normalize(user.Role)),
+            new(ClaimTypes.Role, user.Role.Name),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         ];
+
         SigningCredentials credentials = new(
             new SymmetricSecurityKey(options.SigningKey),
             SecurityAlgorithms.HmacSha256);
-        JwtSecurityToken token = new(options.Issuer, options.Audience, claims, now.UtcDateTime,
-            expiresAt.UtcDateTime, credentials);
 
-        return new LoginResponse(new JwtSecurityTokenHandler().WriteToken(token), expiresAt,
-            user.Name, user.Email, UserRoles.Normalize(user.Role));
+        JwtSecurityToken token = new(
+            options.Issuer,
+            options.Audience,
+            claims,
+            now.UtcDateTime,
+            expiresAt.UtcDateTime,
+            credentials);
+
+        return new LoginResponse(
+            new JwtSecurityTokenHandler().WriteToken(token),
+            expiresAt,
+            user.Name,
+            user.Email,
+            user.Role.Name);
     }
 }

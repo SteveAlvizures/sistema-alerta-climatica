@@ -208,8 +208,23 @@ public sealed class SqlAtomicityFixture : IAsyncLifetime
         {
             await db.Database.MigrateAsync();
             databaseCreated = true;
-            var user = new User("Integration admin", "integration-admin", "pending", "Administrator", DateTimeOffset.UtcNow);
-            user.UpdateIdentity(user.Name, user.Email, new PasswordHasher<User>().HashPassword(user, "Integration-Test-123"), user.Role);
+            Role administratorRole = await db.Roles
+                .SingleAsync(role => role.Name == UserRoles.Administrator);
+
+            var user = new User(
+                "Integration admin",
+                "integration-admin",
+                "pending",
+                administratorRole,
+                DateTimeOffset.UtcNow);
+
+            user.UpdateIdentity(
+                user.Name,
+                user.Email,
+                new PasswordHasher<User>().HashPassword(
+                    user,
+                    "Integration-Test-123"),
+                administratorRole);
             var community = new Community("Integration base", "Test", null, DateTimeOffset.UtcNow);
             community.SetAdministrativeDetails("Test", "Test", "Test", 15, -90, true);
             var sensor = new Sensor(community, "SQL-TEMP", "Integration sensor", ClimateVariable.Temperature, SensorOrigin.Simulated, "Test", DateTimeOffset.UtcNow);

@@ -36,7 +36,7 @@ describe('administratorGuard', () => {
   it('allows administrators', () => {
     expect(evaluate('Administrator')).toBeTrue();
   });
-  for (const role of ['Operator', 'ConsultationUser']) {
+  for (const role of ['Operator', 'Query']) {
     it(`denies audit access to ${role}`, () => {
       expect(evaluate(role)).not.toBeTrue();
     });
@@ -47,7 +47,7 @@ describe('administratorGuard', () => {
     expect(usersRoute?.canActivate).toContain(administratorGuard);
   });
 
-  for (const role of [null, 'Operator', 'ConsultationUser', 'Administrator']) {
+  for (const role of [null, 'Operator', 'Query', 'Administrator']) {
     it(`enforces a direct /users navigation for ${role ?? 'visitors'}`, async () => {
       const usersRoute = routes.find(route => route.path === '')!.children!.find(route => route.path === 'users')!;
       TestBed.configureTestingModule({ providers: [

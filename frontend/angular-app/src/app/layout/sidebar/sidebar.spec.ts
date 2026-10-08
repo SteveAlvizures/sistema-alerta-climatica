@@ -21,14 +21,14 @@ describe('Sidebar role navigation', () => {
 
   afterEach(() => TestBed.resetTestingModule());
 
-  for (const role of ['Administrator', 'Operator', 'ConsultationUser']) {
+  for (const role of ['Administrator', 'Operator', 'Query']) {
     it(`shows separate Events navigation for ${role}`, () => {
       const navigation = labels(role); expect(navigation).toContain('Eventos'); expect(navigation).toContain('Historial');
     });
   }
   it('hides authenticated event history from visitors', () => { expect(labels(null)).not.toContain('Eventos'); });
   it('navigates to the Events module from the sidebar', () => {
-    labels('ConsultationUser');
+    labels('Query');
     const fixture = TestBed.createComponent(Sidebar); fixture.detectChanges();
     const button = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(b => b.textContent?.includes('Eventos'))!;
     button.click(); expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/events');
@@ -43,13 +43,13 @@ describe('Sidebar role navigation', () => {
   it('shows audit log to administrators', () => {
     expect(labels('Administrator')).toContain('Bitácora');
   });
-  for (const role of ['Operator', 'ConsultationUser']) {
+  for (const role of ['Operator', 'Query']) {
     it(`hides audit navigation for ${role}`, () => {
       expect(labels(role)).not.toContain('Bitácora');
     });
   }
 
-  for (const role of [null, 'Operator', 'ConsultationUser', 'User']) {
+  for (const role of [null, 'Operator', 'Query', 'User']) {
     it(`hides user administration for ${role ?? 'visitors'}`, () => {
       expect(labels(role)).not.toContain('Usuarios');
     });

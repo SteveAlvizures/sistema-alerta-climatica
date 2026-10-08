@@ -26,7 +26,7 @@ public sealed class AlertLifecycleHttpTests
     };
     [Theory]
     [InlineData(null, HttpStatusCode.Unauthorized)]
-    [InlineData("ConsultationUser", HttpStatusCode.Forbidden)]
+    [InlineData("Query", HttpStatusCode.Forbidden)]
     [InlineData("Operator", HttpStatusCode.OK)]
     [InlineData("Administrator", HttpStatusCode.OK)]
     public async Task OperationsEnforceJwtRolesAndUseJwtResponsibleInsteadOfBody(string? role, HttpStatusCode expected)
@@ -242,10 +242,41 @@ public sealed class AlertLifecycleHttpTests
             await app.StartAsync();
             var host = new TestHost(app, options, clock);
             await using var database = host.Database();
-            foreach (string role in new[] { "Administrator", "Operator", "ConsultationUser" })
+            Role[] roles =
+            [
+                new Role(
+                    UserRoles.AdministratorId,
+                    UserRoles.Administrator,
+                    "Administración completa del sistema."),
+                new Role(
+                    UserRoles.OperatorId,
+                    UserRoles.Operator,
+                    "Operación y gestión del monitoreo climático."),
+                new Role(
+                    UserRoles.QueryId,
+                    UserRoles.Query,
+                    "Consulta y visualización de información.")
+            ];
+
+            database.Roles.AddRange(roles);
+
+            foreach (Role role in roles)
             {
-                var user = new User(role, role.ToLowerInvariant(), "pending", role, clock.Now);
-                user.UpdateIdentity(user.Name, user.Email, new PasswordHasher<User>().HashPassword(user, "Academic-Test-123"), role);
+                var user = new User(
+                    role.Name,
+                    role.Name.ToLowerInvariant(),
+                    "pending",
+                    role,
+                    clock.Now);
+
+                user.UpdateIdentity(
+                    user.Name,
+                    user.Email,
+                    new PasswordHasher<User>().HashPassword(
+                        user,
+                        "Academic-Test-123"),
+                    role);
+
                 database.Users.Add(user);
             }
             DateTimeOffset at = clock.Now.AddMinutes(-10); host.DetectedAt = at;
@@ -277,7 +308,8 @@ public sealed class AlertLifecycleHttpTests
             var session = (await response.Content.ReadFromJsonAsync<LoginResponse>())!;
             Client.DefaultRequestHeaders.Authorization = new("Bearer", session.AccessToken);
             await using var db = Database();
-            return (await db.Users.SingleAsync(user => user.Role == role)).Id;
+            return (await db.Users
+                .SingleAsync(user => user.Role.Name == role)).Id;
         }
         public async ValueTask DisposeAsync() { Client.Dispose(); await app.StopAsync(); await app.DisposeAsync(); }
     }

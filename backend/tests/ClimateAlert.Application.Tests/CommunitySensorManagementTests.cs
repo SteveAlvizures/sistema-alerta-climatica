@@ -25,7 +25,7 @@ public sealed class CommunitySensorManagementTests
 
     [Theory]
     [InlineData(null, 401)]
-    [InlineData("ConsultationUser", 403)]
+    [InlineData("Query", 403)]
     [InlineData("Operator", 200)]
     [InlineData("Administrator", 200)]
     public async Task AllManagementWritesEnforceRolesAndReadQueriesRemainPublic(string? role, int expected)

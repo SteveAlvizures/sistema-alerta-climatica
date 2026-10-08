@@ -6,7 +6,7 @@ import { routes } from '../../app.routes';
 
 describe('Authenticated event routes', () => {
   afterEach(() => TestBed.resetTestingModule());
-  for (const role of ['Administrator', 'Operator', 'ConsultationUser']) {
+  for (const role of ['Administrator', 'Operator', 'Query']) {
     it(`allows a valid authenticated ${role}`, () => {
       TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: AuthService, useValue: { token: () => 'valid-token' } }] });
       expect(TestBed.runInInjectionContext(() => authenticatedGuard({} as ActivatedRouteSnapshot, { url: '/events' } as RouterStateSnapshot))).toBeTrue();

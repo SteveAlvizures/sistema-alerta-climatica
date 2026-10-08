@@ -63,7 +63,7 @@ export class ClimateTrend implements AfterViewInit, OnDestroy {
   protected tooltip(index: number): string {
     const point = this.points()[index]; const series = this.activeSeries();
     if (!point || !series) return '';
-    const date = point.timestamp ? new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(point.timestamp)) : point.label;
+    const date = point.timestamp ? new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'medium', timeZone: 'America/Guatemala' }).format(new Date(point.timestamp)) : point.label;
     return `${date} · ${series.label}: ${point.value} ${series.unit}`;
   }
   protected thresholdClass(level: string): string { return `trend-panel__threshold trend-panel__threshold--${level.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`; }
@@ -75,7 +75,7 @@ export class ClimateTrend implements AfterViewInit, OnDestroy {
     const sameDay = dates.length === this.points().length && dates.every(date =>
       date.getFullYear() === dates[0].getFullYear() && date.getMonth() === dates[0].getMonth() && date.getDate() === dates[0].getDate());
     return new Intl.DateTimeFormat('es-GT', sameDay
-      ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
-      : { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(point.timestamp));
+      ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/Guatemala' }
+      : { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/Guatemala' }).format(new Date(point.timestamp));
   }
 }

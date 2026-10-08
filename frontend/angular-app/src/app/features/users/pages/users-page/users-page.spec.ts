@@ -54,13 +54,13 @@ describe('UsersPage administration', () => {
   });
 
   it('creates a user with the selected role and clears the password from the form', () => {
-    component.name = 'New Account'; component.username = 'new-login'; component.password = 'Academic-Test-123'; component.role = 'ConsultationUser';
+    component.name = 'New Account'; component.username = 'new-login'; component.password = 'Academic-Test-123'; component.role = 'Query';
     component.save();
     const request = http.expectOne('/api/users');
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ name: 'New Account', username: 'new-login', password: 'Academic-Test-123', role: 'ConsultationUser' });
+    expect(request.request.body).toEqual({ name: 'New Account', username: 'new-login', password: 'Academic-Test-123', role: 'Query' });
     expect(component.password).toBe('');
-    request.flush({ ...user, id: 'new-id', role: 'ConsultationUser' }); flushList();
+    request.flush({ ...user, id: 'new-id', role: 'Query' }); flushList();
     expect(component.success).toContain('Usuario creado'); expect(component.name).toBe('');
   });
 
@@ -76,9 +76,9 @@ describe('UsersPage administration', () => {
   });
 
   it('applies search, role and inactive filters and clears them', () => {
-    component.draftFilters = { search: ' account ', role: 'ConsultationUser', isActive: 'false' };
+    component.draftFilters = { search: ' account ', role: 'Query', isActive: 'false' };
     component.applyFilters();
-    const request = http.expectOne('/api/users?page=1&pageSize=20&search=account&role=ConsultationUser&isActive=false');
+    const request = http.expectOne('/api/users?page=1&pageSize=20&search=account&role=Query&isActive=false');
     request.flush(result([])); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('No se encontraron usuarios');
     component.clearFilters(); flushList(); expect(component.activeFilters.search).toBe('');
   });

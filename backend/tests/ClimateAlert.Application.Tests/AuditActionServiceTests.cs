@@ -80,5 +80,32 @@ public sealed class AuditActionServiceTests
     }
 
     private static ClimateAlertDbContext CreateDatabase() => new(new DbContextOptionsBuilder<ClimateAlertDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
-    private static User AddUser(ClimateAlertDbContext database, string name) { User user = new(name, $"{Guid.NewGuid():N}@test", "hash", "Administrator", Start); database.Users.Add(user); return user; }
+    private static User AddUser(ClimateAlertDbContext database, string name)
+    {
+        Role? role = database.Roles.Local
+            .SingleOrDefault(candidate => candidate.Name == UserRoles.Administrator);
+
+        role ??= database.Roles
+            .SingleOrDefault(candidate => candidate.Name == UserRoles.Administrator);
+
+        if (role is null)
+        {
+            role = new Role(
+                UserRoles.AdministratorId,
+                UserRoles.Administrator,
+                "Administración completa del sistema.");
+
+            database.Roles.Add(role);
+        }
+
+        User user = new(
+            name,
+            $"{Guid.NewGuid():N}@test",
+            "hash",
+            role,
+            Start);
+
+        database.Users.Add(user);
+        return user;
+    }
 }

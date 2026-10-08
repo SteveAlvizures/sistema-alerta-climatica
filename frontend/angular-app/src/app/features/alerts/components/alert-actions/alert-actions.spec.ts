@@ -22,7 +22,7 @@ describe('AlertActions', () => {
     fixture.componentRef.setInput('alert', alertTestData); fixture.detectChanges();
   });
   afterEach(() => http.verify());
-  for (const userRole of ['Administrator', 'Operator', 'ConsultationUser', null]) {
+  for (const userRole of ['Administrator', 'Operator', 'Query', null]) {
     for (const status of ['Open', 'Acknowledged', 'Closed'] as ApiAlertStatus[]) {
       it(`shows only valid actions for ${userRole ?? 'visitors'} and ${status}`, () => {
         role = userRole; fixture.componentRef.setInput('alert', { ...alertTestData, status }); fixture.detectChanges();
@@ -55,7 +55,7 @@ describe('AlertActions', () => {
     request.flush({ ...alertTestData, status: 'Acknowledged' });
   });
   it('blocks direct calls when the session lacks an operational role', () => {
-    role = 'ConsultationUser'; fixture.componentInstance.operate('acknowledge');
+    role = 'Query'; fixture.componentInstance.operate('acknowledge');
     http.expectNone('/api/alerts/alert-1/acknowledge'); expect(active).not.toHaveBeenCalled();
   });
   it('reports backend conflicts and keeps the existing alert unchanged', () => {

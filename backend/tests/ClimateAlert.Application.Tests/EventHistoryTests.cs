@@ -15,7 +15,7 @@ public sealed class EventHistoryTests
 {
     [Theory]
     [InlineData(null, 401)]
-    [InlineData("ConsultationUser", 200)]
+    [InlineData("Query", 200)]
     [InlineData("Operator", 200)]
     [InlineData("Administrator", 200)]
     public async Task AllQueriesRequireAuthenticationAndAllowOfficialRoles(string? role, int expected)
@@ -34,7 +34,7 @@ public sealed class EventHistoryTests
     [Fact]
     public async Task ListAndDetailExposePersistedEvidenceAndAllTraceabilityWithoutAResponsibleUser()
     {
-        await using var host = await AlertLifecycleHttpTests.TestHost.StartAsync(); await host.LoginAsAsync("ConsultationUser");
+        await using var host = await AlertLifecycleHttpTests.TestHost.StartAsync(); await host.LoginAsAsync("Query");
         var page = (await host.GetAsync<PagedResponse<EventResponse>>("/api/events"))!;
         Assert.Equal(3, page.TotalCount); Assert.Equal(3, page.Data.Count);
         Assert.Equal(page.Data.OrderByDescending(e => e.OccurredAt).ThenByDescending(e => e.Id), page.Data);
@@ -88,7 +88,7 @@ public sealed class EventHistoryTests
     [InlineData(ClimatePhenomenon.Frost)] [InlineData(ClimatePhenomenon.Wildfire)]
     public async Task OfficialPhenomenaAndLegacyClosedEventsWithoutAlertsRemainQueryable(ClimatePhenomenon phenomenon)
     {
-        await using var host = await AlertLifecycleHttpTests.TestHost.StartAsync(); await host.LoginAsAsync("ConsultationUser");
+        await using var host = await AlertLifecycleHttpTests.TestHost.StartAsync(); await host.LoginAsAsync("Query");
         Guid id;
         await using (var db = host.Database())
         {
