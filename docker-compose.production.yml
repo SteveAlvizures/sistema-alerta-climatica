@@ -2,15 +2,15 @@
 services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: climate-alert-sqlserver
+    container_name: climate-alert-sqlserver-prod
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: ${SQLSERVER_EDITION:-Express}
       MSSQL_SA_PASSWORD: ${SQLSERVER_PASSWORD:?SQLSERVER_PASSWORD is required}
     volumes:
-      - climate-alert-sqlserver-data:/var/opt/mssql
+      - climate-alert-sqlserver-prod-data:/var/opt/mssql
     networks:
-      - climate-alert-network
+      - climate-alert-prod-network
     healthcheck:
       test:
         - CMD-SHELL
@@ -34,7 +34,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:8080
-      TRUSTED_PROXY_NETWORK: 172.30.42.0/24
+      TRUSTED_PROXY_NETWORK: 172.30.43.0/24
       SQLSERVER_CONNECTION_STRING: ${SQLSERVER_CONNECTION_STRING:?SQLSERVER_CONNECTION_STRING is required}
       JWT_KEY: ${JWT_KEY:?JWT_KEY is required}
       JWT_ISSUER: ${JWT_ISSUER:-climate-alert-api}
@@ -47,7 +47,7 @@ services:
       sqlserver:
         condition: service_healthy
     networks:
-      - climate-alert-network
+      - climate-alert-prod-network
     logging:
       driver: json-file
       options:
@@ -67,7 +67,7 @@ services:
     depends_on:
       - backend
     networks:
-      - climate-alert-network
+      - climate-alert-prod-network
     logging:
       driver: json-file
       options:
@@ -76,13 +76,13 @@ services:
     restart: unless-stopped
 
 volumes:
-  climate-alert-sqlserver-data:
-    name: climate-alert-sqlserver-data
+  climate-alert-sqlserver-prod-data:
+    name: climate-alert-sqlserver-prod-data
 
 networks:
-  climate-alert-network:
-    name: climate-alert-network
+  climate-alert-prod-network:
+    name: climate-alert-prod-network
     driver: bridge
     ipam:
       config:
-        - subnet: 172.30.42.0/24
+        - subnet: 172.30.43.0/24
