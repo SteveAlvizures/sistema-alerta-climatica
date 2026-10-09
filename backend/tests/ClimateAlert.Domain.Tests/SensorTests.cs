@@ -69,6 +69,20 @@ public sealed class SensorTests
         Assert.Throws<ArgumentException>(updateCommunication);
     }
 
+    [Fact]
+    public void UpdateAdministrativeDetailsPreservesMonitoringIdentityAndHistory()
+    {
+        Sensor sensor = CreateSensor();
+        Guid communityId = sensor.CommunityId;
+        ClimateVariable variable = sensor.MeasurementType;
+        sensor.UpdateAdministrativeDetails("TEMP-CENTRAL", "Temperatura central", "Centro", null);
+        Assert.Equal("TEMP-CENTRAL", sensor.Code);
+        Assert.Equal("Temperatura central", sensor.Name);
+        Assert.Equal("Centro", sensor.Location);
+        Assert.Equal(communityId, sensor.CommunityId);
+        Assert.Equal(variable, sensor.MeasurementType);
+    }
+
     private static Sensor CreateSensor()
     {
         Community community = new("El Pinar", "Guatemala", null, DateTimeOffset.UtcNow);

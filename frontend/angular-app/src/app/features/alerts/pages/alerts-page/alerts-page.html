@@ -1,0 +1,49 @@
+<section class="alerts-page">
+  <header class="page-heading"><p>Monitoreo preventivo</p><h1>Alertas climáticas</h1><span>Consulta los incidentes y da seguimiento a su atención y cierre.</span></header>
+  <form class="filters" aria-label="Filtros de alertas" (ngSubmit)="applyFilters()">
+    <label><span>Comunidad</span><select name="community" [(ngModel)]="communityFilter" (ngModelChange)="changeCommunity()"><option value="">Todas las comunidades</option>@for (community of communities; track community.id) { <option [value]="community.id">{{ community.name }}</option> }</select></label>
+    <label><span>Sensor</span><select name="sensor" [(ngModel)]="sensorFilter"><option value="">Todos los sensores</option>@for (sensor of availableSensors(); track sensor.id) { <option [value]="sensor.id">{{ sensor.name }} · {{ sensor.code }}</option> }</select></label>
+    <label><span>Fenómeno</span><select name="phenomenon" [(ngModel)]="phenomenonFilter"><option value="">Todos</option>@for (value of phenomena; track value) { <option [value]="value">{{ phenomenonLabel(value) }}</option> }</select></label>
+    <label><span>Variable</span><select name="variable" [(ngModel)]="variableFilter"><option value="">Todas</option>@for (variable of variables; track variable) { <option [value]="variable">{{ variableLabel(variable) }}</option> }</select></label>
+    <label><span>Nivel</span><select name="level" [(ngModel)]="levelFilter"><option value="">Todos</option>@for (level of levels; track level) { <option [value]="level">{{ levelLabel(level) }}</option> }</select></label>
+    <label><span>Estado</span><select name="status" [(ngModel)]="statusFilter"><option value="">Todos</option>@for (value of statuses; track value) { <option [value]="value">{{ statusLabel(value) }}</option> }</select></label>
+    <label><span>Fecha desde</span><input type="datetime-local" name="dateFrom" [(ngModel)]="dateFrom" /></label>
+    <label><span>Fecha hasta</span><input type="datetime-local" name="dateTo" [(ngModel)]="dateTo" /></label>
+    <label><span>Por página</span><select name="pageSize" [(ngModel)]="pageSize" (change)="changePageSize()">@for (size of pageSizes; track size) { <option [ngValue]="size">{{ size }}</option> }</select></label>
+    <div class="filters__actions"><button class="primary" type="submit">Aplicar filtros</button><button type="button" (click)="clearFilters()">Limpiar filtros</button></div>
+  </form>
+  @if (error) { <p class="message message--error" role="alert">{{ error }}</p> }
+  @if (!applied) { <p class="message">Seleccione los filtros y pulse Aplicar filtros para consultar las alertas.</p> }
+  @if (loading) { <p class="message" aria-live="polite">Consultando alertas…</p> }
+  @if (applied && !loading && !error) {
+    <section class="summary-grid" aria-label="Resumen del resultado"><article><span>Total de alertas</span><strong>{{ totalCount }}</strong></article>@for (level of levels; track level) { <article [class]="'summary--' + level.toLowerCase()"><span>{{ levelLabel(level) }}</span><strong>{{ countLevel(level) }}</strong><small>En todo el resultado filtrado</small></article> }</section>
+    @if (alerts.length === 0) { <div class="empty-state"><strong>Sin coincidencias</strong><span>No se encontraron alertas para los filtros seleccionados.</span></div> }
+    @if (alerts.length > 0) {
+      <div class="results-heading"><h2>Registro de alertas</h2><span>Mostrando {{ firstItem }}–{{ lastItem }} de {{ totalCount }} alertas</span></div>
+      <div class="alert-list">
+        @for (alert of alerts; track alert.id) {
+          <article [class]="'alert-card alert-card--' + alert.level.toLowerCase()">
+            <div class="alert-card__level"><span>{{ levelLabel(alert.level) }}</span></div>
+            <div class="alert-card__content">
+              <div class="alert-card__heading"><div><h3>{{ communityName(alert) }}</h3><time>{{ formatDate(alert.detectedAt) }}</time></div><span [class]="'status status--' + alert.status.toLowerCase()">{{ statusLabel(alert.status) }}</span></div>
+              <p>{{ alert.message }}</p>
+              <div class="references">
+                <span>Sensor <strong>{{ sensorName(alert) }}</strong></span>
+                <span>Fenómeno <strong>{{ phenomenonLabel(alert.phenomenon) }}</strong></span>
+                <span>Variable <strong>{{ variableLabel(alert.variable) }}</strong></span>
+                <span>Valor detectado <strong>{{ alert.detectedValue }} {{ alert.unit }}</strong></span>
+                <span>Umbral / rango <strong>{{ conditionLabel(alert) }}</strong></span>
+                <a [routerLink]="['/sensors', alert.sensorId]">Ver sensor</a>
+                <a class="detail-link" [routerLink]="['/alerts', alert.id]">Ver detalle</a>
+              </div>
+              @if (alert.acknowledgedAt || alert.acknowledgedById) { <p class="responsible">Atendida por {{ alert.acknowledgedByName || alert.acknowledgedById || 'Sin responsable registrado' }} · {{ formatDate(alert.acknowledgedAt) }}</p> }
+              @if (alert.closedAt) { <p class="responsible">Cerrada por {{ alert.closedByName || alert.closedById || 'Sistema automático o cierre histórico' }} · {{ formatDate(alert.closedAt) }}</p> }
+            </div>
+            <div class="alert-card__actions"><app-alert-actions [alert]="alert" (changed)="lifecycleChanged($event)" /></div>
+          </article>
+        }
+      </div>
+      <nav class="pagination" aria-label="Paginación de alertas"><span>Página {{ pageIndex }} de {{ totalPages }} · {{ totalCount }} alertas</span><div><button type="button" [disabled]="!hasPrevious" (click)="previous()">Anterior</button><button type="button" [disabled]="!hasNext" (click)="next()">Siguiente</button></div></nav>
+    }
+  }
+</section>

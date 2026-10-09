@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, ChangeDetectionStrategy } from '@angular/core';
 import { ClimateSensor, sensorOriginLabels } from '../../../../core/models/sensor.model';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 
@@ -6,6 +6,7 @@ import { StatusBadge } from '../../../../shared/components/status-badge/status-b
   selector: 'app-sensor-status',
   imports: [StatusBadge],
   templateUrl: './sensor-status.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './sensor-status.scss',
 })
 export class SensorStatus {

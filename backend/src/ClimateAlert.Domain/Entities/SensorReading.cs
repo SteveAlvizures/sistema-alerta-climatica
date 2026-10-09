@@ -42,6 +42,7 @@ public sealed class SensorReading
         MeasuredAt = measuredAt;
         ReceivedAt = receivedAt;
         Origin = origin;
+        SensorStatusAtMeasurement = sensor.Status;
         CreatedAt = receivedAt;
 
         Sensor.AddReading(this);
@@ -56,5 +57,7 @@ public sealed class SensorReading
     public DateTimeOffset MeasuredAt { get; private set; }
     public DateTimeOffset ReceivedAt { get; private set; }
     public SensorOrigin Origin { get; private set; }
+    // Null for readings recorded before this snapshot existed; never infer past state from current state.
+    public SensorStatus? SensorStatusAtMeasurement { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 }

@@ -1,0 +1,63 @@
+using ClimateAlert.Api.Authentication;
+using ClimateAlert.Application.Features.AlertRules;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using ClimateAlert.Api.Audit;
+
+namespace ClimateAlert.Api.Controllers;
+
+[ApiController]
+[Route("api/alert-rules")]
+[ServiceFilter(typeof(AtomicAdministrativeOperationFilter))]
+public sealed class AlertRulesController(AlertRuleService service, AuditActionService audit) : ControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<AlertRuleResponse>>> GetAll(
+        CancellationToken cancellationToken) =>
+        Ok(await service.GetAllAsync(cancellationToken));
+
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<AlertRuleResponse>> GetById(
+        Guid id,
+        CancellationToken cancellationToken) =>
+        Ok(await service.GetByIdAsync(id, cancellationToken));
+
+    [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
+    public async Task<ActionResult<AlertRuleResponse>> Create(
+        CreateAlertRuleRequest request,
+        CancellationToken cancellationToken)
+    {
+        AlertRuleResponse created = await service.CreateAsync(request, cancellationToken);
+        await audit.RecordAsync(User, "ReglaCreada", "AlertRule", created.Id,
+            $"Se creó la regla de alerta {created.Code} ({created.Name}).", cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+    }
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
+    public async Task<ActionResult<AlertRuleResponse>> Update(Guid id, UpdateAlertRuleRequest request, CancellationToken cancellationToken)
+    {
+        var previous = await service.GetByIdAsync(id, cancellationToken);
+        var updated = await service.UpdateAsync(id, request, cancellationToken);
+        await audit.RecordAsync(User, "ReglaEditada", "AlertRule", id,
+            $"Se edito la regla {updated.Code}.", cancellationToken);
+        if (previous.IsActive != updated.IsActive)
+            await audit.RecordAsync(User, updated.IsActive ? "ReglaActivada" : "ReglaDesactivada", "AlertRule", id, $"Rule {updated.Code}: active={updated.IsActive}.", cancellationToken);
+        return Ok(updated);
+    }
+
+    [HttpPatch("{id:guid}/status")]
+    [Authorize(Policy = AuthorizationPolicies.OperateSystem)]
+    public async Task<ActionResult<AlertRuleResponse>> ChangeStatus(
+        Guid id,
+        ChangeAlertRuleStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        AlertRuleResponse updated = await service.ChangeStatusAsync(id, request, cancellationToken);
+        await audit.RecordAsync(User, request.IsActive ? "ReglaActivada" : "ReglaDesactivada",
+            "AlertRule", updated.Id,
+            $"Se {(request.IsActive ? "activó" : "desactivó")} la regla {updated.Code}.", cancellationToken);
+        return Ok(updated);
+    }
+}

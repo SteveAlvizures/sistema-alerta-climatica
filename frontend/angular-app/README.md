@@ -13,7 +13,11 @@ La organización principal de `src/app` es:
 - `layout`: encabezado, navegación y estructura principal.
 - `features`: módulos funcionales organizados por dominio.
 
-Actualmente, un servicio temporal proporciona lecturas simuladas y mantiene un historial corto para las tendencias climáticas. Más adelante este servicio se reemplazará por la integración con la API y SignalR.
+El dashboard puede consultar comunidades, sensores y últimas lecturas desde la API, o utilizar el servicio temporal de simulación. El modo activo se identifica y puede cambiarse desde el encabezado.
+
+Las solicitudes utilizan la ruta relativa `/api`. En desarrollo, `proxy.conf.json` redirige esa ruta hacia `http://localhost:5152`; `npm start` aplica el proxy automáticamente. Para probar la integración local, inicia primero la API con su perfil HTTP y después ejecuta el frontend.
+
+En producción, el frontend no depende de una dirección local ni del nombre de un contenedor. Nginx debe servir la aplicación y redirigir `/api` hacia el contenedor de la API dentro de la red de Docker. SignalR se incorporará en una etapa posterior.
 
 ## Comandos
 

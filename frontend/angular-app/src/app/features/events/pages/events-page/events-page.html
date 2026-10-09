@@ -1,0 +1,36 @@
+<section class="events-page">
+  <header><p class="eyebrow">Historial de riesgos</p><h1>Eventos</h1><p>Incidentes registrados por el sistema, con sus alertas y sensores relacionados.</p></header>
+  <form class="panel filters" (ngSubmit)="applyFilters()" aria-label="Filtros de eventos">
+    <label>Fecha desde<input name="from" type="datetime-local" [(ngModel)]="from" /></label>
+    <label>Fecha hasta<input name="to" type="datetime-local" [(ngModel)]="to" /></label>
+    <label>Comunidad<select name="communityId" [(ngModel)]="communityId"><option value="">Todas</option>@for (community of communities; track community.id) { <option [value]="community.id">{{ community.name }}</option> }</select></label>
+    <label>Fenómeno<select name="phenomenon" [(ngModel)]="phenomenon"><option value="">Todos</option>@for (entry of phenomena; track entry[0]) { <option [value]="entry[0]">{{ entry[1] }}</option> }</select></label>
+    <label>Nivel<select name="level" [(ngModel)]="level"><option value="">Todos</option>@for (entry of levels; track entry[0]) { <option [value]="entry[0]">{{ entry[1] }}</option> }</select></label>
+    <label>Estado<select name="status" [(ngModel)]="status"><option value="">Todos</option><option value="Open">Activo</option><option value="Closed">Cerrado</option></select></label>
+    <button type="submit" [disabled]="loading">Aplicar filtros</button>
+  </form>
+  @if (communityError) { <p role="alert">{{ communityError }}</p> }
+  @if (error) { <p class="error" role="alert">{{ error }}</p><button type="button" (click)="load()">Reintentar</button> }
+  @if (loading) { <p aria-live="polite">Consultando eventos…</p> }
+  @if (statistics; as stats) {
+    <section aria-label="Estadísticas de eventos" class="panel">
+      <h2>Estadísticas del resultado filtrado</h2>
+      <div class="summary"><article><span>Total</span><strong>{{ stats.total }}</strong></article><article><span>Activos</span><strong>{{ stats.active }}</strong></article><article><span>Cerrados</span><strong>{{ stats.closed }}</strong></article></div>
+      <div class="distributions"><div><h3>Por fenómeno</h3>@for (item of stats.byPhenomenon; track item.phenomenon) { <p>{{ phenomenonLabels[item.phenomenon] }}: {{ item.count }}</p> }</div><div><h3>Por nivel</h3>@for (item of stats.byLevel; track item.level) { <p>{{ levelLabels[item.level] }}: {{ item.count }}</p> }</div></div>
+    </section>
+  }
+  @if (result; as data) {
+    <section aria-label="Listado de eventos" class="records">
+      @for (event of data.data; track event.id) {
+        <article class="panel event-card">
+          <div class="topline"><h2>{{ phenomenonLabels[event.phenomenon] }}</h2><span [class]="'level ' + event.level.toLowerCase()">{{ levelLabels[event.level] }}</span><span>{{ statusLabels[event.status] }}</span></div>
+          <p>{{ formatDate(event.occurredAt) }} · {{ event.communityName }}</p>
+          <p>{{ event.description }}</p>
+          <dl><div><dt>Sensor principal</dt><dd>{{ event.sensorName || 'Sin sensor histórico' }} {{ event.sensorCode ? '(' + event.sensorCode + ')' : '' }}</dd></div><div><dt>Valor representativo</dt><dd>{{ event.value ?? 'Sin valor histórico' }} {{ event.unit }}</dd></div><div><dt>Responsable {{ event.responsibility === 'Closure' ? 'del cierre' : event.responsibility === 'Attention' ? 'de atención' : '' }}</dt><dd>{{ event.responsibleUserName || 'Sin responsable' }}</dd></div><div><dt>Alertas relacionadas</dt><dd>{{ event.alertCount }}</dd></div></dl>
+          <a [routerLink]="['/events', event.id]">Ver detalle del evento</a>
+        </article>
+      } @empty { <p class="panel">No hay eventos para los filtros seleccionados.</p> }
+    </section>
+    <nav aria-label="Paginación de eventos"><button type="button" [disabled]="loading || !data.hasPrevious" (click)="goToPage(page - 1)">Anterior</button><span>Página {{ page }} de {{ data.totalPages || 1 }} · {{ data.totalCount }} eventos</span><button type="button" [disabled]="loading || !data.hasNext" (click)="goToPage(page + 1)">Siguiente</button></nav>
+  }
+</section>

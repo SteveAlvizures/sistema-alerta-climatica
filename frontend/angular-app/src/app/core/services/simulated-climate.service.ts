@@ -1,5 +1,5 @@
 import { Injectable, OnDestroy, signal } from '@angular/core';
-import { ClimateDashboardState, ClimateTrendPoint } from '../models/climate-dashboard.model';
+import { ClimateDashboardState, ClimateTrendSeries, TrendMetric } from '../models/climate-dashboard.model';
 
 interface SimulationScenario {
   temperature: number;
@@ -31,7 +31,7 @@ export class SimulatedClimateService implements OnDestroy {
     clearInterval(this.timerId);
   }
 
-  // Este origen se sustituirá por API y SignalR cuando el backend esté disponible.
+  // La simulación permanece aislada para poder elegir la fuente de datos.
   private advanceScenario(): void {
     this.scenarioIndex = (this.scenarioIndex + 1) % this.scenarios.length;
     const current = this.dashboard();
@@ -40,37 +40,29 @@ export class SimulatedClimateService implements OnDestroy {
 
   private createState(
     scenario: SimulationScenario,
-    previousTrend: ClimateTrendPoint[],
+    _previousTrend: ClimateTrendSeries[],
   ): ClimateDashboardState {
     const now = new Date();
     const timeLabel = this.formatTime(now);
-    const seedValues = [
-      { temperature: 22.8, rain: 8, river: 1.26 },
-      { temperature: 23.2, rain: 10, river: 1.29 },
-      { temperature: 23.7, rain: 13, river: 1.33 },
-      { temperature: 24.1, rain: 15, river: 1.37 },
-      { temperature: 24.4, rain: 17, river: 1.4 },
+    const seriesDefinitions: Array<[TrendMetric, string, string, number]> = [
+      ['temperature', 'Temperatura', '°C', scenario.temperature],
+      ['humidity', 'Humedad relativa', '%', scenario.humidity],
+      ['wind', 'Velocidad del viento', 'km/h', scenario.wind],
+      ['rain', 'Nivel de lluvia', 'mm', scenario.rain],
+      ['river', 'Nivel de río o reservorio', 'm', scenario.river],
     ];
-    const seedTrend: ClimateTrendPoint[] = seedValues.map((value, index) => ({
-      label: this.formatTime(new Date(now.getTime() - (50 - index * 10) * 60_000)),
-      ...value,
+    const trend: ClimateTrendSeries[] = seriesDefinitions.map(([metric, label, unit, value]) => ({
+      metric, label, unit, points: Array.from({ length: 6 }, (_, index) => ({
+        label: this.formatTime(new Date(now.getTime() - (5 - index) * 10 * 60_000)),
+        value: Number((value * (0.94 + index * 0.012)).toFixed(unit === 'm' ? 2 : 1)),
+      })),
     }));
-    const nextPoint: ClimateTrendPoint = {
-      label: timeLabel,
-      temperature: scenario.temperature,
-      rain: scenario.rain,
-      river: scenario.river,
-    };
-    const baseTrend = previousTrend.length ? previousTrend : seedTrend;
-    const trend = baseTrend.at(-1)?.label === timeLabel
-      ? [...baseTrend.slice(0, -1), nextPoint]
-      : [...baseTrend, nextPoint].slice(-6);
     const tenMinutesAgo = this.formatTime(new Date(now.getTime() - 10 * 60_000));
     const twentyMinutesAgo = this.formatTime(new Date(now.getTime() - 20 * 60_000));
 
     return {
       communityName: 'Comunidad El Pinar',
-      level: 'Amarillo',
+      level: 'Precaución',
       levelMessage:
         'El nivel actual es amarillo. Conviene mantener vigilancia sobre la lluvia y el cauce cercano.',
       lastUpdated: now,
@@ -88,11 +80,20 @@ export class SimulatedClimateService implements OnDestroy {
         { name: 'Anemómetro del sector alto', measurementType: 'Velocidad del viento', status: 'Inactivo', origin: 'Physical', lastCommunication: 'Pendiente de conexión' },
       ],
       alert: {
-        level: 'Amarillo',
+        level: 'Precaución',
         phenomenon: 'Inundación',
         message: 'Se mantiene vigilancia preventiva por el comportamiento reciente de la lluvia y del cauce.',
         occurredAt: `Actualizada hoy · ${timeLabel}`,
+        status: 'Activa',
+        tone: 'yellow',
+        hasEvent: true,
       },
+      activeAlerts: [{
+        level: 'Precaución', phenomenon: 'Inundación',
+        message: 'Se mantiene vigilancia preventiva por el comportamiento reciente de la lluvia y del cauce.',
+        occurredAt: `Actualizada hoy · ${timeLabel}`, status: 'Activa', tone: 'yellow', hasEvent: true,
+        community: 'El Pinar', variable: 'Nivel de lluvia', value: `${scenario.rain} mm`,
+      }],
       recentEvents: [
         { title: 'Lecturas recibidas', detail: 'Sensores simulados sincronizados', occurredAt: timeLabel, tone: 'green' },
         { title: 'Alerta actualizada', detail: 'Vigilancia preventiva por inundación', occurredAt: tenMinutesAgo, tone: 'yellow' },

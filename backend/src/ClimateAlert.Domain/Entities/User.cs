@@ -9,13 +9,23 @@ public sealed class User
     {
     }
 
-    public User(string name, string email, string passwordHash, string role, DateTimeOffset createdAt)
+    public User(
+        string name,
+        string email,
+        string passwordHash,
+        Role role,
+        DateTimeOffset createdAt)
     {
+        ArgumentNullException.ThrowIfNull(role);
+
         Id = Guid.NewGuid();
         Name = Required(name, nameof(name));
-        Email = Required(email, nameof(email));
+        Email = Required(email, nameof(email)).ToLowerInvariant();
         PasswordHash = Required(passwordHash, nameof(passwordHash));
-        Role = Required(role, nameof(role));
+
+        Role = role;
+        RoleId = role.Id;
+
         CreatedAt = createdAt;
         IsActive = true;
     }
@@ -24,25 +34,70 @@ public sealed class User
     public string Name { get; private set; } = null!;
     public string Email { get; private set; } = null!;
     public string PasswordHash { get; private set; } = null!;
-    public string Role { get; private set; } = null!;
+
+    public Guid RoleId { get; private set; }
+    public Role Role { get; private set; } = null!;
+
     public bool IsActive { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? LastAccessAt { get; private set; }
-    public IReadOnlyCollection<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
-    public IReadOnlyCollection<AuditAction> AuditActions => _auditActions.AsReadOnly();
 
-    public void RegisterAccess(DateTimeOffset occurredAt) => LastAccessAt = occurredAt;
+    public IReadOnlyCollection<RefreshToken> RefreshTokens =>
+        _refreshTokens.AsReadOnly();
 
-    internal void AddRefreshToken(RefreshToken refreshToken) => _refreshTokens.Add(refreshToken);
+    public IReadOnlyCollection<AuditAction> AuditActions =>
+        _auditActions.AsReadOnly();
 
-    internal void AddAuditAction(AuditAction auditAction) => _auditActions.Add(auditAction);
+    public void RegisterAccess(DateTimeOffset occurredAt)
+    {
+        LastAccessAt = occurredAt;
+    }
+
+    public void UpdateProfile(string name, string username)
+    {
+        Name = Required(name, nameof(name));
+        Email = Required(username, nameof(username)).ToLowerInvariant();
+    }
+
+    public void ChangeRole(Role role)
+    {
+        ArgumentNullException.ThrowIfNull(role);
+
+        Role = role;
+        RoleId = role.Id;
+    }
+
+    public void ChangeStatus(bool isActive)
+    {
+        IsActive = isActive;
+    }
+
+    public void UpdateIdentity(
+        string name,
+        string username,
+        string passwordHash,
+        Role role)
+    {
+        ArgumentNullException.ThrowIfNull(role);
+
+        Name = Required(name, nameof(name));
+        Email = Required(username, nameof(username)).ToLowerInvariant();
+        PasswordHash = Required(passwordHash, nameof(passwordHash));
+
+        Role = role;
+        RoleId = role.Id;
+    }
+
+    internal void AddRefreshToken(RefreshToken refreshToken) =>
+        _refreshTokens.Add(refreshToken);
+
+    internal void AddAuditAction(AuditAction auditAction) =>
+        _auditActions.Add(auditAction);
 
     private static string Required(string value, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(value))
-        {
             throw new ArgumentException("A value is required.", parameterName);
-        }
 
         return value.Trim();
     }

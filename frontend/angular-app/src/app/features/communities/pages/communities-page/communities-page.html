@@ -1,0 +1,155 @@
+<section class="management-page">
+  <header class="page-heading">
+    <p class="page-heading__eyebrow">Gestión</p>
+    <h1>Comunidades</h1>
+    <p class="page-heading__description">
+      Administra las comunidades rurales que forman parte del monitoreo climático.
+    </p>
+  </header>
+
+  @if (canAdminister()) {
+  <section #communityForm class="form-panel" [class.form-panel--editing]="editingId" aria-labelledby="community-form-title">
+    <div class="section-heading">
+      <div>
+        <p class="section-heading__eyebrow">{{ editingId ? 'Edición' : 'Nuevo registro' }}</p>
+        <h2 id="community-form-title">{{ editingId ? 'Editar comunidad' : 'Registrar comunidad' }}</h2>
+      </div>
+      <p>Los campos marcados con <span aria-hidden="true">*</span> son obligatorios.</p>
+    </div>
+
+    <form class="community-form" (ngSubmit)="saveCommunity()">
+      <label class="form-field">
+        <span>Nombre <strong aria-hidden="true">*</strong></span>
+        <input
+          #communityName
+          type="text"
+          name="name"
+          [(ngModel)]="name"
+          required
+          maxlength="100"
+          placeholder="Ej. Comunidad El Pinar"
+        />
+      </label>
+
+      <label class="form-field">
+        <span>Ubicación <strong aria-hidden="true">*</strong></span>
+        <input
+          type="text"
+          name="location"
+          [(ngModel)]="location"
+          required
+          maxlength="200"
+          placeholder="Municipio y departamento"
+        />
+      </label>
+
+      <label class="form-field"><span>Municipio *</span><input name="municipality" [(ngModel)]="municipality" required maxlength="150" /></label>
+      <label class="form-field"><span>Departamento *</span><input name="department" [(ngModel)]="department" required maxlength="150" /></label>
+      <label class="form-field"><span>País *</span><input name="country" [(ngModel)]="country" required maxlength="100" /></label>
+      <label class="form-field"><span>Latitud *</span><input name="latitude" type="number" step="any" [(ngModel)]="latitude" required min="-90" max="90" /></label>
+      <label class="form-field"><span>Longitud *</span><input name="longitude" type="number" step="any" [(ngModel)]="longitude" required min="-180" max="180" /></label>
+      <label class="form-field"><span>Estado</span><select name="isActive" [(ngModel)]="isActive"><option [ngValue]="true">Activa</option><option [ngValue]="false">Inactiva</option></select></label>
+
+      <label class="form-field form-field--wide">
+        <span>Descripción</span>
+        <textarea
+          name="description"
+          [(ngModel)]="description"
+          maxlength="500"
+          rows="3"
+          placeholder="Describe brevemente la comunidad y su contexto climático"
+        ></textarea>
+      </label>
+
+      <div class="form-actions form-field--wide">
+        @if (editingId) { <button class="secondary-button" type="button" (click)="cancelEdit()">Cancelar</button> }
+        <button class="primary-button" type="submit" [disabled]="saving">
+          {{ saving ? 'Guardando...' : (editingId ? 'Guardar cambios' : 'Registrar comunidad') }}
+        </button>
+      </div>
+    </form>
+  </section>
+  } @else {
+    <aside class="message">Modo consulta: inicia sesión como administrador u operador para registrar comunidades.</aside>
+  }
+
+  <div class="feedback" aria-live="polite">
+    @if (success) {
+      <p class="message message--success">{{ success }}</p>
+    }
+
+    @if (loading) {
+      <p class="message">Cargando comunidades...</p>
+    }
+
+    @if (error) {
+      <div class="message message--error" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" (click)="loadCommunities()">Reintentar</button>
+      </div>
+    }
+  </div>
+
+  <form class="community-form form-panel" (ngSubmit)="applyFilters()" aria-label="Filtros de comunidades">
+    <label class="form-field"><span>Buscar</span><input name="search" [(ngModel)]="search" /></label>
+    <label class="form-field"><span>Estado</span><select name="statusFilter" [(ngModel)]="statusFilter"><option value="">Todos</option><option value="true">Activa</option><option value="false">Inactiva</option></select></label>
+    <label class="form-field"><span>Municipio</span><input name="municipalityFilter" [(ngModel)]="municipalityFilter" /></label>
+    <label class="form-field"><span>Departamento</span><input name="departmentFilter" [(ngModel)]="departmentFilter" /></label>
+    <button class="primary-button" [disabled]="loading" type="submit">Aplicar filtros</button>
+  </form>
+  <section class="records-section" aria-labelledby="communities-title">
+    <div class="section-heading section-heading--records">
+      <div>
+        <p class="section-heading__eyebrow">Cobertura de monitoreo</p>
+        <h2 id="communities-title">Comunidades registradas</h2>
+      </div>
+      @if (!loading && communities.length > 0) {
+        <span class="record-count">{{ totalCount }} registradas</span>
+      }
+    </div>
+
+    @if (!loading && !error && communities.length === 0) {
+      <div class="empty-state">
+        <span aria-hidden="true">◇</span>
+        <div>
+          <h3>Sin comunidades registradas</h3>
+          <p>Utiliza el formulario para agregar la primera comunidad al monitoreo.</p>
+        </div>
+      </div>
+    }
+
+    @if (!loading && communities.length > 0) {
+      <div class="community-grid">
+        @for (community of communities; track community.id) {
+          <article class="community-card" [class.community-card--editing]="editingId === community.id">
+            <div class="community-card__topline">
+              <span class="community-card__icon" aria-hidden="true">◇</span>
+              <span class="community-card__status">{{ community.isActive ? 'Activa' : 'Inactiva' }}</span>
+            </div>
+            <h3>{{ community.name }}</h3>
+            <p class="community-card__location">
+              <span aria-hidden="true">●</span>{{ community.location }}
+            </p>
+            <p>{{ community.municipality || 'Municipio pendiente' }} &middot; {{ community.department || 'Departamento pendiente' }} &middot; {{ community.country || 'País pendiente' }}</p>
+            <p>{{ community.sensorCount ?? 0 }} sensores asociados</p>
+            <p class="community-card__description">
+              {{ community.description || 'Sin descripción registrada.' }}
+            </p>
+            @if (canAdminister()) {
+              <div class="community-card__actions">
+                <button type="button" (click)="editCommunity(community)">Editar</button>
+                <button type="button" (click)="changeStatus(community)" [disabled]="!!deletingId">{{ community.isActive ? 'Desactivar' : 'Activar' }}</button>
+                <button type="button" class="danger-button" (click)="deleteCommunity(community)" [disabled]="deletingId === community.id">{{ deletingId === community.id ? 'Eliminando...' : 'Eliminar' }}</button>
+              </div>
+            }
+          </article>
+        }
+      </div>
+    }
+  </section>
+  <nav class="form-actions" aria-label="Páginación de comunidades">
+    <button type="button" class="secondary-button" [disabled]="loading || page <= 1" (click)="goToPage(page - 1)">Anterior</button>
+    <span>Página {{ page }} de {{ totalPages || 1 }} ? {{ totalCount }} resultados</span>
+    <button type="button" class="secondary-button" [disabled]="loading || page >= totalPages" (click)="goToPage(page + 1)">Siguiente</button>
+  </nav>
+</section>

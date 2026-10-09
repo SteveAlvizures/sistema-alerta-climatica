@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Header } from '../header/header';
 import { Sidebar } from '../sidebar/sidebar';
@@ -7,6 +7,7 @@ import { Sidebar } from '../sidebar/sidebar';
   selector: 'app-main-layout',
   imports: [RouterOutlet, Header, Sidebar],
   templateUrl: './main-layout.html',
+  changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './main-layout.scss',
 })
 export class MainLayout {}

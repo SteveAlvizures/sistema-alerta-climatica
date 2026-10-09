@@ -2,7 +2,7 @@
 
 ## Propósito
 
-Este modelo define los conceptos y relaciones que orientarán la implementación del backend y la persistencia del Sistema Web de Monitoreo y Alerta Temprana para Riesgos Climáticos. No establece todavía tipos de datos ni detalles propios de SQL Server.
+Este modelo describe los conceptos y relaciones implementados en el backend y la persistencia de Vigía Rural. Los detalles concretos de tipos, índices y restricciones se encuentran en las configuraciones de Entity Framework Core.
 
 ## Entidades principales
 

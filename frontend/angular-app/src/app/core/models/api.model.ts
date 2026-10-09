@@ -1,0 +1,127 @@
+export type ClimateVariable =
+  | 'Temperature'
+  | 'RelativeHumidity'
+  | 'WindSpeed'
+  | 'RainfallLevel'
+  | 'RiverOrReservoirLevel'
+  | 'SmokeConcentration'
+  | 'OtherEnvironmental';
+
+export type SensorType = 'Temperature' | 'Humidity' | 'WindSpeed' | 'Rainfall' | 'RiverLevel' | 'ReservoirLevel' | 'SmokeFire' | 'OtherEnvironmental';
+
+export type ApiSensorOrigin = 'Simulated' | 'Physical';
+export type ApiSensorStatus = 'Active' | 'Inactive';
+export type ApiDangerLevel = 'Green' | 'Yellow' | 'Orange' | 'Red';
+export type ApiAlertStatus = 'Open' | 'Acknowledged' | 'Closed';
+export type ApiClimatePhenomenon = 'Flood' | 'Drought' | 'Storm' | 'Frost' | 'Wildfire';
+
+export interface CommunityDto {
+  municipality?: string | null;
+  department?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  sensorCount?: number;
+  id: string;
+  name: string;
+  location: string;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface SensorDto {
+  type?: SensorType;
+  unit?: string;
+  installationDate?: string | null;
+  description?: string | null;
+  communityName?: string;
+  isActive?: boolean;
+  id: string;
+  communityId: string;
+  code: string;
+  name: string;
+  measurementType: ClimateVariable;
+  origin: ApiSensorOrigin;
+  status: ApiSensorStatus;
+  location: string;
+  deviceCode: string | null;
+  lastCommunicationAt: string | null;
+  createdAt: string;
+}
+
+export interface SensorReadingDto {
+  sensorStatusAtMeasurement?: ApiSensorStatus | null;
+  id: string;
+  sensorId: string;
+  variable: ClimateVariable;
+  value: number;
+  unit: string;
+  measuredAt: string;
+  receivedAt: string;
+  origin: ApiSensorOrigin;
+}
+
+export interface HistoryReadingDto extends SensorReadingDto {
+  communityId: string;
+  sensorName: string;
+  sensorCode: string;
+  communityName: string;
+}
+
+export interface PagedResponse<T> {
+  data: T[];
+  pageIndex: number;
+  pageSize: number;
+  totalPages: number;
+  totalCount: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
+export interface AlertDto {
+  communityName?: string;
+  sensorName?: string;
+  sensorCode?: string;
+  ruleName?: string;
+  ruleCode?: string;
+  statusLabel?: string;
+  minValue?: number | null;
+  maxValue?: number | null;
+  usesRange?: boolean | null;
+  comparisonOperator?: string | null;
+  acknowledgedAt?: string | null;
+  acknowledgedById?: string | null;
+  acknowledgedByName?: string | null;
+  closedById?: string | null;
+  closedByName?: string | null;
+  id: string;
+  communityId: string;
+  ruleId: string;
+  supportingReadingId: string;
+  eventId: string | null;
+  level: ApiDangerLevel;
+  phenomenon: ApiClimatePhenomenon;
+  status: ApiAlertStatus;
+  message: string;
+  detectedAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  sensorId: string;
+  variable: ClimateVariable;
+  detectedValue: number;
+  activationPoint: number;
+  unit: string;
+}
+
+export interface AlertRuleDto { minValue?:number|null; maxValue?:number|null; message?:string; usesRange?:boolean; id: string; communityId: string; sensorId: string | null; code: string; name: string; phenomenon: ApiClimatePhenomenon; variable: ClimateVariable; dangerLevel: ApiDangerLevel; lowerLimit: number | null; upperLimit: number | null; validFrom: string; validUntil: string | null; isActive: boolean; createdAt: string; comparisonOperator: '>' | '>=' | '<' | '<='; activationPoint: number; unit: string; }
+
+export interface AuditActionDto {
+  id: string;
+  occurredAt: string;
+  username: string;
+  action: string;
+  affectedEntity: string;
+  affectedRecordId: string | null;
+  description: string;
+}

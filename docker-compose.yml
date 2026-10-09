@@ -22,6 +22,46 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: climate-alert-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      SQLSERVER_CONNECTION_STRING: ${SQLSERVER_CONNECTION_STRING}
+      JWT_KEY: ${JWT_KEY}
+      JWT_ISSUER: ${JWT_ISSUER:-climate-alert-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-climate-alert-client}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
+      INITIAL_ADMIN_USERNAME: ${INITIAL_ADMIN_USERNAME}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+      INITIAL_USER_USERNAME: ${INITIAL_USER_USERNAME}
+      INITIAL_USER_PASSWORD: ${INITIAL_USER_PASSWORD}
+      DEMO_DATA_SEED_ENABLED: ${DEMO_DATA_SEED_ENABLED:-true}
+    ports:
+      - "8080:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - climate-alert-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend/angular-app
+      dockerfile: Dockerfile
+    container_name: climate-alert-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - climate-alert-network
+    restart: unless-stopped
+
 volumes:
   climate-alert-sqlserver-data:
     name: climate-alert-sqlserver-data

@@ -1,0 +1,4 @@
+/* Utilities only: preserve Vigia Rural SCSS and browser defaults. */
+@layer theme, utilities;
+@import "tailwindcss/theme.css" layer(theme) prefix(vr);
+@import "tailwindcss/utilities.css" layer(utilities) source("./app") prefix(vr);

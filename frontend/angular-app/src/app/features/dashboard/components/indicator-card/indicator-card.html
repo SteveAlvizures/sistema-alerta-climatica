@@ -1,4 +1,4 @@
-<article class="indicator-card">
+<article class="indicator-card" [attr.data-tone]="indicator().tone ?? 'green'">
   <div class="indicator-card__heading">
     <span>{{ indicator().name }}</span>
     <span class="indicator-card__icon" aria-hidden="true">
@@ -11,6 +11,16 @@
       }
     </span>
   </div>
-  <strong>{{ indicator().value }}</strong>
-  <p>{{ indicator().detail }}</p>
+  <div class="indicator-card__value-row"><strong>{{ indicator().value }}</strong><span class="indicator-card__level">{{ indicator().status ?? 'Normal' }}</span></div>
+  <p class="indicator-card__sensor">{{ indicator().detail }}</p>
+  @if (indicator().trend?.length) {
+    <svg class="indicator-card__trend" viewBox="0 0 220 62" role="img" [attr.aria-label]="'Tendencia reciente de ' + indicator().name">
+      <line x1="4" y1="58" x2="216" y2="58" /><polyline [attr.points]="trendPoints()" />
+      @for (point of indicator().trend!; track $index; let index = $index; let last = $last) {
+        <circle [attr.cx]="pointX(index)" [attr.cy]="pointY(point.value)" [attr.r]="last ? 3.5 : 2" [class.is-last]="last"><title>{{ point.label }} · {{ indicator().name }} · {{ point.value }} {{ point.unit }}</title></circle>
+      }
+    </svg>
+  } @else { <div class="indicator-card__empty">Sin historial reciente</div> }
+  <div class="indicator-card__meta"><span><small>Última lectura</small>{{ indicator().lastReading ?? 'Sin lectura' }}</span><span><small>Próximo punto</small>{{ indicator().nextActivation ?? 'Sin punto pendiente' }}</span></div>
+  @if (indicator().sensorId) { <a [routerLink]="['/sensors', indicator().sensorId]">Ver detalle <span aria-hidden="true">→</span></a> }
 </article>

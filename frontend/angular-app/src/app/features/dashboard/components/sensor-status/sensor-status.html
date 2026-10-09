@@ -19,6 +19,7 @@
         </tr>
       </thead>
       <tbody>
+        @if (sensors().length === 0) { <tr><td colspan="5">No hay sensores registrados en esta comunidad.</td></tr> }
         @for (sensor of sensors(); track sensor.name) {
           <tr>
             <td data-label="Sensor"><strong>{{ sensor.name }}</strong></td>

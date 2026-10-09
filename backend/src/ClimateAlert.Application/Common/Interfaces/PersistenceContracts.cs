@@ -1,0 +1,120 @@
+using ClimateAlert.Domain.Entities;
+using ClimateAlert.Domain.Enums;
+
+namespace ClimateAlert.Application.Common.Interfaces;
+
+public interface ICommunityRepository
+{
+    Task<IReadOnlyList<Community>> GetAllAsync(CancellationToken cancellationToken);
+    Task<Community?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken);
+    Task<bool> ExistsAsync(string name, string location, Guid? excludingId, CancellationToken cancellationToken);
+    Task<bool> HasDependenciesAsync(Guid id, CancellationToken cancellationToken);
+    Task<(IReadOnlyList<Community> Items, int TotalCount)> GetPageAsync(string? search, bool? isActive,
+        string? municipality, string? department, int page, int pageSize, CancellationToken cancellationToken) => throw new NotSupportedException();
+    void Add(Community community);
+    void Remove(Community community);
+}
+
+public interface ISensorRepository
+{
+    Task<IReadOnlyList<Sensor>> GetAllAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<Sensor>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken);
+    Task<Sensor?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken);
+    Task<bool> ExistsAsync(Guid communityId, string code, CancellationToken cancellationToken);
+    Task<IReadOnlyList<string>> GetCodesAsync(Guid communityId, string prefix, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Sensor>> GetActiveSimulatedAsync(CancellationToken cancellationToken);
+    Task<(IReadOnlyList<Sensor> Items, int TotalCount)> GetPageAsync(Guid? communityId, SensorType? type,
+        ClimateVariable? variable, bool? isActive, string? code, string? search,
+        int page, int pageSize, CancellationToken cancellationToken) => throw new NotSupportedException();
+    Task<bool> CodeExistsAsync(string code, Guid? excludingId, CancellationToken cancellationToken) => throw new NotSupportedException();
+    Task<bool> HasHistoryAsync(Guid id, CancellationToken cancellationToken) => throw new NotSupportedException();
+    void Add(Sensor sensor);
+}
+
+public interface ISensorReadingRepository
+{
+    Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageBySensorAsync(
+        Guid sensorId, int pageIndex, int pageSize, CancellationToken cancellationToken);
+    Task<SensorReading?> GetLatestAsync(Guid sensorId, CancellationToken cancellationToken);
+    Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageAsync(
+        Guid? communityId, Guid? sensorId, ClimateVariable? variable,
+        DateTimeOffset? dateFrom, DateTimeOffset? dateTo,
+        int pageIndex, int pageSize, CancellationToken cancellationToken) =>
+        throw new NotSupportedException();
+    void Add(SensorReading reading);
+}
+
+public interface IAlertRuleRepository
+{
+    Task<IReadOnlyList<AlertRule>> GetAllAsync(CancellationToken cancellationToken);
+    Task<AlertRule?> GetByIdAsync(Guid id, bool trackChanges, CancellationToken cancellationToken);
+    Task<IReadOnlyList<AlertRule>> GetCandidatesAsync(
+        Guid communityId,
+        Guid sensorId,
+        ClimateVariable variable,
+        DateTimeOffset measuredAt,
+        CancellationToken cancellationToken);
+    Task<bool> ExistsAsync(Guid communityId, string code, CancellationToken cancellationToken);
+    void Add(AlertRule rule);
+}
+
+public interface IAlertRepository
+{
+    Task<IReadOnlyList<Alert>> GetAllAsync(CancellationToken cancellationToken);
+    Task<(IReadOnlyList<Alert> Items, int TotalCount, int PreventiveCount, int HighCount, int CriticalCount)> GetPageAsync(
+        Guid? communityId, ClimateVariable? variable, DangerLevel? level,
+        int page, int pageSize, CancellationToken cancellationToken,
+        Guid? sensorId = null, ClimatePhenomenon? phenomenon = null, AlertStatus? status = null,
+        DateTimeOffset? dateFrom = null, DateTimeOffset? dateTo = null) =>
+        throw new NotSupportedException();
+    Task<IReadOnlyList<Alert>> GetByCommunityAsync(Guid communityId, CancellationToken cancellationToken);
+    Task<Alert?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<Alert?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Alert>> GetOpenBySensorAsync(
+        Guid sensorId, ClimateVariable variable, CancellationToken cancellationToken);
+    Task<bool> ExistsForReadingAsync(Guid readingId, CancellationToken cancellationToken);
+    void Add(Alert alert);
+}
+
+public interface IEventRepository
+{
+    Task<Event?> GetOpenAsync(
+        Guid communityId,
+        ClimatePhenomenon phenomenon,
+        CancellationToken cancellationToken);
+    void Add(Event climateEvent);
+}
+
+public interface IAlertEvaluator
+{
+    Task EvaluateAsync(SensorReading reading, CancellationToken cancellationToken);
+}
+
+public sealed record SimulatedReadingValue(decimal Value, string Unit);
+
+public interface ISimulatedReadingValueGenerator
+{
+    SimulatedReadingValue Generate(ClimateVariable variable);
+}
+
+public interface ISensorReadingRegistrar
+{
+    Task<ClimateAlert.Application.Features.SensorReadings.SensorReadingResponse> CreateAsync(
+        ClimateAlert.Application.Features.SensorReadings.CreateSensorReadingRequest request,
+        CancellationToken cancellationToken);
+}
+
+public interface ISimulationErrorReporter
+{
+    void ReportSensorFailure(Guid sensorId, Exception exception);
+}
+
+public interface ISimulatedReadingCycle
+{
+    Task RunAsync(CancellationToken cancellationToken);
+}
+
+public interface IUnitOfWork
+{
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+}

@@ -1,14 +1,16 @@
 <section class="history-panel" aria-labelledby="history-title">
   <div>
-    <p>Actividad del sistema</p>
-    <h2 id="history-title">Historial reciente</h2>
+    <p>Eventos climáticos</p>
+    <h2 id="history-title">Eventos recientes</h2>
   </div>
   <ol>
-    @for (event of events(); track event.title + event.occurredAt) {
+    @if (events().length === 0) { <li class="history-panel__empty"><div><strong>Sin eventos recientes</strong><p>No hay eventos registrados para esta comunidad.</p></div></li> }
+    @for (event of events(); track event.id ?? event.title + event.occurredAt) {
       <li>
         <span [class]="'history-panel__marker history-panel__marker--' + event.tone" aria-hidden="true"></span>
         <div>
           <strong>{{ event.title }}</strong>
+          @if (event.id) { <a [routerLink]="['/events', event.id]">Ver evento</a> }
           <p>{{ event.detail }}</p>
         </div>
         <time>{{ event.occurredAt }}</time>
