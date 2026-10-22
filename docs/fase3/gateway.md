@@ -1,5 +1,9 @@
 # API Gateway: primer incremento de Fase 3
 
+> Documento del primer incremento. Desde el segundo incremento, auth/users se
+> enrutan a NestJS y readiness incluye Auth. Configuración y operación vigentes:
+> [Auth Service](auth-service.md) y [arquitectura](arquitectura.md).
+
 Resultados ejecutados y límites de la validación: [validacion-gateway.md](validacion-gateway.md).
 
 ## Propósito y recorrido

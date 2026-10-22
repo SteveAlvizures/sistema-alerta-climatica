@@ -11,6 +11,7 @@ public static class JwtAuthentication
 {
     public static IServiceCollection AddClimateAuthentication(this IServiceCollection services, JwtOptions jwt)
     {
+        services.AddHttpClient("auth-identity", client => client.Timeout = TimeSpan.FromSeconds(3));
         services.AddSingleton(jwt);
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
         {
@@ -36,6 +37,29 @@ public static class JwtAuthentication
             return;
         }
         var database = context.HttpContext.RequestServices.GetRequiredService<ClimateAlertDbContext>();
+        var configuration = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+        if (!string.IsNullOrWhiteSpace(configuration["AUTH_SERVICE_URL"]))
+        {
+            var current = await ExternalIdentityIntegration.ResolveAsync(context.HttpContext, configuration);
+            if (current is null || current.Id != id || !current.IsActive)
+            {
+                context.Fail("Current identity unavailable or inactive.");
+                return;
+            }
+            await ExternalIdentityIntegration.ProjectAsync(database, current, context.HttpContext.RequestAborted);
+            try { await database.SaveChangesAsync(context.HttpContext.RequestAborted); }
+            catch (DbUpdateException exception) when (exception.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 2601 or 2627 })
+            {
+                // A concurrent request/outbox delivery may have inserted the same projection.
+                database.ChangeTracker.Clear();
+                await ExternalIdentityIntegration.ProjectAsync(database, current, context.HttpContext.RequestAborted);
+                await database.SaveChangesAsync(context.HttpContext.RequestAborted);
+            }
+            var remoteIdentity = (ClaimsIdentity)context.Principal!.Identity!;
+            foreach (var claim in remoteIdentity.FindAll(remoteIdentity.RoleClaimType).ToArray()) remoteIdentity.RemoveClaim(claim);
+            remoteIdentity.AddClaim(new Claim(remoteIdentity.RoleClaimType, UserRoles.Normalize(current.Role)));
+            return;
+        }
         var user = await database.Users.AsNoTracking().SingleOrDefaultAsync(candidate => candidate.Id == id,
             context.HttpContext.RequestAborted);
         if (user is null || !user.IsActive)

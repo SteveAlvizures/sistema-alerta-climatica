@@ -126,7 +126,9 @@ public sealed class GatewayFixture : IAsyncLifetime
             {
                 ["JWT_KEY"] = Key, ["JWT_ISSUER"] = "test", ["JWT_AUDIENCE"] = "test",
                 ["Gateway:AllowedOrigins:0"] = "http://localhost:4200",
-                ["ReverseProxy:Clusters:monolith:Destinations:backend:Address"] = address
+                ["ReverseProxy:Clusters:monolith:Destinations:backend:Address"] = address,
+                ["ReverseProxy:Clusters:auth:Destinations:auth-service:Address"] = address,
+                ["Gateway:AuthHealthPath"] = "health"
             };
             if (timeout is not null) settings["ReverseProxy:Clusters:monolith:HttpRequest:ActivityTimeout"] = timeout;
             builder.Configuration.AddInMemoryCollection(settings);

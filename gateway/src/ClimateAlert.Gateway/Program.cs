@@ -30,7 +30,8 @@ public static class GatewayApplication
             .AddTransforms(ProxyTransforms.Configure);
         builder.Services.AddHttpClient("readiness", client => client.Timeout = TimeSpan.FromSeconds(3))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
-        builder.Services.AddHealthChecks().AddCheck<UpstreamHealthCheck>("backend", tags: ["ready"]);
+        builder.Services.AddHealthChecks().AddCheck<UpstreamHealthCheck>("backend", tags: ["ready"])
+            .AddCheck<AuthUpstreamHealthCheck>("auth", tags: ["ready"]);
 
         var app = builder.Build();
         app.UseMiddleware<CorrelationMiddleware>();

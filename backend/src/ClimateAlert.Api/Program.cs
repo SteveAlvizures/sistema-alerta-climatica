@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using ClimateAlert.Api;
 using ClimateAlert.Api.Authentication;
 using ClimateAlert.Api.Errors;
+using ClimateAlert.Api.Controllers;
 using ClimateAlert.Infrastructure;
 using ClimateAlert.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +56,21 @@ var app = builder.Build();
 app.UseForwardedHeaders();
 app.UseExceptionHandler();
 
+if (!string.IsNullOrWhiteSpace(builder.Configuration["AUTH_SERVICE_URL"]))
+{
+    // Keep Phase 2 implementations in source, but prevent stale local identity writes
+    // after PostgreSQL becomes authoritative in Phase 3.
+    app.Use(async (context, next) =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api/auth") || context.Request.Path.StartsWithSegments("/api/users"))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+        await next(context);
+    });
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -80,5 +96,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapAuthIntegration();
 
 app.Run();

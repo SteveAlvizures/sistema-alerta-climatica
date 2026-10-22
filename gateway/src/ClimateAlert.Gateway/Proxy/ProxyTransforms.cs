@@ -14,6 +14,8 @@ public static class ProxyTransforms
         || name.StartsWith("X-Auth", StringComparison.OrdinalIgnoreCase)
         || name.StartsWith("X-Identity", StringComparison.OrdinalIgnoreCase)
         || name.StartsWith("X-Internal", StringComparison.OrdinalIgnoreCase)
+        || name.StartsWith("X-Service", StringComparison.OrdinalIgnoreCase)
+        || name.StartsWith("X-Permission", StringComparison.OrdinalIgnoreCase)
         || name.StartsWith("X-MS-CLIENT-PRINCIPAL", StringComparison.OrdinalIgnoreCase)
         || name.StartsWith("X-Original-", StringComparison.OrdinalIgnoreCase)
         || name.Equals("X-Real-IP", StringComparison.OrdinalIgnoreCase)

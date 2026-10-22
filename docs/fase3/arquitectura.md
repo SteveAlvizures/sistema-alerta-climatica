@@ -1,6 +1,6 @@
 # Arquitectura de Fase 3
 
-## Primer incremento implementado
+## Segundo incremento: Auth extraído
 
 ```text
 Navegador Angular 22 (/api)
@@ -10,18 +10,18 @@ Nginx del frontend / proxy Angular en desarrollo
         |
         v
 API Gateway — ASP.NET Core 10 + YARP
+        +--> /api/auth/*, /api/users/* --> Auth NestJS --> PostgreSQL propio
         |
-        v
-ClimateAlert.Api — monolito de Fase 2
-        |
-        v
-SQL Server existente
+        +--> resto de /api/* --> ClimateAlert.Api --> SQL Server existente
 ```
 
-El monolito conserva usuarios, JWT, autorización definitiva, comunidades, sensores,
-lecturas, reglas, alertas, eventos, auditoría y dashboard. Este incremento no extrae
-servicios ni modifica DTOs o esquemas de base de datos. La API conserva sus rutas.
-El Gateway no accede a SQL Server ni comparte el DbContext.
+Auth es propietario de usuarios, credenciales, roles, estado y emisión JWT. El
+monolito conserva comunidades, sensores, lecturas, reglas, alertas, eventos, auditoría
+y dashboard; consulta por HTTP la identidad vigente a Auth antes de autorizar.
+Una outbox PostgreSQL entrega auditoría al monolito por HTTP. SQL conserva los usuarios
+originales y una proyección de identidad necesaria para sus claves foráneas, sin ser
+fuente de autenticación en el modo externo. No se modificó el esquema SQL Server.
+Los contratos públicos permanecen estables. Gateway no accede a bases de datos.
 
 ## Arquitectura objetivo, todavía no implementada
 
@@ -47,13 +47,14 @@ o proyecciones alimentadas por eventos, nunca mediante conexiones directas.
 
 - Gateway como punto único de acceso a la API; Angular mantiene `/api`.
 - Validación criptográfica JWT preliminar, sin imponer autorización global.
-- Autorización y consulta del usuario vigente permanecen en el monolito.
+- Auth y monolito aplican sus permisos con identidad vigente consultada a Auth.
 - Rutas anidadas de comunidad tienen prioridad explícita para futuras extracciones.
 - `/api/reports` se reserva y hoy devuelve el 404 del monolito; no hay Report Service.
 - `/health` y `/health/live` comprueban vida; `/health/ready` comprueba el upstream.
 - Compose de Fase 3 separado, con backend y SQL Server sin puertos publicados.
 - El Compose exige un volumen SQL ya inicializado y desactiva migraciones al arrancar.
-- Sin OAuth/OIDC, broker ni migraciones de datos en este incremento.
+- Sin OAuth/OIDC ni broker. Se agrega esquema PostgreSQL propio y un importador de
+  usuarios no destructivo; SQL Server y sus usuarios originales se conservan.
 
 ## Preparación para Kubernetes/K3s
 
@@ -64,3 +65,4 @@ Los manifiestos, gestión de secretos, escalado y outbox quedan para incrementos
 posteriores. El simulador del monolito debe seguir siendo una única instancia.
 
 Consulta [Operación del Gateway](gateway.md) para comandos, pruebas y limitaciones.
+La extracción y el corte de identidad se describen en [Auth Service](auth-service.md).

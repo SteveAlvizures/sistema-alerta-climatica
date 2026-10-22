@@ -5,6 +5,52 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "3"
 services:
+  auth-postgres:
+    logging: *default-logging
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${AUTH_DATABASE_NAME:-climate_auth}
+      POSTGRES_USER: ${AUTH_DATABASE_USER:-auth_app}
+      POSTGRES_PASSWORD: ${AUTH_DATABASE_PASSWORD:?AUTH_DATABASE_PASSWORD is required}
+    volumes:
+      - auth-postgres-data:/var/lib/postgresql/data
+    networks: [auth-persistence]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  auth-service:
+    logging: *default-logging
+    build:
+      context: ../../services/auth-service
+      dockerfile: Dockerfile
+    environment:
+      PORT: "3000"
+      AUTH_DATABASE_HOST: auth-postgres
+      AUTH_DATABASE_PORT: "5432"
+      AUTH_DATABASE_NAME: ${AUTH_DATABASE_NAME:-climate_auth}
+      AUTH_DATABASE_USER: ${AUTH_DATABASE_USER:-auth_app}
+      AUTH_DATABASE_PASSWORD: ${AUTH_DATABASE_PASSWORD:?AUTH_DATABASE_PASSWORD is required}
+      JWT_KEY: ${JWT_KEY:?JWT_KEY is required}
+      JWT_ISSUER: ${JWT_ISSUER:-climate-alert-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-climate-alert-client}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
+      AUTH_INTERNAL_KEY: ${AUTH_INTERNAL_KEY:?AUTH_INTERNAL_KEY is required}
+      AUTH_AUDIT_URL: http://backend:8080/internal/auth-events
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+    networks: [upstream, auth-persistence]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://localhost:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+    restart: unless-stopped
+
   sqlserver:
     logging: *default-logging
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -39,8 +85,12 @@ services:
       Database__ApplyMigrationsOnStartup: "false"
       DEMO_DATA_SEED_ENABLED: "false"
       SIMULATED_READING_INTERVAL_SECONDS: ${SIMULATED_READING_INTERVAL_SECONDS:-60}
+      AUTH_SERVICE_URL: http://auth-service:3000/
+      AUTH_INTERNAL_KEY: ${AUTH_INTERNAL_KEY:?AUTH_INTERNAL_KEY is required}
     depends_on:
       sqlserver:
+        condition: service_healthy
+      auth-service:
         condition: service_healthy
     networks: [upstream, persistence]
     healthcheck:
@@ -63,9 +113,12 @@ services:
       JWT_ISSUER: ${JWT_ISSUER:-climate-alert-api}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-climate-alert-client}
       ReverseProxy__Clusters__monolith__Destinations__backend__Address: http://backend:8080/
+      ReverseProxy__Clusters__auth__Destinations__auth-service__Address: http://auth-service:3000/
       Gateway__AllowedOrigins__0: ${FRONTEND_ORIGIN:-http://localhost:8082}
     depends_on:
       backend:
+        condition: service_healthy
+      auth-service:
         condition: service_healthy
     networks: [edge, upstream]
     healthcheck:
@@ -97,11 +150,15 @@ services:
     restart: unless-stopped
 
 volumes:
+  auth-postgres-data:
+    name: ${AUTH_POSTGRES_VOLUME:-climate-alert-auth-postgres-data}
   climate-alert-sqlserver-data:
     external: true
     name: ${PHASE3_SQL_VOLUME:-climate-alert-sqlserver-data}
 
 networks:
+  auth-persistence:
+    internal: true
   edge:
   upstream:
     internal: true
