@@ -1,0 +1,11 @@
+# Overlay: always combine with docker-compose.phase3.yml.
+services:
+  sqlserver:
+    environment:
+      MSSQL_PID: ${SQLSERVER_EDITION:-Express}
+  frontend:
+    volumes:
+      - ../nginx/nginx.phase3.production.conf:/etc/nginx/conf.d/default.conf:ro
+  gateway:
+    environment:
+      Gateway__AllowedOrigins__0: ${FRONTEND_ORIGIN:?FRONTEND_ORIGIN is required for production}

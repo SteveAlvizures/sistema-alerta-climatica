@@ -66,7 +66,10 @@ using (var scope = app.Services.CreateScope())
     var database = scope.ServiceProvider
         .GetRequiredService<ClimateAlertDbContext>();
 
-    await database.Database.MigrateAsync();
+    // Phase 2 keeps its startup behavior. Phase 3 reuses an initialized database
+    // and explicitly disables schema changes during this gateway-only increment.
+    if (builder.Configuration.GetValue("Database:ApplyMigrationsOnStartup", true))
+        await database.Database.MigrateAsync();
     await InitialAdminSeeder.SeedAsync(scope.ServiceProvider);
     await DemoDataSeeder.SeedAsync(scope.ServiceProvider);
 }
