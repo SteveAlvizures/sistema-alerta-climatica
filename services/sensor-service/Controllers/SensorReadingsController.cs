@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SensorService.Domain;
 using SensorService.Dtos;
 using SensorService.Services;
 
@@ -11,6 +12,29 @@ public sealed class SensorReadingsController(
     SensorReadingManager service)
     : ControllerBase
 {
+    [HttpGet("api/sensor-readings")]
+    [Authorize(Policy = "SensorsRead")]
+    public async Task<IActionResult> GlobalHistory(
+        Guid? communityId = null,
+        Guid? sensorId = null,
+        ClimateVariable? variable = null,
+        DateTimeOffset? dateFrom = null,
+        DateTimeOffset? dateTo = null,
+        int page = 1,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default)
+        => Ok(
+            await service.GetGlobalHistoryAsync(
+                communityId,
+                sensorId,
+                variable,
+                dateFrom,
+                dateTo,
+                page,
+                pageSize,
+                Request.Headers.Authorization,
+                cancellationToken));
+
     [HttpGet("api/sensors/{sensorId:guid}/readings")]
     [Authorize(Policy = "SensorsRead")]
     public async Task<IActionResult> History(
