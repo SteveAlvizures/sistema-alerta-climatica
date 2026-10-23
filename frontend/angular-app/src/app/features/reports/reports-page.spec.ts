@@ -33,6 +33,18 @@ describe('ReportsPage', () => {
   it('clears filters when changing type', () => { page.filters = { sensorId: 's1', status: 'Active' }; page.from = '2026-10-20'; page.changeType(); expect(page.filters).toEqual({}); expect(page.from).toBe(''); });
   it('resets a sensor selection when the community changes', () => { page.filters = { communityId: 'c2', sensorId: 'old-sensor' }; page.communityChanged(); expect(page.filters.sensorId).toBeUndefined(); });
   it('validates reversed dates without making a request', () => { page.from = '2026-10-23'; page.to = '2026-10-22'; page.generate(); expect(page.invalidRange).toBeTrue(); http.expectNone(r => r.method === 'POST'); });
+  it('rejects invalid dates without leaving generation busy', () => { page.from = '2026-02-30'; page.generate(); expect(page.generating).toBeFalse(); expect(page.error).toContain('fechas'); http.expectNone(r => r.method === 'POST'); });
+  it('cancels stale history requests when filters change', () => {
+    page.loadHistory(); const stale = http.expectOne(r => r.url === '/api/reports');
+    page.historyType = 'readings'; page.filterHistory();
+    expect(stale.cancelled).toBeTrue(); expect(page.loading).toBeTrue();
+    history([report]); expect(page.history).toEqual([report]); expect(page.loading).toBeFalse();
+  });
+  it('distinguishes unavailable history from an empty selection and supports retry', () => {
+    page.loadHistory(); http.expectOne(r => r.url === '/api/reports').flush({}, { status: 503, statusText: 'Unavailable' });
+    fixture.detectChanges(); expect(fixture.nativeElement.textContent).not.toContain('Aún no hay reportes');
+    expect(page.historyError).toBeTruthy(); page.loadHistory(); history(); expect(page.historyError).toBe('');
+  });
   it('generates a report and reloads history', () => { page.generate(); expect(page.generating).toBeTrue(); const request = http.expectOne('/api/reports'); expect(request.request.body).toEqual({ type: 'communities', filters: {} }); request.flush(report); history([report]); expect(page.generating).toBeFalse(); expect(page.generated?.id).toBe('r1'); expect(page.success).toContain('listo'); });
   it('sends UTC boundaries and selected filters', () => { page.kind = 'readings'; page.filters = { communityId: 'c1', variable: 'Temperature', status: '' }; page.from = '2026-10-20'; page.to = '2026-10-22'; page.generate(); const request = http.expectOne('/api/reports'); expect(request.request.body.filters).toEqual({ communityId: 'c1', variable: 'Temperature', dateFrom: '2026-10-20T00:00:00.000Z', dateTo: '2026-10-22T23:59:59.999Z' }); request.flush(report); history(); });
   it('prevents duplicate generation while loading', () => { page.generate(); page.generate(); http.expectOne('/api/reports').flush(report); history(); });

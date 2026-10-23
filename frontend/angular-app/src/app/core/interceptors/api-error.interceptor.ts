@@ -18,6 +18,7 @@ export const apiErrorInterceptor: HttpInterceptorFn = (request, next) => {
         : response.status === 504 ? 'El servicio tardó demasiado en responder. Inténtalo de nuevo.'
         : [0, 502, 503].includes(response.status) ? 'El servicio no está disponible. Inténtalo de nuevo en unos momentos.'
         : null;
+      // Preserve business errors and status codes; retrying writes here could duplicate operations.
       if (!detail) return throwError(() => response);
       return throwError(() => new HttpErrorResponse({
         status: response.status, statusText: response.statusText, headers: response.headers,

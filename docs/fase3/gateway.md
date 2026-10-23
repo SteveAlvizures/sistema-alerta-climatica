@@ -1,16 +1,14 @@
-# API Gateway: primer incremento de Fase 3
+# API Gateway de Fase 3
 
-> Documento del primer incremento. Desde el segundo incremento, auth/users se
-> enrutan a NestJS y readiness incluye Auth. Configuración y operación vigentes:
-> [Auth Service](auth-service.md) y [arquitectura](arquitectura.md).
-
-Resultados ejecutados y límites de la validación: [validacion-gateway.md](validacion-gateway.md).
+Operación vigente de Gateway con Auth y Report extraídos. Resultados:
+[pruebas](pruebas.md).
 
 ## Propósito y recorrido
 
 Antes: `Angular → proxy/Nginx → ClimateAlert.Api → SQL Server`.
 
-Ahora: `Angular → proxy/Nginx → Gateway → ClimateAlert.Api → SQL Server`.
+Ahora: `Angular → proxy/Nginx → Gateway → Auth / Report / monolito`.
+Cada propietario accede a su persistencia, como muestra [arquitectura](arquitectura.md).
 
 YARP es el reverse proxy de ASP.NET Core. El Gateway centraliza enrutamiento,
 CORS, validación JWT preliminar, correlación y errores de transporte sin trasladar
@@ -18,8 +16,9 @@ negocio ni persistencia. El backend de Fase 2 se conserva.
 
 ## Rutas
 
-Todas se envían al cluster `monolith`, sin retirar el prefijo `/api`, transformar
-DTOs ni reescribir cuerpos de negocio:
+Se conserva el prefijo `/api`, sin transformar DTOs ni reescribir cuerpos de
+negocio. `auth` y `users` usan cluster `auth`; `reports-reserved` usa `reports`;
+las demás rutas usan `monolith`:
 
 | Ruta | Identificador YARP |
 |---|---|
@@ -39,8 +38,8 @@ DTOs ni reescribir cuerpos de negocio:
 | `/api/{**remainder}` | `api-fallback` |
 
 El catch-all también admite la raíz sin segmentos adicionales. Las dos rutas
-anidadas tienen `Order=-20`; el fallback tiene `Order=100`. Reports continúa
-devolviendo 404 porque aún no existe el servicio. El fallback conserva el
+anidadas tienen `Order=-20`; el fallback tiene `Order=100`. Report atiende la
+raíz y subrutas de `/api/reports`. El fallback conserva el
 comportamiento del backend para rutas API desconocidas.
 
 ## JWT y encabezados
@@ -68,7 +67,8 @@ integración que requiera redirects externos necesitará una política explícit
 
 `Gateway:AllowedOrigins` es una lista explícita; en desarrollo permite
 `http://localhost:4200`. No se habilitan cookies cross-origin ni wildcard. El
-frontend Docker usa mismo origen. `X-Correlation-ID` se expone al navegador.
+frontend Docker usa mismo origen. `X-Correlation-ID` y `Content-Disposition`
+se exponen al navegador para correlación y nombres de descarga PDF.
 Se eliminan los headers CORS del upstream para que no puedan ampliar la política
 del Gateway, incluso si el backend tiene CORS de desarrollo habilitado.
 
@@ -105,7 +105,7 @@ Las pantallas conservan sus propios mensajes y manejo de errores.
 |---|---|---|
 | `/health` | Liveness | 200 |
 | `/health/live` | Liveness | 200 |
-| `/health/ready` | Backend `/health`, timeout 3 s | 503 |
+| `/health/ready` | Backend `/health`, Auth y Report `/health/ready`, timeout HTTP 3 s | 503 |
 
 Las respuestas identifican únicamente `ClimateAlert.Gateway` y su estado. Readiness
 comprueba indirectamente SQL porque el health existente del backend lo incluye.
@@ -130,7 +130,8 @@ Gateway escucha en `http://localhost:5160` y el upstream predeterminado es
 $env:ReverseProxy__Clusters__monolith__Destinations__backend__Address = 'http://localhost:5152/'
 ```
 
-Iniciar el backend con su configuración existente. Cuando se requiera impedir
+Iniciar Auth en 3000, Report en 8000 y el backend con su configuración existente.
+Los destinos nativos Auth/Report son localhost; Compose los sustituye por DNS interno. Cuando se requiera impedir
 migraciones de arranque, establecer `Database__ApplyMigrationsOnStartup=false` y
 usar una base ya inicializada. Esta opción conserva `true` como valor predeterminado
 para no alterar el arranque de Fase 2. No modifica los archivos de migraciones.
@@ -168,8 +169,8 @@ docker compose --env-file .env -f deploy/compose/docker-compose.phase3.yml ps
 ```
 
 Frontend: `http://localhost:8082`. Solo publica `127.0.0.1:8082` de manera
-predeterminada. Gateway, backend y SQL no publican puertos. Las redes internas
-separan frontend/Gateway, Gateway/backend y backend/SQL. Los healthchecks controlan
+predeterminada. Gateway, Auth, Report y las tres bases no publican puertos; tampoco backend.
+Las redes separan edge, upstream y persistencias SQL/Auth/Report. Los healthchecks controlan
 el orden de arranque. La simulación conserva su intervalo configurable; establecer
 `SIMULATED_READING_INTERVAL_SECONDS=0` para una validación sin lecturas nuevas.
 
@@ -227,10 +228,12 @@ de las rutas correspondientes. Mantener prioridad de rutas anidadas y añadir
 pruebas de contrato antes de cada cambio. No reutilizar `/health` para esconder
 una caída del Gateway detrás de la del backend.
 
-Quedan pendientes la extracción de los seis servicios, persistencias propias,
-outbox/idempotencia, trazabilidad de correlación dentro del backend, despliegue K3s,
+Quedan pendientes Community, Sensor, Alert y Audit, sus migraciones y contratos
+reales, trazabilidad de correlación dentro del backend, despliegue K3s,
 rotación de claves y OAuth/OIDC en Fase 4. Los fallos de negocio se siguen manejando
-en el backend; Gateway no sanitiza arbitrariamente sus cuerpos JSON.
+en sus propietarios; Gateway no sanitiza arbitrariamente sus cuerpos JSON.
+Auth ya tiene PostgreSQL/outbox e ingesta idempotente transitoria; Report tiene
+Mongo/GridFS. Procedimiento de cortes: [integración pendiente](integracion-pendiente.md).
 
-Referencias: [middleware y errores de YARP](https://learn.microsoft.com/aspnet/core/fundamentals/servers/yarp/middleware?view=aspnetcore-10.0),
+Referencias: [middleware y errores de YARP](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/servers/yarp/middleware?view=aspnetcore-10.0),
 [paquete YARP](https://www.nuget.org/packages/Yarp.ReverseProxy/2.3.0).

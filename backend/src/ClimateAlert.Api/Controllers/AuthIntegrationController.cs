@@ -21,6 +21,7 @@ public static class AuthIntegrationEndpoints
         string[] actions = ["Login", "Logout", "UsuarioCreado", "UsuarioEditado", "UsuarioActivado", "UsuarioDesactivado", "RolUsuarioCambiado"];
         if (item.Id == Guid.Empty || item.Actor is null || item.Target is null || !actions.Contains(item.Action)
             || string.IsNullOrWhiteSpace(item.Description) || item.Description.Length > 1000) return Results.BadRequest();
+        // Outbox delivery is at least once: an acknowledged event ID must not create another audit row on retry.
         if (await db.AuditActions.AnyAsync(action => action.Id == item.Id, cancellationToken)) return Results.NoContent();
         var actor = await ExternalIdentityIntegration.ProjectAsync(db, item.Actor, cancellationToken);
         if (item.Target.Id != item.Actor.Id) await ExternalIdentityIntegration.ProjectAsync(db, item.Target, cancellationToken);

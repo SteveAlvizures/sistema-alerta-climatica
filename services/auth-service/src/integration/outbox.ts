@@ -5,6 +5,7 @@ import { Database } from '../persistence/database';
 import { required } from '../common/config';
 import { Identity } from '../identity/identity.guard';
 
+/** Durable HTTP delivery with retries; receivers must deduplicate by the stable event ID. */
 @Injectable()
 export class Outbox implements OnModuleInit, OnModuleDestroy {
   private timer?:NodeJS.Timeout;
@@ -12,6 +13,7 @@ export class Outbox implements OnModuleInit, OnModuleDestroy {
   private pending?:Promise<void>;
   constructor(private readonly db:Database) {}
   async enqueue(client:PoolClient, actor:Identity, action:string, target:Identity, description:string):Promise<void> {
+    // The caller's transaction commits the identity change and its audit event together.
     const id=randomUUID();
     await client.query('INSERT INTO auth_outbox(id,payload) VALUES($1,$2)',[id,JSON.stringify({
       id,actor,target,action,description,occurredAt:new Date().toISOString(),affectedRecordId:target.id,
@@ -37,6 +39,7 @@ export class Outbox implements OnModuleInit, OnModuleDestroy {
               'Content-Type':'application/json','X-Internal-Service-Key':required('AUTH_INTERNAL_KEY',32),
               'X-Correlation-ID':row.id,
             },body:JSON.stringify(row.payload),signal:AbortSignal.timeout(3000)});
+            // A lost acknowledgement can cause redelivery even if the receiver already stored the event.
             if (!response.ok) break;
             await client.query('UPDATE auth_outbox SET delivered_at=now() WHERE id=$1',[row.id]);
           } catch { break; }

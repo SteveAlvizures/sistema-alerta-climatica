@@ -156,7 +156,9 @@ de entrada en errores de validación. CORS permanece en Gateway y ahora expone
 Colección `reports`: UUID, tipo, usuario (ID/nombre), solicitud UTC, filtros, estado,
 archivo, generación, última descarga, tamaño, error controlado y correlation ID.
 Índices: usuario, tipo, fecha, estado, usuario/fecha/ID y estado/fecha. GridFS utiliza
-`pdfs.files`/`pdfs.chunks` e índices propios. El volumen es `report-mongodb-data`.
+`pdfs.files`/`pdfs.chunks` e índices propios. El volumen lógico es
+`report-mongodb-data`; su nombre Docker predeterminado es
+`climate-alert-report-mongodb-data`, configurable con `REPORT_MONGO_VOLUME`.
 
 La generación es síncrona: Pending -> Processing -> Completed o Failed. Se guarda
 el PDF antes de publicar Completed; si falla la actualización de metadata se intenta
@@ -253,6 +255,9 @@ Para desarrollo fuera de Docker: Python 3.13, `pip install -r requirements.lock`
 HarfBuzz y fuentes; para evitar diferencias del host se recomienda el Dockerfile.
 Las instrucciones de instalación se contrastaron con la
 [documentación oficial de WeasyPrint](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html).
+La URL `stable` puede describir una versión posterior; las versiones instaladas
+por este repositorio se toman de `requirements.lock` y del Dockerfile, sin actualizar
+paquetes al seguir ejemplos externos.
 
 Smoke E2E reproducible: definir `REPORT_E2E_URL` con la URL de Nginx/Gateway,
 `REPORT_E2E_USERNAME`/`REPORT_E2E_PASSWORD` desde el entorno seguro y ejecutar
@@ -270,32 +275,11 @@ Secrets/Services/PVC para Mongo y los destinos por DNS. Cada réplica acepta una
 generación; el control no es una cola global. Workers/broker/leases y almacenamiento
 administrado quedan para cuando se requiera procesamiento asíncrono o mayor escala.
 
-## CÓMO DEFENDER REPORT SERVICE
-
-- **Independencia:** generar documentos tiene sus propios recursos, estado y persistencia.
-  Puede evolucionar sin añadir dependencias de PDF al backend de sensores ni al navegador.
-- **Python/FastAPI:** simplifica validación HTTP y composición de clientes con I/O asíncrona.
-  La tarea intensiva de PDF sale del event loop a un proceso que puede detenerse.
-- **MongoDB:** guarda documentos de metadata con filtros distintos por tipo. GridFS permite
-  mantener archivo y metadata en la persistencia del mismo servicio, sin carpetas compartidas.
-- **Jinja2:** separa datos y presentación y escapa contenido. Una base visual sirve para los
-  ocho reportes sin duplicar cabeceras y estilos.
-- **WeasyPrint:** convierte HTML/CSS de impresión en PDF con tablas y paginación reales.
-  Las dependencias de Linux están encapsuladas en Docker.
-- **Backend y Angular:** el servidor aplica permisos y produce un documento consistente;
-  Angular solicita y descarga el resultado, sin depender del rendimiento o fuentes del cliente.
-- **Datos:** Report llama a APIs de los propietarios. Cambiar una URL mantiene el motor;
-  no existe acceso a tablas ajenas ni unión entre bases de distintos servicios.
-- **JWT y permisos:** primero comprueba la firma/issuer/audience/vencimiento, después la
-  identidad vigente. Un token con rol viejo no recupera permisos retirados. Cada reporte
-  pertenece a quien lo solicitó; ser administrador no concede descarga ajena.
-- **Fuente caída:** la solicitud falla de forma controlada y queda Failed. No se presenta
-  una tabla incompleta como un informe terminado. Un PDF ya guardado no depende de la fuente.
-- **Reportes grandes:** lotes, límite por fuente, presupuesto de tiempo, tamaño de archivo y
-  capacidad por proceso. Si se supera el límite, se pide acotar filtros; no se omiten filas.
-- **Kubernetes:** contenedor sin estado local de negocio, configuración externa, DNS, probes
-  separadas y persistencia propia. Escalar requiere dimensionar recursos y capacidad Mongo.
-- **Próximas extracciones:** los clientes separados apuntarán a Community/Sensor/Alert reales;
-  esos servicios seguirán siendo los únicos autorizados para consultar sus persistencias.
-
 Evidencia, resultados y pendientes: [validacion-reportes.md](validacion-reportes.md).
+
+La regresión posterior al commit `764ac02`, los ajustes de robustez y la revisión
+final de los ocho PDFs están en [revision-final-steve.md](revision-final-steve.md).
+La lectura de salida del renderizador ahora se limita durante la transferencia y
+un fallo de lectura posterior a completar GridFS no degrada el documento a Failed.
+Los contratos y variables para las futuras fuentes están en
+[integracion-pendiente.md](integracion-pendiente.md).

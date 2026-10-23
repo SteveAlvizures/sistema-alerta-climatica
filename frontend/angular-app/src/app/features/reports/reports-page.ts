@@ -3,7 +3,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize } from 'rxjs';
+import { finalize, Subscription } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { CommunityApiService } from '../../core/services/community-api.service';
 import { SensorApiService } from '../../core/services/sensor-api.service';
@@ -19,12 +19,14 @@ export class ReportsPage implements OnInit {
   private readonly communityApi = inject(CommunityApiService);
   private readonly sensorApi = inject(SensorApiService);
   private readonly destroy = inject(DestroyRef);
+  private historyRequest?: Subscription;
   types: ReportType[] = []; communities: CommunityDto[] = []; sensors: SensorDto[] = [];
   kind: ReportKind = 'communities'; filters: ReportFilters = {}; from = ''; to = '';
   history: ReportMetadata[] = []; page = 1; pageSize = 10; total = 0; totalPages = 0;
   historyType = ''; historyState = ''; loading = false; initializing = true; generating = false;
   downloading: string | null = null; error = ''; success = ''; generated: ReportMetadata | null = null;
   selectorLimitReached = false;
+  historyError = '';
   readonly variables = [{ id: 'Temperature', name: 'Temperatura' }, { id: 'RelativeHumidity', name: 'Humedad' },
     { id: 'WindSpeed', name: 'Viento' }, { id: 'RainfallLevel', name: 'Lluvia' },
     { id: 'RiverOrReservoirLevel', name: 'Río / embalse' }, { id: 'SmokeConcentration', name: 'Humo' },
@@ -51,12 +53,17 @@ export class ReportsPage implements OnInit {
       next: result => { this.sensors = [...this.sensors, ...result.data]; if (result.hasNext && page < 40) this.loadSensors(page + 1); else if (result.hasNext) this.selectorLimitReached = true; },
       error: () => this.error = 'No se pudieron cargar los sensores. Recarga la página para reintentar.' });
   }
+  // Type capabilities come from Report; resetting prevents hidden, incompatible filters from leaking into a request.
   changeType(): void { this.filters = {}; this.from = ''; this.to = ''; this.success = ''; this.generated = null; }
   communityChanged(): void { delete this.filters.sensorId; }
   generate(): void {
     if (this.generating || this.initializing || this.invalidRange || !this.selected || !this.auth.canOperate()) return;
-    this.generating = true; this.error = ''; this.success = ''; this.generated = null;
     const filters: ReportFilters = Object.fromEntries(Object.entries(this.filters).filter(([, value]) => !!value));
+    if ([this.from, this.to].some(value => value && (!/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+      !Number.isFinite(Date.parse(`${value}T00:00:00Z`)) || new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) !== value))) {
+      this.error = 'Revisa las fechas seleccionadas.'; return;
+    }
+    this.generating = true; this.error = ''; this.success = ''; this.generated = null;
     if (this.from) filters.dateFrom = new Date(`${this.from}T00:00:00Z`).toISOString();
     if (this.to) filters.dateTo = new Date(`${this.to}T23:59:59.999Z`).toISOString();
     this.api.generate({ type: this.kind, filters }).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.generating = false)).subscribe({
@@ -65,11 +72,13 @@ export class ReportsPage implements OnInit {
   }
   loadHistory(): void {
     if (!this.auth.canOperate()) return;
-    this.loading = true;
-    this.api.history({ page: this.page, pageSize: this.pageSize, type: this.historyType, state: this.historyState })
+    // Only the newest filter/page selection may update history; cancellation also finalizes the old loading state.
+    this.historyRequest?.unsubscribe();
+    this.loading = true; this.historyError = '';
+    this.historyRequest = this.api.history({ page: this.page, pageSize: this.pageSize, type: this.historyType, state: this.historyState })
       .pipe(takeUntilDestroyed(this.destroy), finalize(() => this.loading = false)).subscribe({
         next: result => { this.history = result.data; this.total = result.totalCount; this.totalPages = result.totalPages; },
-        error: e => this.error = this.message(e) });
+        error: e => this.historyError = this.message(e) });
   }
   filterHistory(): void { this.page = 1; this.loadHistory(); }
   turnPage(direction: number): void { this.page += direction; this.loadHistory(); }
@@ -94,6 +103,7 @@ export class ReportsPage implements OnInit {
         }
         const url = URL.createObjectURL(response.body); const link = document.createElement('a');
         link.href = url; link.download = reportFilename(response.headers.get('Content-Disposition'), report.filename ?? 'vigia-rural.pdf');
+        // Release the temporary Blob URL after the browser has had time to start the download.
         link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
         this.success = 'Descarga iniciada.';
       }, error: e => this.error = this.message(e) });

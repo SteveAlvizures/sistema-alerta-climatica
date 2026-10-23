@@ -18,6 +18,7 @@ export class IdentityGuard implements CanActivate {
     const authorization = request.headers.authorization;
     if (!authorization || !/^Bearer /i.test(authorization)) throw new UnauthorizedException();
     const claims = this.tokens.verify(authorization.slice(7));
+    // Re-read on every protected request so an old JWT cannot retain removed roles or bypass deactivation.
     const result = await this.db.pool.query('SELECT * FROM auth_users WHERE id=$1 AND is_active=true',[claims.sub]);
     if (!result.rowCount) throw new UnauthorizedException();
     request.identity = identityRow(result.rows[0]);

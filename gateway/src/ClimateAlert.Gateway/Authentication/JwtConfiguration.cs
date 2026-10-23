@@ -5,6 +5,10 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace ClimateAlert.Gateway.Authentication;
 
+/// <summary>
+/// Adds cryptographic validation compatible with Auth and the legacy API.
+/// Current account state and operation permissions remain the upstream's responsibility.
+/// </summary>
 public static class JwtConfiguration
 {
     public static IServiceCollection AddInitialJwtValidation(this IServiceCollection services, IConfiguration configuration)
@@ -23,6 +27,7 @@ public static class JwtConfiguration
                 ValidateAudience = true,
                 ValidAudience = configuration["JWT_AUDIENCE"] ?? "climate-alert-client",
                 ValidateIssuerSigningKey = true,
+                // Using the raw text bytes would break tokens already issued by Phase 2.
                 IssuerSigningKey = new SymmetricSecurityKey(SHA256.HashData(Encoding.UTF8.GetBytes(key))),
                 ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
                 ValidateLifetime = true,

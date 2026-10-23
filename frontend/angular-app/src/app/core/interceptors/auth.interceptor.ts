@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { API_BASE_URL } from '../config/api.config';
 
+/** Compare origin and a complete path prefix so lookalike hosts or /api-other never receive our JWT. */
 export function isAuthorizedApiUrl(requestUrl: string, apiBaseUrl: string, origin: string): boolean {
   try {
     const base = new URL(apiBaseUrl, origin);

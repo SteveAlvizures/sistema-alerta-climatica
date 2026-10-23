@@ -25,7 +25,6 @@ export class Sidebar {
   private readonly router = inject(Router);
 
   protected readonly navigation: NavigationItem[] = [
-    { label: 'Reportes', symbol: '▤', route: '/reports', upcoming: false, operatorOnly: true },
     {
       label: 'Resumen',
       symbol: '⌂',

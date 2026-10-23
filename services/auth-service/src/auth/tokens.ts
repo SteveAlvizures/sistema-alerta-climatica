@@ -7,6 +7,7 @@ export const ROLE_CLAIM = 'http://schemas.microsoft.com/ws/2008/06/identity/clai
 
 @Injectable()
 export class Tokens {
+  // Phase 2 derives the HMAC key this way; hashing the UTF-8 secret preserves cross-runtime JWT compatibility.
   private readonly key = createHash('sha256').update(required('JWT_KEY',24),'utf8').digest();
   private readonly issuer = process.env.JWT_ISSUER ?? 'climate-alert-api';
   private readonly audience = process.env.JWT_AUDIENCE ?? 'climate-alert-client';
@@ -20,6 +21,7 @@ export class Tokens {
     return {accessToken, expiresAt:new Date(exp*1000).toISOString()};
   }
   verify(token: string): JwtPayload {
+    // Token claims prove the issuer, not current privileges; IdentityGuard loads the live account separately.
     try {
       const value = jwt.verify(token,this.key,{algorithms:['HS256'],issuer:this.issuer,audience:this.audience,clockTolerance:0});
       if (typeof value === 'string' || !value.exp || !value.sub || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.sub)) throw new Error();

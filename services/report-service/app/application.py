@@ -33,6 +33,11 @@ def table(title, headings, rows):
 
 
 async def collect(request: ReportRequest, settings, http, headers):
+    """Compose only the sources required by this type, forwarding user identity by HTTP.
+
+    Inventory reflects query time; date ranges apply to activity. Fetching latest
+    readings as a batch avoids per-sensor HTTP calls for the status report.
+    """
     f = request.filters.model_dump(mode="json", exclude_none=True)
     kind = request.type
     clients = {

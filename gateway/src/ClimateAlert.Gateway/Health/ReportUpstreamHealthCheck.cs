@@ -2,6 +2,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace ClimateAlert.Gateway.Health;
 
+/// <summary>Includes Report's MongoDB and Auth dependencies in the current aggregate readiness policy.</summary>
 public sealed class ReportUpstreamHealthCheck(IHttpClientFactory clients, IConfiguration configuration) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)

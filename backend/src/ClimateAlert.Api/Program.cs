@@ -83,7 +83,7 @@ using (var scope = app.Services.CreateScope())
         .GetRequiredService<ClimateAlertDbContext>();
 
     // Phase 2 keeps its startup behavior. Phase 3 reuses an initialized database
-    // and explicitly disables schema changes during this gateway-only increment.
+    // and explicitly disables schema changes in the Phase 3 Compose configuration.
     if (builder.Configuration.GetValue("Database:ApplyMigrationsOnStartup", true))
         await database.Database.MigrateAsync();
     await InitialAdminSeeder.SeedAsync(scope.ServiceProvider);

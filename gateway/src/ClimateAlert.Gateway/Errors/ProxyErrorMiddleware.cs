@@ -3,6 +3,10 @@ using Yarp.ReverseProxy.Model;
 
 namespace ClimateAlert.Gateway.Errors;
 
+/// <summary>
+/// Converts YARP transport failures into safe problems, preserving upstream business errors.
+/// Once a response has started, replacing its body would corrupt the HTTP transfer.
+/// </summary>
 public sealed class ProxyErrorMiddleware(RequestDelegate next, ILogger<ProxyErrorMiddleware> logger)
 {
     public async Task InvokeAsync(HttpContext context)

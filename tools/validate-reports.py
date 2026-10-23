@@ -36,6 +36,11 @@ def main():
     raw, _ = call("/api/auth/login", "POST", {"username": os.environ["REPORT_E2E_USERNAME"],
                                             "password": os.environ["REPORT_E2E_PASSWORD"]})
     token = json.loads(raw)["accessToken"]
+    call("/api/dashboard", token=token)
+    # Angular's shell and lazy route are served by the same entry point.
+    shell, _ = call("/reports")
+    if b"<app-root" not in shell:
+        raise RuntimeError("Angular report route is unavailable.")
     call("/api/reports/types", expected=401)
     call("/api/reports/types", token="invalid", expected=401)
     raw, _ = call("/api/reports/types", token=token)

@@ -13,6 +13,11 @@ def now():
 
 
 class ReportStore:
+    """Own Mongo metadata and GridFS bytes in the same Report database.
+
+    Metadata is the public lifecycle record; fileId remains internal. Separate
+    writes are not transactional, so a crash can leave an orphan requiring reconciliation.
+    """
     def __init__(self, settings: Settings):
         self.client = MongoClient(settings.report_mongo_host, settings.report_mongo_port,
             username=settings.report_mongo_user, password=settings.report_mongo_password.get_secret_value(),
@@ -37,6 +42,7 @@ class ReportStore:
         return item
 
     def owned(self, report_id, user_id):
+        """Return 404 for both missing and foreign reports, including administrator requests."""
         self.recover_abandoned()
         item = self.reports.find_one({"_id": str(report_id), "user.id": user_id})
         if not item:
@@ -54,6 +60,7 @@ class ReportStore:
         return {("id" if key == "_id" else key): value for key, value in item.items() if key != "fileId"}
 
     def complete(self, item, pdf):
+        """Publish Completed only after GridFS accepts the PDF; compensate a failed metadata write."""
         filename = f"vigia-rural-{item['type']}-{item['_id']}.pdf"
         file_id = self.files.upload_from_stream(filename, pdf, metadata={"reportId": item["_id"]})
         try:

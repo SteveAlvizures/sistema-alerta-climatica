@@ -4,6 +4,10 @@ using Yarp.ReverseProxy.Transforms.Builder;
 
 namespace ClimateAlert.Gateway.Proxy;
 
+/// <summary>
+/// Enforces the public HTTP boundary without rewriting business payloads.
+/// Identity and forwarding headers supplied by clients are not trusted credentials.
+/// </summary>
 public static class ProxyTransforms
 {
     private static bool IsUntrustedHeader(string name) =>

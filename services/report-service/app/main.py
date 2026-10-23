@@ -110,6 +110,7 @@ def create_app(settings: Settings | None = None, transport=None):
 
     @app.post("/api/reports", status_code=201)
     async def generate(body: ReportRequest, request: Request, user: User):
+        # Capacity is per process, not a distributed queue; persistent states expose interrupted work.
         if app.state.busy:
             raise ReportError(429, "Hay un reporte en generación. Intenta nuevamente en unos segundos.")
         app.state.busy = True
@@ -121,6 +122,7 @@ def create_app(settings: Settings | None = None, transport=None):
             await asyncio.to_thread(store.reports.update_one, {"_id": item["_id"]}, {"$set": {"state": "Processing"}})
             try:
                 async with asyncio.timeout(settings.report_deadline_seconds):
+                    # Budget covers sources and rendering; Mongo operations have independent driver timeouts.
                     data = await collect(body, settings, app.state.http, {"Authorization": request.headers["Authorization"],
                                                                          "X-Correlation-ID": request.state.correlation_id})
                     try:
@@ -135,9 +137,11 @@ def create_app(settings: Settings | None = None, transport=None):
             return store.public(await asyncio.to_thread(store.owned, item["_id"], user["id"]))
         except Exception as error:
             if item:
+                # A failed final metadata read must not invalidate an already stored, downloadable PDF.
                 detail = error.detail if isinstance(error, ReportError) else "No se pudo generar el documento."
                 try:
-                    await asyncio.to_thread(store.reports.update_one, {"_id": item["_id"]},
+                    await asyncio.to_thread(store.reports.update_one,
+                                            {"_id": item["_id"], "state": {"$in": ["Pending", "Processing"]}},
                                             {"$set": {"state": "Failed", "error": detail}})
                 except PyMongoError:
                     pass
@@ -180,6 +184,7 @@ def create_app(settings: Settings | None = None, transport=None):
             raise ReportError(409, "El documento no está disponible. Genera un nuevo reporte.")
 
         def read_pdf():
+            # Existing PDFs depend on ownership/Auth and Mongo only, not on the original data sources.
             try:
                 with store.files.open_download_stream(item["fileId"]) as stream:
                     if stream.length != item["size"] or stream.length > settings.report_max_pdf_bytes:

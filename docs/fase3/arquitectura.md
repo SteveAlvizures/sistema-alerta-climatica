@@ -81,3 +81,40 @@ La extracción y el corte de identidad se describen en [Auth Service](auth-servi
 El tercer incremento se describe en [Report Service](report-service.md) y su
 [validación](validacion-reportes.md). La arquitectura objetivo completa conserva
 Community, Sensor, Alert y Audit como extracciones pendientes.
+
+## Flujos y fronteras de confianza
+
+El flujo de usuario es navegador → Angular → interceptor HTTP → Nginx/proxy de
+desarrollo → Gateway → propietario → persistencia propia → respuesta. Angular
+conserva `/api`; no conoce URLs internas ni credenciales de bases. Los guards
+restringen navegación, pero los servicios aplican autorización nuevamente.
+
+Gateway valida JWT de forma preliminar y elimina cabeceras de identidad no fiables.
+Auth resuelve usuario/rol/estado vigente desde PostgreSQL. Report valida JWT y
+consulta esa identidad antes de generar, listar o descargar documentos propios.
+El monolito también consulta identidad Auth por HTTP en el modo externo y conserva
+una proyección SQL para relaciones existentes, sin usarla como fuente de permisos.
+
+Report obtiene datos por APIs HTTP de sus propietarios y compone Jinja2/WeasyPrint;
+guarda metadatos y bytes GridFS en Mongo. Un PDF Completed no vuelve a consultar
+las fuentes al descargarse. La generación no ofrece una instantánea transaccional
+entre APIs ni una cola distribuida. Detalles y límites en [Report](report-service.md).
+
+## Disponibilidad y despliegue actual
+
+Liveness de Gateway/Auth/Report indica proceso vivo. Readiness Gateway agrega
+monolito, Auth y Report; Auth depende de PostgreSQL y Report de Mongo/Auth. Una
+fuente caída impide generar el documento correspondiente, pero no descargar uno
+existente si Auth/Mongo responden. Errores y diferencias 401/403/503 están en
+[seguridad](seguridad.md) y [troubleshooting](troubleshooting.md).
+
+Compose entrega frontend, gateway, auth-service, auth-postgres, report-service,
+report-mongodb, backend y sqlserver. Solo frontend publica puerto; cada persistencia
+usa su red/volumen. Producción requiere proxy TLS externo y configuración de origen.
+El stack aislado fue probado localmente; producción y K3s siguen pendientes.
+Ver [despliegue](despliegue.md) y [pruebas](pruebas.md).
+
+Los cortes futuros requieren contratos compatibles, migración/reconciliación de
+datos y actualización de destinos YARP/clientes internos, sin cambiar Angular.
+[Integración pendiente](integracion-pendiente.md) especifica rutas y dependencias.
+El índice del entregable está en [README](README.md).

@@ -19,10 +19,12 @@ export class ReportApiService {
   metadata(id: string): Observable<ReportMetadata> { return this.http.get<ReportMetadata>(`${this.url}/${encodeURIComponent(id)}`); }
   status(id: string): Observable<ReportMetadata> { return this.http.get<ReportMetadata>(`${this.url}/${encodeURIComponent(id)}/status`); }
   download(id: string): Observable<HttpResponse<Blob>> {
+    // Keep response headers for the server-provided filename; the PDF is generated exclusively by Report.
     return this.http.get(`${this.url}/${encodeURIComponent(id)}/download`, { observe: 'response', responseType: 'blob' });
   }
 }
 
+/** Prefer RFC 5987 filenames, but strip path/control characters before assigning the browser download name. */
 export function reportFilename(disposition: string | null, fallback: string): string {
   const extended = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
   let name = disposition?.match(/filename="([^"]+)"/i)?.[1] ?? fallback;

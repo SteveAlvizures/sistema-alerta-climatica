@@ -10,6 +10,10 @@ namespace ClimateAlert.Api.Authentication;
 public sealed record ExternalIdentity(Guid Id, string Name, string Username, string Role, bool IsActive,
     DateTimeOffset CreatedAt, DateTimeOffset? LastAccessAt);
 
+/// <summary>
+/// Transitional HTTP identity lookup and SQL projection for existing foreign keys.
+/// The projection preserves relationships; it is not the authentication authority in external Auth mode.
+/// </summary>
 public static class ExternalIdentityIntegration
 {
     public static bool HasServiceKey(HttpContext context, IConfiguration configuration)
@@ -43,6 +47,7 @@ public static class ExternalIdentityIntegration
 
     public static async Task<User> ProjectAsync(ClimateAlertDbContext db, ExternalIdentity snapshot, CancellationToken cancellationToken)
     {
+        // Keep the Auth UUID for audit/alert relationships without copying a usable local password.
         var user = await db.Users.SingleOrDefaultAsync(item => item.Id == snapshot.Id, cancellationToken);
         if (user is null)
         {

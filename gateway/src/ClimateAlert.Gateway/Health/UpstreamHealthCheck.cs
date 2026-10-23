@@ -2,6 +2,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace ClimateAlert.Gateway.Health;
 
+/// <summary>Readiness checks the monolith's existing health contract, which also probes SQL Server.</summary>
 public sealed class UpstreamHealthCheck(IHttpClientFactory clients, IConfiguration configuration) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)

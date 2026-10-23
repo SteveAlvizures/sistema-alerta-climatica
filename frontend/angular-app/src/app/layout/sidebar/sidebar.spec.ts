@@ -22,7 +22,13 @@ describe('Sidebar role navigation', () => {
   afterEach(() => TestBed.resetTestingModule());
   for (const role of ['Administrator', 'Operator', 'ConsultationUser']) {
     it(`limits report navigation for ${role}`, () => {
-      expect(labels(role).includes('Reportes')).toBe(role !== 'ConsultationUser');
+      const expected = role === 'ConsultationUser' ? 0 : 1;
+      expect(labels(role).filter(label => label === 'Reportes').length).toBe(expected);
+      const fixture = TestBed.createComponent(Sidebar); fixture.detectChanges();
+      const buttons = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+        .filter(button => button.textContent?.includes('Reportes'));
+      expect(buttons.length).toBe(expected);
+      if (expected) { buttons[0].click(); expect(TestBed.inject(Router).navigateByUrl).toHaveBeenCalledWith('/reports'); }
     });
   }
 

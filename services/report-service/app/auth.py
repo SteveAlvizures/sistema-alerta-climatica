@@ -9,6 +9,7 @@ from app.errors import ReportError
 
 
 async def identity(request: Request) -> dict:
+    """Validate JWT plus live Auth permissions; token roles alone cannot authorize exports."""
     settings = request.app.state.settings
     bearer = request.headers.get("Authorization", "")
     if not bearer.startswith("Bearer "):
@@ -29,6 +30,10 @@ async def identity(request: Request) -> dict:
             raise ReportError(401, "La sesión ya no está activa.")
         response.raise_for_status()
         current = response.json()
+        if (not isinstance(current, dict) or not isinstance(current.get("name"), str)
+                or not isinstance(current.get("permissions"), list)
+                or not all(isinstance(permission, str) for permission in current["permissions"])):
+            raise ReportError(503, "No se pudo verificar la sesión. Intenta nuevamente.")
         if current.get("id") != user_id or current.get("isActive") is not True:
             raise ReportError(401, "La sesión ya no está activa.")
         if current.get("role") not in ("Administrator", "Operator") or "OperateSystem" not in current.get(

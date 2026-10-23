@@ -10,6 +10,11 @@ Row = dict[str, Any]
 
 
 class PagedClient:
+    """Read owner APIs over HTTP; Report has no credentials for their databases.
+
+    Bounded pages and total checks reject oversized or incomplete exports instead
+    of silently publishing a partial PDF. They do not provide a cross-service snapshot.
+    """
     path = ""
 
     def __init__(self, http: httpx.AsyncClient, base_url: str, limit: int):
@@ -34,7 +39,10 @@ class PagedClient:
                                 raise ReportError(502, "La fuente devolvió una respuesta demasiado grande.")
                         data = json.loads(body)
                     rows = data["data"]
-                    if not isinstance(rows, list) or len(rows) > 50 or not isinstance(data["totalCount"], int):
+                    if (not isinstance(rows, list) or len(rows) > 50
+                            or not all(isinstance(row, dict) for row in rows)
+                            or type(data["totalCount"]) is not int or data["totalCount"] < 0
+                            or type(data["hasNext"]) is not bool):
                         raise ValueError()
                     if data["totalCount"] > self.limit or len(result) + len(rows) > self.limit:
                         raise ReportError(422, "El reporte supera el límite de registros. Reduce los filtros.")

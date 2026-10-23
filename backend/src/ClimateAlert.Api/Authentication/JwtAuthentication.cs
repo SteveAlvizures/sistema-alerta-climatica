@@ -40,6 +40,7 @@ public static class JwtAuthentication
         var configuration = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
         if (!string.IsNullOrWhiteSpace(configuration["AUTH_SERVICE_URL"]))
         {
+            // Auth owns current permissions; the SQL projection exists only for legacy relationships.
             var current = await ExternalIdentityIntegration.ResolveAsync(context.HttpContext, configuration);
             if (current is null || current.Id != id || !current.IsActive)
             {
@@ -56,6 +57,7 @@ public static class JwtAuthentication
                 await database.SaveChangesAsync(context.HttpContext.RequestAborted);
             }
             var remoteIdentity = (ClaimsIdentity)context.Principal!.Identity!;
+            // Replace stale token role claims before ASP.NET authorization policies run.
             foreach (var claim in remoteIdentity.FindAll(remoteIdentity.RoleClaimType).ToArray()) remoteIdentity.RemoveClaim(claim);
             remoteIdentity.AddClaim(new Claim(remoteIdentity.RoleClaimType, UserRoles.Normalize(current.Role)));
             return;

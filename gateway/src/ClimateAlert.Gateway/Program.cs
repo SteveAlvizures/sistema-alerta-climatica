@@ -25,11 +25,15 @@ public static class GatewayApplication
             if (origins.Length > 0) policy.WithOrigins(origins).AllowAnyMethod().AllowAnyHeader()
                 .WithExposedHeaders(CorrelationMiddleware.HeaderName, "Content-Disposition");
         }));
+        // Route IDs and priorities are part of the migration boundary: nested community
+        // sensor/alert routes can change owner without changing Angular's public URLs.
         builder.Services.AddReverseProxy()
             .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
             .AddTransforms(ProxyTransforms.Configure);
         builder.Services.AddHttpClient("readiness", client => client.Timeout = TimeSpan.FromSeconds(3))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+        // Only readiness includes dependencies; using these checks for liveness would
+        // restart a healthy Gateway whenever a database or an upstream is unavailable.
         builder.Services.AddHealthChecks().AddCheck<UpstreamHealthCheck>("backend", tags: ["ready"])
             .AddCheck<AuthUpstreamHealthCheck>("auth", tags: ["ready"])
             .AddCheck<ReportUpstreamHealthCheck>("reports", tags: ["ready"]);

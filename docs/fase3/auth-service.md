@@ -1,4 +1,4 @@
-# Auth Service: segundo incremento de Fase 3
+# Auth Service de Fase 3
 
 ## Responsabilidades y propiedad
 
@@ -6,6 +6,7 @@
 Angular /api → Nginx → Gateway .NET 10 / YARP
                          ├─ /api/auth/*  → Auth NestJS → PostgreSQL propio
                          ├─ /api/users/* → Auth NestJS → PostgreSQL propio
+                         ├─ /api/reports/* → Report FastAPI → MongoDB propio
                          └─ resto       → monolito    → SQL Server existente
 
 monolito ── HTTP autenticado ──> Auth /internal/identity/current
@@ -17,7 +18,7 @@ credenciales, roles, estado, fechas y eventos pendientes de auditoría. Las cons
 usan `pg` con parámetros; ningún cliente normal de Auth se conecta a SQL Server.
 Gateway y monolito no reciben credenciales PostgreSQL.
 
-Community, Sensor, Alert, Audit y Report no se extrajeron. Los controllers y clases
+Auth y Report están extraídos; Community, Sensor, Alert y Audit siguen en el monolito. Los controllers y clases
 de autenticación de Fase 2 permanecen en el repositorio. Cuando se configura
 `AUTH_SERVICE_URL`, el monolito deshabilita sus antiguas rutas públicas de auth/users
 para impedir escrituras sobre una fuente de identidad obsoleta. Sin esa variable,
@@ -228,7 +229,7 @@ sobre el mismo volumen. `PHASE3_SQL_VOLUME` permite usar una copia restaurada.
 ## Health, logs y pruebas
 
 Auth `/health` y `/health/live` comprueban proceso; `/health/ready` comprueba PostgreSQL.
-Gateway readiness comprueba tanto Auth como monolito. Liveness no depende de ellos.
+Gateway readiness comprueba Auth, Report y monolito. Liveness no depende de ellos.
 Son endpoints utilizables para futuras probes Kubernetes; no se agregan IPs fijas.
 
 Auth registra solo correlation ID, método, status y duración. No registra URL/query,
@@ -254,8 +255,8 @@ importación/rollback/unicidad y reinician únicamente ese contenedor.
 Las dos pruebas .NET adicionales requieren `AUTH_INTEROP_URL` de una instancia Nest
 de pruebas y `AUTH_INTEROP_FIXTURE` apuntando al fixture generado. Verifican que
 Gateway realmente autentica un JWT emitido por Nest y que Nest acepta uno emitido
-por .NET. Sin esas variables se omiten explícitamente; las 47 pruebas anteriores
-siguen ejecutándose con sus fixtures originales.
+por .NET. Sin esas variables se omiten explícitamente; el resto de la suite
+se ejecuta con sus fixtures originales. Conteos vigentes en [pruebas](pruebas.md).
 
 No hay script lint; `npm run build` ejecuta comprobación TypeScript estricta. Las
 pruebas Node se compilan con el mismo tsconfig. Los resultados ejecutados del

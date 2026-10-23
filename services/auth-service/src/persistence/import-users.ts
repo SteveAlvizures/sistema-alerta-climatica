@@ -5,6 +5,10 @@ import { Database } from './database';
 import { normalizeRole } from '../identity/roles';
 import { validText, validUsername } from '../users/users.service';
 interface LegacyUser { id:string;name:string;email:string;passwordHash:string;role:string;isActive:boolean;createdAt:string;lastAccessAt:string|null }
+/**
+ * Imports one immutable legacy snapshot atomically, preserving IDs and password hashes.
+ * Repeating that snapshot is safe; different source data for an existing ID aborts instead of overwriting Auth.
+ */
 export async function importUsers(db:Database,items:LegacyUser[]):Promise<{inserted:number;unchanged:number}> {
   if(!Array.isArray(items)) throw new Error('Invalid import document');
   return db.transaction(async client=>{

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace ClimateAlert.Gateway.Health;
 
+/// <summary>Includes Auth's PostgreSQL readiness, rather than merely checking that its process is alive.</summary>
 public sealed class AuthUpstreamHealthCheck(IHttpClientFactory clients, IConfiguration configuration) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)

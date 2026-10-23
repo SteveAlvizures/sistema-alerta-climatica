@@ -70,6 +70,8 @@ def rig(settings):
     def handle(request):
         control["calls"].append((request.url.path, dict(request.headers)))
         if request.url.path == "/internal/identity/current":
+            if "identity" in control:
+                return httpx.Response(200, json=control["identity"])
             return httpx.Response(200, json={"id": USER, "name": "Operador de prueba", "isActive": control["active"],
                 "role": control["role"], "permissions": ["OperateSystem"] if control["role"] != "ConsultationUser" else []})
         if request.url.path == "/health/ready":
@@ -102,6 +104,11 @@ def test_real_pdf_each_type_and_repeat_download(rig, kind):
     reader = PdfReader(io.BytesIO(pdf.content))
     text = "".join(page.extract_text() for page in reader.pages)
     assert TITLES[kind] in text and "VIGÍA RURAL" in text and "Operador de prueba" in text
+    assert "Generado el" in text and "Alcance y filtros" in text and "UTC" in text
+    for index, page in enumerate(reader.pages, 1):
+        assert f"Página {index} de {len(reader.pages)}" in page.extract_text()
+    if kind in ("readings", "alerts", "sensor-status", "statistics", "executive"):
+        assert "°C" in text
     assert "Comunidad de prueba" in text if kind not in ("statistics", "executive") else "24.5" in text
     assert store.owned(item["id"], USER)["downloadedAt"] is not None
     assert client.get("/api/reports", headers=headers).json()["totalCount"] == 1
@@ -155,6 +162,30 @@ def test_failure_persisted_and_safe(rig):
     assert "report-mongodb" not in result.text
 
 
+@pytest.mark.parametrize("payload", [[], None, {"name": "Test", "permissions": None},
+                                    {"name": "Test", "permissions": [None]}])
+def test_malformed_identity_is_unavailable_not_internal_error(rig, payload):
+    client, _, control, headers = rig
+    control["identity"] = payload
+    assert client.get("/api/reports/types", headers=headers).status_code == 503
+
+
+def test_completed_pdf_survives_metadata_read_failure(rig, monkeypatch):
+    from pymongo.errors import AutoReconnect
+    client, store, _, headers = rig
+
+    def unavailable(*args):
+        raise AutoReconnect("private database detail")
+
+    monkeypatch.setattr(store, "owned", unavailable)
+    response = client.post("/api/reports", headers=headers, json={"type": "communities"})
+    assert response.status_code == 503
+    item = store.reports.find_one()
+    assert item["state"] == "Completed" and item["fileId"] and item["error"] is None
+    monkeypatch.undo()
+    assert client.get(f"/api/reports/{item['_id']}/download", headers=headers).status_code == 200
+
+
 def test_metadata_missing_pdf_and_busy(rig):
     client, store, _, headers = rig
     assert client.get(f"/api/reports/{uuid4()}", headers=headers).status_code == 404
@@ -185,12 +216,14 @@ def test_mongo_indexes_reconnect_history_paging(rig, settings):
     assert client.get("/api/reports?page=0", headers=headers).status_code == 400
 
 
-def test_empty_pdf(rig):
+@pytest.mark.parametrize("kind", list(ReportType))
+def test_empty_pdf(rig, kind):
     client, _, control, headers = rig
     control["empty"] = True
-    response = client.post("/api/reports", headers=headers, json={"type": "readings", "filters": {"communityId": COMMUNITY}})
+    response = client.post("/api/reports", headers=headers, json={"type": kind, "filters": {"communityId": COMMUNITY}})
+    assert response.status_code == 201
     pdf = client.get(f"/api/reports/{response.json()['id']}/download", headers=headers)
-    text = PdfReader(io.BytesIO(pdf.content)).pages[0].extract_text()
+    text = "".join(page.extract_text() for page in PdfReader(io.BytesIO(pdf.content)).pages)
     assert "No se encontraron datos" in text and COMMUNITY in text
 
 
@@ -251,6 +284,21 @@ def test_http_pagination_headers_and_filters():
     assert all(r.url.params["communityId"] == COMMUNITY and r.headers["X-Correlation-ID"] == "test-correlation" for r in requests)
 
 
+@pytest.mark.parametrize("payload", [
+    {"data": ["invalid row"], "totalCount": 1, "hasNext": False},
+    {"data": [], "totalCount": True, "hasNext": False},
+    {"data": [], "totalCount": -1, "hasNext": False},
+    {"data": [], "totalCount": 0, "hasNext": "false"},
+])
+def test_incompatible_page_contract_returns_controlled_error(payload):
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload))) as http:
+            with pytest.raises(ReportError) as error:
+                await ReadingClient(http, "http://fixture", 100).fetch({}, {})
+            assert error.value.status == 502
+    asyncio.run(run())
+
+
 def test_stale_pending_becomes_failed(rig):
     client, store, _, headers = rig
     item = store.create("communities", {}, {"id": USER, "name": "Test"}, str(uuid4()))
@@ -263,6 +311,16 @@ def test_render_timeout_terminates_child():
     async def run():
         with pytest.raises(TimeoutError):
             await render({}, 0.001, 10_000_000)
+    asyncio.run(run())
+
+
+def test_render_size_limit_terminates_child():
+    context = context_for(ReportRequest(type="communities"), {"communities": []}, {"name": "Test"}, "test")
+
+    async def run():
+        with pytest.raises(ReportError) as error:
+            await render(context, 20, 100)
+        assert error.value.status == 422
     asyncio.run(run())
 
 
