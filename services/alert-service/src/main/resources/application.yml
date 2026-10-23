@@ -1,0 +1,35 @@
+server:
+  port: ${ALERT_SERVICE_PORT:3003}
+
+spring:
+  application:
+    name: alert-service
+
+  datasource:
+    url: jdbc:postgresql://${ALERT_DB_HOST:127.0.0.1}:${ALERT_DB_PORT:5435}/${ALERT_DB_NAME:alert_db}
+    username: ${ALERT_DB_USER:alert_user}
+    password: ${ALERT_DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  endpoint:
+    health:
+      show-details: always
+
+vigiarural:
+  jwt:
+    secret: ${JWT_SECRET}
+    issuer: ${JWT_ISSUER:vigiarural-auth}
+    audience: ${JWT_AUDIENCE:vigiarural}
