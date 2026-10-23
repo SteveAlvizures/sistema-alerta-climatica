@@ -1,0 +1,34 @@
+<section class="reports-page">
+  <header class="page-heading"><p>Información para decidir</p><h1>Reportes</h1><span>Transforma los datos de monitoreo en documentos listos para compartir.</span></header>
+  @if (auth.canOperate()) {
+    <section class="panel" aria-labelledby="generate-title" [attr.aria-busy]="generating">
+      <div class="records-heading"><div><h2 id="generate-title">Crear un reporte</h2><p class="hint">Elige el contenido y delimita la información que necesitas.</p></div><span class="format">PDF · Vigía Rural</span></div>
+      @if (initializing) { <p class="state" role="status">Cargando tipos de reporte…</p> }
+      @if (selectorLimitReached) { <p class="message message--error" role="status">Los selectores muestran hasta 2,000 opciones. Para inventarios mayores será necesario habilitar búsqueda remota.</p> }
+      <form (ngSubmit)="generate()" class="report-form">
+        <label class="type-select">Tipo de reporte<select name="reportType" [(ngModel)]="kind" (ngModelChange)="changeType()" [disabled]="generating || initializing">@for (type of types; track type.id) { <option [value]="type.id">{{ type.name }}</option> }</select></label>
+        <div class="scope"><strong>{{ selected?.name || 'Selecciona un reporte' }}</strong><p>Datos consultados desde las APIs del sistema. Los valores no disponibles se identifican como N/D.</p></div>
+        <label>Comunidad<select name="community" [(ngModel)]="filters.communityId" (ngModelChange)="communityChanged()" [disabled]="generating"><option [ngValue]="undefined">Todas las comunidades</option>@for (community of communities; track community.id) { <option [value]="community.id">{{ community.name }}</option> }</select></label>
+        @if (selected?.supportsSensor) { <label>Sensor<select name="sensor" [(ngModel)]="filters.sensorId" [disabled]="generating"><option [ngValue]="undefined">Todos los sensores</option>@for (sensor of availableSensors; track sensor.id) { <option [value]="sensor.id">{{ sensor.code }} · {{ sensor.name }}</option> }</select></label> }
+        @if (selected?.supportsDates) {
+          <label>Desde (UTC)<input name="from" type="date" [(ngModel)]="from" [disabled]="generating" /></label><label>Hasta (UTC)<input name="to" type="date" [(ngModel)]="to" [min]="from" [disabled]="generating" /></label>
+        }
+        @if (selected?.supportsVariable) { <label>Variable climática<select name="variable" [(ngModel)]="filters.variable" [disabled]="generating"><option [ngValue]="undefined">Todas las variables</option>@for (variable of variables; track variable.id) { <option [value]="variable.id">{{ variable.name }}</option> }</select></label> }
+        @if (selected?.states?.length) { <label>Estado<select name="status" [(ngModel)]="filters.status" [disabled]="generating"><option [ngValue]="undefined">Todos los estados</option>@for (state of selected?.states; track state) { <option [value]="state">{{ stateNames[state] }}</option> }</select></label> }
+        @if (invalidRange) { <p class="message message--error wide" role="alert">La fecha desde no puede ser posterior a la fecha hasta.</p> }
+        <div class="form-footer wide"><p class="hint">Hasta 2,000 registros por fuente. Si hay más datos, reduce el período o aplica filtros.</p><button type="submit" [disabled]="generating || initializing || invalidRange || !selected">{{ generating ? 'Generando documento…' : 'Generar reporte PDF' }}</button></div>
+      </form>
+    </section>
+    @if (generating) { <p class="state" role="status">Consultando datos y preparando tu documento. Esto puede tomar unos segundos.</p> }
+    @if (error) { <p class="message message--error" role="alert">{{ error }}</p> }
+    @if (success) { <div class="message message--success" role="status"><span>{{ success }}</span>@if (generated) { <button type="button" (click)="download(generated)" [disabled]="!!downloading">Descargar PDF</button> }</div> }
+    <section class="panel records" aria-labelledby="history-title">
+      <div class="records-heading"><div><h2 id="history-title">Mis reportes</h2><p class="hint">Documentos solicitados por tu cuenta. Descárgalos nuevamente cuando los necesites.</p></div><span>{{ total }} registros</span></div>
+      <form class="filters" (ngSubmit)="filterHistory()"><label>Tipo<select name="historyType" [(ngModel)]="historyType"><option value="">Todos los reportes</option>@for (type of types; track type.id) { <option [value]="type.id">{{ type.name }}</option> }</select></label><label>Estado<select name="historyState" [(ngModel)]="historyState"><option value="">Todos los estados</option>@for (state of ['Pending', 'Processing', 'Completed', 'Failed']; track state) { <option [value]="state">{{ stateNames[state] }}</option> }</select></label><button class="secondary" type="submit" [disabled]="loading">Actualizar historial</button></form>
+      @if (loading) { <p class="state" role="status">Consultando historial…</p> } @else if (!history.length) { <div class="empty"><strong>Aún no hay reportes en esta selección</strong><p>Genera tu primer documento o cambia los filtros del historial.</p></div> } @else {
+        <div class="table-scroll"><table aria-label="Historial de reportes"><thead><tr><th>Documento / alcance</th><th>Solicitado</th><th>Usuario</th><th>Estado</th><th>Tamaño</th><th>Acción</th></tr></thead><tbody>@for (report of history; track report.id) { <tr><td><strong>{{ title(report.type) }}</strong><small>{{ filterSummary(report.filters) }}</small>@if (report.error) { <small class="failure">{{ report.error }}</small> }</td><td>{{ report.requestedAt | date:'dd/MM/yyyy HH:mm' }}</td><td>{{ report.user.name }}</td><td><span class="badge" [class.badge--inactive]="report.state === 'Failed'">{{ stateNames[report.state] }}</span></td><td>{{ report.size ? ((report.size / 1024 | number:'1.1-1') + ' KB') : '—' }}</td><td><button type="button" class="secondary" [disabled]="report.state !== 'Completed' || !!downloading" (click)="download(report)" [attr.aria-label]="'Descargar ' + title(report.type)">{{ downloading === report.id ? 'Descargando…' : 'Descargar PDF' }}</button></td></tr> }</tbody></table></div>
+      }
+      <nav class="pagination" aria-label="Paginación de reportes"><label>Por página<select [(ngModel)]="pageSize" (ngModelChange)="filterHistory()">@for (size of [10, 20, 50]; track size) { <option [ngValue]="size">{{ size }}</option> }</select></label><span>Página {{ page }} de {{ totalPages || 1 }}</span><div><button type="button" class="secondary" [disabled]="loading || page <= 1" (click)="turnPage(-1)">Anterior</button><button type="button" class="secondary" [disabled]="loading || page >= totalPages" (click)="turnPage(1)">Siguiente</button></div></nav>
+    </section>
+  } @else { <p class="message message--error" role="alert">Tu cuenta no tiene permiso para utilizar reportes.</p> }
+</section>

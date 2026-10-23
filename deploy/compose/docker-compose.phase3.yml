@@ -5,6 +5,61 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "3"
 services:
+  report-mongodb:
+    logging: *default-logging
+    image: mongo:8.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: report_root
+      MONGO_INITDB_ROOT_PASSWORD: ${REPORT_MONGO_ROOT_PASSWORD:?REPORT_MONGO_ROOT_PASSWORD is required}
+      REPORT_MONGO_DATABASE: ${REPORT_MONGO_DATABASE:-climate_reports}
+      REPORT_MONGO_USER: ${REPORT_MONGO_USER:-report_app}
+      REPORT_MONGO_PASSWORD: ${REPORT_MONGO_PASSWORD:?REPORT_MONGO_PASSWORD is required}
+    volumes:
+      - report-mongodb-data:/data/db
+      - ../mongo/init-report.js:/docker-entrypoint-initdb.d/init-report.js:ro
+    networks: [report-persistence]
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+      interval: 5s
+      timeout: 4s
+      retries: 15
+    restart: unless-stopped
+
+  report-service:
+    logging: *default-logging
+    build:
+      context: ../../services/report-service
+      target: runtime
+    environment:
+      JWT_KEY: ${JWT_KEY:?JWT_KEY is required}
+      JWT_ISSUER: ${JWT_ISSUER:-climate-alert-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-climate-alert-client}
+      AUTH_INTERNAL_KEY: ${AUTH_INTERNAL_KEY:?AUTH_INTERNAL_KEY is required}
+      AUTH_SERVICE_URL: http://auth-service:3000
+      REPORT_MONGO_HOST: report-mongodb
+      REPORT_MONGO_DATABASE: ${REPORT_MONGO_DATABASE:-climate_reports}
+      REPORT_MONGO_USER: ${REPORT_MONGO_USER:-report_app}
+      REPORT_MONGO_PASSWORD: ${REPORT_MONGO_PASSWORD:?REPORT_MONGO_PASSWORD is required}
+      COMMUNITY_API_URL: ${REPORT_COMMUNITY_API_URL:-http://backend:8080}
+      SENSOR_API_URL: ${REPORT_SENSOR_API_URL:-http://backend:8080}
+      READING_API_URL: ${REPORT_READING_API_URL:-http://backend:8080}
+      ALERT_API_URL: ${REPORT_ALERT_API_URL:-http://backend:8080}
+      EVENT_API_URL: ${REPORT_EVENT_API_URL:-http://backend:8080}
+    depends_on:
+      report-mongodb:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    networks: [upstream, report-persistence]
+    mem_limit: 512m
+    cpus: 1.0
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
   auth-postgres:
     logging: *default-logging
     image: postgres:17-alpine
@@ -114,8 +169,11 @@ services:
       JWT_AUDIENCE: ${JWT_AUDIENCE:-climate-alert-client}
       ReverseProxy__Clusters__monolith__Destinations__backend__Address: http://backend:8080/
       ReverseProxy__Clusters__auth__Destinations__auth-service__Address: http://auth-service:3000/
+      ReverseProxy__Clusters__reports__Destinations__report-service__Address: http://report-service:8000/
       Gateway__AllowedOrigins__0: ${FRONTEND_ORIGIN:-http://localhost:8082}
     depends_on:
+      report-service:
+        condition: service_healthy
       backend:
         condition: service_healthy
       auth-service:
@@ -150,6 +208,8 @@ services:
     restart: unless-stopped
 
 volumes:
+  report-mongodb-data:
+    name: ${REPORT_MONGO_VOLUME:-climate-alert-report-mongodb-data}
   auth-postgres-data:
     name: ${AUTH_POSTGRES_VOLUME:-climate-alert-auth-postgres-data}
   climate-alert-sqlserver-data:
@@ -157,6 +217,8 @@ volumes:
     name: ${PHASE3_SQL_VOLUME:-climate-alert-sqlserver-data}
 
 networks:
+  report-persistence:
+    internal: true
   auth-persistence:
     internal: true
   edge:

@@ -117,6 +117,24 @@ public sealed class SensorRepository(ClimateAlertDbContext dbContext) : ISensorR
 
 public sealed class SensorReadingRepository(ClimateAlertDbContext dbContext) : ISensorReadingRepository
 {
+    public async Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetLatestPageAsync(
+        Guid? communityId, Guid? sensorId, ClimateVariable? variable, int pageIndex, int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var sensors = dbContext.Sensors.AsNoTracking().Where(sensor =>
+            (!communityId.HasValue || sensor.CommunityId == communityId.Value) &&
+            (!sensorId.HasValue || sensor.Id == sensorId.Value) &&
+            (!variable.HasValue || sensor.MeasurementType == variable.Value));
+        // SQL APPLY selects one deterministic latest row per sensor, before pagination.
+        var query = sensors.SelectMany(sensor => dbContext.SensorReadings
+            .Where(reading => reading.SensorId == sensor.Id)
+            .OrderByDescending(reading => reading.MeasuredAt).ThenByDescending(reading => reading.Id).Take(1));
+        int count = await query.CountAsync(cancellationToken);
+        var rows = await query.Include(reading => reading.Sensor).ThenInclude(sensor => sensor.Community)
+            .OrderBy(reading => reading.SensorId).Skip((pageIndex - 1) * pageSize).Take(pageSize)
+            .ToListAsync(cancellationToken);
+        return (rows, count);
+    }
     public async Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageAsync(
         Guid? communityId, Guid? sensorId, ClimateVariable? variable,
         DateTimeOffset? dateFrom, DateTimeOffset? dateTo,

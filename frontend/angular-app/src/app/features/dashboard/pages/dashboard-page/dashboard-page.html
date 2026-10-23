@@ -1,4 +1,5 @@
 <div class="dashboard">
+  @if (auth.canOperate()) { <a class="report-link" routerLink="/reports">Crear un reporte de monitoreo →</a> }
   <div class="dashboard__context">
     <div><p>Monitoreo continuo para comunidades rurales</p><h1>Resumen climático</h1></div>
     @if (climate.source() === 'api') {

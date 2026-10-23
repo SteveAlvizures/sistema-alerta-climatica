@@ -33,6 +33,9 @@ public interface ISensorRepository
 
 public interface ISensorReadingRepository
 {
+    Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetLatestPageAsync(
+        Guid? communityId, Guid? sensorId, ClimateVariable? variable, int pageIndex, int pageSize,
+        CancellationToken cancellationToken) => throw new NotSupportedException();
     Task<(IReadOnlyList<SensorReading> Items, int TotalCount)> GetPageBySensorAsync(
         Guid sensorId, int pageIndex, int pageSize, CancellationToken cancellationToken);
     Task<SensorReading?> GetLatestAsync(Guid sensorId, CancellationToken cancellationToken);

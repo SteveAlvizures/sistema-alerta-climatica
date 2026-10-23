@@ -1,0 +1,31 @@
+name: climate-alert-report-tests
+services:
+  report-mongodb:
+    image: mongo:8.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: test_root
+      MONGO_INITDB_ROOT_PASSWORD: isolated-root-test-only-password
+      REPORT_MONGO_DATABASE: reports_test
+      REPORT_MONGO_USER: report_test
+      REPORT_MONGO_PASSWORD: isolated-test-only-password
+    volumes:
+      - report-test-data:/data/db
+      - ../mongo/init-report.js:/docker-entrypoint-initdb.d/init-report.js:ro
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  tests:
+    build:
+      context: ../../services/report-service
+      target: test
+    environment:
+      TEST_MONGO_HOST: report-mongodb
+    volumes:
+      - ../../tmp/report-evidence:/evidence
+    depends_on:
+      report-mongodb:
+        condition: service_healthy
+volumes:
+  report-test-data:

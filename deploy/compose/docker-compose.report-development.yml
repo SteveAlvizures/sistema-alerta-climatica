@@ -1,0 +1,6 @@
+# Local-only overlay. Combine with docker-compose.phase3.yml; never use in production.
+services:
+  report-service:
+    volumes:
+      - ../../services/report-service/app:/service/app:ro
+    command: [uvicorn, "app.main:create_app", --factory, --host, "0.0.0.0", --port, "8000", --reload, --no-access-log, --no-server-header]

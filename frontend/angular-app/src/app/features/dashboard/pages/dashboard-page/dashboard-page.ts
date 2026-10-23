@@ -8,15 +8,18 @@ import { AlertSummary } from '../../components/alert-summary/alert-summary';
 import { IndicatorCard } from '../../components/indicator-card/indicator-card';
 import { RecentHistory } from '../../components/recent-history/recent-history';
 import { SensorStatus } from '../../components/sensor-status/sensor-status';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [ClimateTrend, StatusBadge, AlertSummary, IndicatorCard, RecentHistory, SensorStatus],
+  imports: [RouterLink, ClimateTrend, StatusBadge, AlertSummary, IndicatorCard, RecentHistory, SensorStatus],
   templateUrl: './dashboard-page.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './dashboard-page.scss',
 })
 export class DashboardPage implements OnInit, OnDestroy {
+  protected readonly auth = inject(AuthService);
   protected readonly climate = inject(DashboardDataService);
   protected readonly dangerLevels: DangerLevel[] = ['Normal', 'Precaución', 'Alerta', 'Emergencia'];
   private refreshSubscription?: Subscription;

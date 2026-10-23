@@ -10,6 +10,7 @@ interface NavigationItem {
   upcoming: boolean;
   administratorOnly?: boolean;
   authenticationRequired?: boolean;
+  operatorOnly?: boolean;
 }
 
 @Component({
@@ -24,6 +25,7 @@ export class Sidebar {
   private readonly router = inject(Router);
 
   protected readonly navigation: NavigationItem[] = [
+    { label: 'Reportes', symbol: '▤', route: '/reports', upcoming: false, operatorOnly: true },
     {
       label: 'Resumen',
       symbol: '⌂',
@@ -56,12 +58,13 @@ export class Sidebar {
       route: '/communities',
       upcoming: false,
     },
+    { label: 'Reportes', symbol: '\u25a4', route: '/reports', upcoming: false, operatorOnly: true },
     { label: 'Usuarios', symbol: '♙', route: '/users', upcoming: false, administratorOnly: true },
     { label: 'Bitácora', symbol: '☷', route: '/audit-log', upcoming: false, administratorOnly: true },
   ];
 
   protected get visibleNavigation(): NavigationItem[] {
-    return this.navigation.filter((item) => (!item.administratorOnly || this.auth.canViewAudit())
+    return this.navigation.filter((item) => (!item.operatorOnly || this.auth.canOperate()) && (!item.administratorOnly || this.auth.canViewAudit())
       && (!item.authenticationRequired || this.auth.session() !== null));
   }
 

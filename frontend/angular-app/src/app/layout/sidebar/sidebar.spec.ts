@@ -10,7 +10,7 @@ describe('Sidebar role navigation', () => {
     TestBed.configureTestingModule({
       imports: [Sidebar],
       providers: [
-        { provide: AuthService, useValue: { session: signal(role ? { role } : null), canViewAudit: () => role === 'Administrator' } },
+        { provide: AuthService, useValue: { session: signal(role ? { role } : null), canOperate: () => ['Administrator', 'Operator'].includes(role ?? ''), canViewAudit: () => role === 'Administrator' } },
         { provide: DashboardDataService, useValue: { source: signal('api') } },
         { provide: Router, useValue: { url: '/', navigateByUrl: jasmine.createSpy() } },
       ],
@@ -20,6 +20,11 @@ describe('Sidebar role navigation', () => {
   }
 
   afterEach(() => TestBed.resetTestingModule());
+  for (const role of ['Administrator', 'Operator', 'ConsultationUser']) {
+    it(`limits report navigation for ${role}`, () => {
+      expect(labels(role).includes('Reportes')).toBe(role !== 'ConsultationUser');
+    });
+  }
 
   for (const role of ['Administrator', 'Operator', 'ConsultationUser']) {
     it(`shows separate Events navigation for ${role}`, () => {

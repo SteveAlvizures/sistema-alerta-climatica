@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { administratorGuard } from './core/guards/administrator.guard';
 import { authenticatedGuard } from './core/guards/authenticated.guard';
+import { reportsGuard } from './core/guards/reports.guard';
 
 export const routes: Routes = [
   {
@@ -17,6 +18,7 @@ export const routes: Routes = [
         (component) => component.MainLayout,
       ),
     children: [
+      { path: 'reports', canActivate: [reportsGuard], loadComponent: () => import('./features/reports/reports-page').then(c => c.ReportsPage) },
       {
         path: '',
         loadComponent: () =>

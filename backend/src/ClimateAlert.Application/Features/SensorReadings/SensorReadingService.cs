@@ -12,6 +12,18 @@ public sealed class SensorReadingService(
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : ISensorReadingRegistrar
 {
+    public async Task<PagedResponse<HistoryReadingResponse>> GetLatestPageAsync(
+        Guid? communityId, Guid? sensorId, ClimateVariable? variable,
+        int pageIndex, int pageSize, CancellationToken cancellationToken)
+    {
+        if (pageIndex < 1 || pageSize is not (10 or 20 or 50))
+            throw new ValidationException("Revisa la página y el tamaño de página (10, 20 o 50).");
+        var result = await readings.GetLatestPageAsync(communityId, sensorId, variable, pageIndex, pageSize, cancellationToken);
+        int pages = (int)Math.Ceiling(result.TotalCount / (double)pageSize);
+        return new(result.Items.Select(MapHistory).ToList(), pageIndex, pageSize, pages, result.TotalCount,
+            pageIndex > 1, pageIndex < pages);
+    }
+
     public async Task<PagedResponse<HistoryReadingResponse>> GetHistoryPageAsync(
         Guid? communityId, Guid? sensorId, ClimateVariable? variable,
         DateTimeOffset? dateFrom, DateTimeOffset? dateTo,

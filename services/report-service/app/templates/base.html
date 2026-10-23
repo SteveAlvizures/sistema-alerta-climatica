@@ -1,0 +1,27 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>{{ title }} | Vigía Rural</title>
+<style>
+@page { size: A4 landscape; margin: 24mm 14mm 20mm;
+ @top-left { content: 'VIGÍA RURAL  /  SISTEMA DE ALERTA CLIMÁTICA'; color:#17543b; font: bold 8pt sans-serif; }
+ @top-right { content: 'INFORME DE MONITOREO'; color:#667b72; font: 8pt sans-serif; }
+ @bottom-left { content: 'Vigía Rural • Información para la gestión comunitaria'; color:#667b72; font:8pt sans-serif; }
+ @bottom-right { content:'Página ' counter(page) ' de ' counter(pages); color:#17543b; font:8pt sans-serif; }
+}
+* { box-sizing:border-box } body { font-family:'DejaVu Sans',sans-serif; color:#254338; font-size:8pt; line-height:1.45 }
+.hero { border-left:5px solid #258363; padding:4mm 6mm; background:#edf6f1; margin-bottom:5mm }
+.eyebrow { letter-spacing:2px; font-size:8pt; color:#37755c; margin:0 } h1 { font-size:26pt; margin:1mm 0 2mm; color:#123e2f }
+.meta { color:#536f62; margin:0 } .filters { margin:4mm 0; padding:3mm 0; border-bottom:1px solid #cee0d6 }
+.filters span { margin-right:5mm; display:inline-block } .kpis { display:table; width:100%; margin:5mm 0 }
+.kpi { display:table-cell; padding:3mm 5mm; border-left:2px solid #67a48b; background:#f5f8f6 }
+.kpi strong { display:block; font-size:20pt; color:#17543b }.kpi span { font-size:8pt; color:#536f62 }
+h2 { font-size:12pt; margin:6mm 0 3mm; color:#17543b; break-after:avoid } table { border-collapse:collapse; width:100%; table-layout:fixed }
+thead { display:table-header-group } th { color:white; background:#17543b; font-size:7.3pt; text-align:left; padding:2.8mm 2mm }
+td { padding:2.6mm 2mm; border-bottom:1px solid #dce6df; vertical-align:top; overflow-wrap:anywhere; font-size:7.3pt }
+tr:nth-child(even) td { background:#f1f6f3 } tr { break-inside:avoid } .empty { padding:8mm; text-align:center; color:#667b72 }
+.notes { margin-top:6mm; padding:4mm; background:#f5f8f6; border-top:2px solid #9fc2b0; font-size:7.5pt }
+.notes p { margin:1mm 0 } .reference { color:#667b72; font-size:6.5pt; margin-top:3mm }
+</style></head><body>
+<div class="hero"><p class="eyebrow">VIGÍA RURAL · INFORMACIÓN QUE PROTEGE</p><h1>{{ title }}</h1>
+<p class="meta">Sistema de Alerta Climática · Generado el {{ generated }} · Solicitado por {{ user }}</p></div>
+<div class="filters"><strong>Alcance y filtros</strong><br>{% for key,value in filters.items() %}<span>{{ {'communityId':'Comunidad (ID)','sensorId':'Sensor (ID)','dateFrom':'Desde','dateTo':'Hasta','variable':'Variable','status':'Estado'}.get(key,key) }}: {{ value }}</span>{% else %}Sin filtros adicionales. Conjunto completo dentro del límite permitido.{% endfor %}</div>
+<div class="kpis">{% for label,value in kpis %}<div class="kpi"><strong>{{ value }}</strong><span>{{ label }}</span></div>{% endfor %}</div>
+{% block content %}{% endblock %}</body></html>

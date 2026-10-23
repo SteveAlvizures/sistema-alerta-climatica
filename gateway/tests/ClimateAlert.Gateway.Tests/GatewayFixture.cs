@@ -77,6 +77,13 @@ public sealed class GatewayFixture : IAsyncLifetime
             return Results.Ok();
         });
         backend.MapGet("/api/probe/unavailable", () => Results.Json(new { message = "Business unavailable" }, statusCode: 503));
+        backend.MapGet("/api/reports/transport/{status:int}", (int status, HttpContext context) =>
+        {
+            context.Response.Headers["X-Internal-Host"] = "report-service:8000";
+            context.Response.Headers["X-Powered-By"] = "private-python";
+            return Results.Json(new { correlationId = context.Request.Headers["X-Correlation-ID"].ToString(),
+                spoofed = context.Request.Headers.ContainsKey("X-User-Id") }, statusCode: status);
+        }).RequireAuthorization(AuthorizationPolicies.OperateSystem);
         await backend.StartAsync();
         Upstream = backend.Urls.Single() + "/";
         Direct = new HttpClient { BaseAddress = new Uri(Upstream) };
@@ -128,7 +135,9 @@ public sealed class GatewayFixture : IAsyncLifetime
                 ["Gateway:AllowedOrigins:0"] = "http://localhost:4200",
                 ["ReverseProxy:Clusters:monolith:Destinations:backend:Address"] = address,
                 ["ReverseProxy:Clusters:auth:Destinations:auth-service:Address"] = address,
-                ["Gateway:AuthHealthPath"] = "health"
+                ["ReverseProxy:Clusters:reports:Destinations:report-service:Address"] = address,
+                ["Gateway:AuthHealthPath"] = "health",
+                ["Gateway:ReportHealthPath"] = "health"
             };
             if (timeout is not null) settings["ReverseProxy:Clusters:monolith:HttpRequest:ActivityTimeout"] = timeout;
             builder.Configuration.AddInMemoryCollection(settings);

@@ -32,6 +32,32 @@ public sealed class SqlServerTheoryAttribute : TheoryAttribute
 public sealed class SqlServerAtomicityTests(SqlAtomicityFixture fixture) : IClassFixture<SqlAtomicityFixture>
 {
     [SqlServerTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LatestReadingBatchReturnsOnlyNewestRowPerSensorOnSql(bool filterBySensor)
+    {
+        Guid latestId;
+        using (var db = fixture.Database())
+        {
+            var sensor = (await db.Sensors.FindAsync(fixture.SensorId))!;
+            var cutoff = DateTimeOffset.UtcNow.AddDays(1);
+            var older = new SensorReading(sensor, ClimateVariable.Temperature, 21m, "C", cutoff.AddMinutes(-1), cutoff, sensor.Origin);
+            var latest = new SensorReading(sensor, ClimateVariable.Temperature, 22m, "C", cutoff, cutoff, sensor.Origin);
+            db.SensorReadings.AddRange(older, latest); await db.SaveChangesAsync(); latestId = latest.Id;
+        }
+        string path = $"/api/sensor-readings/latest?page=1&pageSize=50&communityId={fixture.CommunityId}"
+            + (filterBySensor ? $"&sensorId={fixture.SensorId}" : "");
+        using var response = await fixture.Client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
+        jsonOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        var body = await response.Content.ReadFromJsonAsync<ClimateAlert.Application.Features.SensorReadings.PagedResponse<ClimateAlert.Application.Features.SensorReadings.HistoryReadingResponse>>(jsonOptions);
+        var reading = Assert.Single(body!.Data, row => row.SensorId == fixture.SensorId);
+        Assert.Equal(latestId, reading.Id);
+        Assert.Equal(body.Data.Count, body.Data.Select(row => row.SensorId).Distinct().Count());
+    }
+
+    [SqlServerTheory]
     [InlineData("community", "success")]
     [InlineData("community", "audit-failure")]
     [InlineData("community", "business-failure")]

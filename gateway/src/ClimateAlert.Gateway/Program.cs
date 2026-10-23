@@ -23,7 +23,7 @@ public static class GatewayApplication
         {
             var origins = builder.Configuration.GetSection("Gateway:AllowedOrigins").Get<string[]>() ?? [];
             if (origins.Length > 0) policy.WithOrigins(origins).AllowAnyMethod().AllowAnyHeader()
-                .WithExposedHeaders(CorrelationMiddleware.HeaderName);
+                .WithExposedHeaders(CorrelationMiddleware.HeaderName, "Content-Disposition");
         }));
         builder.Services.AddReverseProxy()
             .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
@@ -31,7 +31,8 @@ public static class GatewayApplication
         builder.Services.AddHttpClient("readiness", client => client.Timeout = TimeSpan.FromSeconds(3))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         builder.Services.AddHealthChecks().AddCheck<UpstreamHealthCheck>("backend", tags: ["ready"])
-            .AddCheck<AuthUpstreamHealthCheck>("auth", tags: ["ready"]);
+            .AddCheck<AuthUpstreamHealthCheck>("auth", tags: ["ready"])
+            .AddCheck<ReportUpstreamHealthCheck>("reports", tags: ["ready"]);
 
         var app = builder.Build();
         app.UseMiddleware<CorrelationMiddleware>();

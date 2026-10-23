@@ -22,6 +22,11 @@ TestResults/
 
 # Docker, registros y archivos temporales
 *.log
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
 logs/
 tmp/
 temp/

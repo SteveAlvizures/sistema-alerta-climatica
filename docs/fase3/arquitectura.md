@@ -1,6 +1,6 @@
 # Arquitectura de Fase 3
 
-## Segundo incremento: Auth extraído
+## Tercer incremento: Auth y Report extraídos
 
 ```text
 Navegador Angular 22 (/api)
@@ -11,6 +11,11 @@ Nginx del frontend / proxy Angular en desarrollo
         v
 API Gateway — ASP.NET Core 10 + YARP
         +--> /api/auth/*, /api/users/* --> Auth NestJS --> PostgreSQL propio
+        |
+        +--> /api/reports/* --> Report FastAPI --> MongoDB propio / GridFS
+        |                        |
+        |                        +--> HTTP APIs de datos (monolito temporal)
+        |                        +--> HTTP identidad vigente (Auth)
         |
         +--> resto de /api/* --> ClimateAlert.Api --> SQL Server existente
 ```
@@ -47,10 +52,14 @@ o proyecciones alimentadas por eventos, nunca mediante conexiones directas.
 
 - Gateway como punto único de acceso a la API; Angular mantiene `/api`.
 - Validación criptográfica JWT preliminar, sin imponer autorización global.
-- Auth y monolito aplican sus permisos con identidad vigente consultada a Auth.
+- Report y monolito aplican sus permisos con identidad vigente consultada a Auth.
 - Rutas anidadas de comunidad tienen prioridad explícita para futuras extracciones.
-- `/api/reports` se reserva y hoy devuelve el 404 del monolito; no hay Report Service.
-- `/health` y `/health/live` comprueban vida; `/health/ready` comprueba el upstream.
+- `/api/reports` se enruta a Report Service; ocho tipos PDF, historial y descarga propia.
+- Report valida JWT/identidad vigente y consulta únicamente APIs de datos por HTTP.
+- MongoDB y GridFS son persistencia exclusiva de Report, sin bases compartidas.
+- Últimas lecturas por lote: endpoint aditivo del monolito, sin migraciones SQL.
+- `/health` y `/health/live` comprueban vida; readiness de Gateway verifica monolito, Auth y Report.
+- Report readiness verifica MongoDB e identidad; liveness no depende de servicios externos.
 - Compose de Fase 3 separado, con backend y SQL Server sin puertos publicados.
 - El Compose exige un volumen SQL ya inicializado y desactiva migraciones al arrancar.
 - Sin OAuth/OIDC ni broker. Se agrega esquema PostgreSQL propio y un importador de
@@ -61,8 +70,14 @@ o proyecciones alimentadas por eventos, nunca mediante conexiones directas.
 Gateway es stateless y recibe destinos, orígenes CORS y secretos por configuración
 externa. No usa IPs fijas ni nombres de contenedores para descubrir servicios.
 En Kubernetes, configurar liveness en `/health/live` y readiness en `/health/ready`.
-Los manifiestos, gestión de secretos, escalado y outbox quedan para incrementos
-posteriores. El simulador del monolito debe seguir siendo una única instancia.
+Los manifiestos, gestión de secretos y escalado quedan para incrementos posteriores.
+Auth ya dispone de outbox para auditoría. Report usa una generación síncrona por
+proceso, límites de tiempo/filas y persistencia en Mongo; no incorpora broker.
+El simulador del monolito debe seguir siendo una única instancia.
 
 Consulta [Operación del Gateway](gateway.md) para comandos, pruebas y limitaciones.
 La extracción y el corte de identidad se describen en [Auth Service](auth-service.md).
+
+El tercer incremento se describe en [Report Service](report-service.md) y su
+[validación](validacion-reportes.md). La arquitectura objetivo completa conserva
+Community, Sensor, Alert y Audit como extracciones pendientes.
