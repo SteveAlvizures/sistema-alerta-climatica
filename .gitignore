@@ -33,4 +33,4 @@ docker-compose.override.yml
 .env.*
 !.env.example
 appsettings.Local.json
-appsettings.*.Local.json
+appsettings.*.Local.json*.tsbuildinfo
