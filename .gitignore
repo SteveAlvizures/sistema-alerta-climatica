@@ -42,3 +42,5 @@ appsettings.*.Local.json
 
 # Material personal; no forma parte del entregable oficial.
 /estudio/
+**/target/
+*.tsbuildinfo
