@@ -36,3 +36,8 @@ appsettings.Local.json
 appsettings.*.Local.json*.tsbuildinfo
 **/target/
 *.tsbuildinfo
+
+# Python
+.venv/
+__pycache__/
+*.pyc

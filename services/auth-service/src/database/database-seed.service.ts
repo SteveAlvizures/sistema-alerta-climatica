@@ -32,6 +32,8 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
       ['alerts.write', 'Administrar alertas'],
       ['reports.read', 'Consultar reportes'],
       ['reports.generate', 'Generar reportes'],
+      ['audit.read', 'Consultar auditoría'],
+      ['audit.write', 'Registrar eventos de auditoría'],
     ];
 
     for (const [name, description] of permissions) {
@@ -63,6 +65,8 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
         'alerts.write',
         'reports.read',
         'reports.generate',
+        'audit.read',
+        'audit.write',
       ],
 
       Operator: [
@@ -74,6 +78,8 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
         'alerts.write',
         'reports.read',
         'reports.generate',
+        'audit.read',
+        'audit.write',
       ],
 
       ConsultationUser: [
@@ -81,6 +87,7 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
         'sensors.read',
         'alerts.read',
         'reports.read',
+        'audit.read',
       ],
     };
 
