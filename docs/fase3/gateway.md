@@ -1,13 +1,19 @@
 # API Gateway de Fase 3
 
-Operación vigente de Gateway con Auth y Report extraídos. Resultados:
+> Integración final: [informe del 23/10/2026](INFORME_FINAL_FASE3.md). El Compose base
+> conserva el modo estable; `docker-compose.final.yml` agrega los cuatro propietarios
+> nuevos y el corte es explícito después de importar/conciliar. No equivale a producción certificada.
+
+El modo base conserva Auth y Report extraídos. El modo final añade Community,
+Sensor, Alert y Audit mediante destinos configurables del overlay. Resultados:
 [pruebas](pruebas.md).
 
 ## Propósito y recorrido
 
 Antes: `Angular → proxy/Nginx → ClimateAlert.Api → SQL Server`.
 
-Ahora: `Angular → proxy/Nginx → Gateway → Auth / Report / monolito`.
+Modo base: `Angular → proxy/Nginx → Gateway → Auth / Report / monolito`.
+Modo final: `Angular → proxy/Nginx → Gateway → seis propietarios / dashboard legado`.
 Cada propietario accede a su persistencia, como muestra [arquitectura](arquitectura.md).
 
 YARP es el reverse proxy de ASP.NET Core. El Gateway centraliza enrutamiento,
@@ -18,7 +24,11 @@ negocio ni persistencia. El backend de Fase 2 se conserva.
 
 Se conserva el prefijo `/api`, sin transformar DTOs ni reescribir cuerpos de
 negocio. `auth` y `users` usan cluster `auth`; `reports-reserved` usa `reports`;
-las demás rutas usan `monolith`:
+las demás rutas usan `monolith` en el modo base. En el corte final las variables
+`COMMUNITY_ROUTE_CLUSTER`, `SENSOR_ROUTE_CLUSTER`, `ALERT_ROUTE_CLUSTER` y
+`AUDIT_ROUTE_CLUSTER` seleccionan sus propietarios (incluidas rutas anidadas de
+comunidad). `ExtractedServicesHealthCheck` comprueba readiness de los propietarios
+activos; liveness no depende de bases remotas. Tabla del modo base:
 
 | Ruta | Identificador YARP |
 |---|---|

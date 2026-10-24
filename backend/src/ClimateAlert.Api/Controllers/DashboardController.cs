@@ -13,6 +13,9 @@ public sealed class DashboardController(ClimateAlertDbContext database, EventSer
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] Guid? communityId, CancellationToken cancellationToken)
     {
+        var config = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+        if (!string.IsNullOrWhiteSpace(config["DASHBOARD_COMMUNITY_URL"]))
+            return await RemoteDashboard.Compose(this, communityId, config, cancellationToken);
         var community = await database.Communities.AsNoTracking()
             .Where(item => !communityId.HasValue || item.Id == communityId.Value)
             .OrderBy(item => item.Name).FirstOrDefaultAsync(cancellationToken);

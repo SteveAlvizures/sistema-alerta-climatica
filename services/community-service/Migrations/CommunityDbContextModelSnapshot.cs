@@ -30,7 +30,6 @@ namespace CommunityService.Migrations
                         .HasColumnName("id");
 
                     b.Property<string>("Country")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("country");
@@ -40,7 +39,6 @@ namespace CommunityService.Migrations
                         .HasColumnName("created_at");
 
                     b.Property<string>("Department")
-                        .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)")
                         .HasColumnName("department");
@@ -54,7 +52,7 @@ namespace CommunityService.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
-                    b.Property<decimal>("Latitude")
+                    b.Property<decimal?>("Latitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("numeric(9,6)")
                         .HasColumnName("latitude");
@@ -65,13 +63,12 @@ namespace CommunityService.Migrations
                         .HasColumnType("character varying(250)")
                         .HasColumnName("location");
 
-                    b.Property<decimal>("Longitude")
+                    b.Property<decimal?>("Longitude")
                         .HasPrecision(9, 6)
                         .HasColumnType("numeric(9,6)")
                         .HasColumnName("longitude");
 
                     b.Property<string>("Municipality")
-                        .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)")
                         .HasColumnName("municipality");
@@ -88,6 +85,27 @@ namespace CommunityService.Migrations
                         .IsUnique();
 
                     b.ToTable("communities", (string)null);
+                });
+
+            modelBuilder.Entity("CommunityService.Services.CommunityAuditEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CommunityAuditEvent");
                 });
 #pragma warning restore 612, 618
         }

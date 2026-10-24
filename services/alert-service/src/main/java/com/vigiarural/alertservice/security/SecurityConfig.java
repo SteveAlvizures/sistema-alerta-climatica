@@ -46,7 +46,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/health",
+                                "/health", "/health/live", "/health/ready", "/internal/events/summary", "/internal/migration", "/internal/readings/evaluate",
                                 "/actuator/health"
                         ).permitAll()
 
@@ -54,7 +54,7 @@ public class SecurityConfig {
                                 "/api/alert-rules/**",
                                 "/api/alerts/**",
                                 "/api/communities/*/alerts"
-                        ).authenticated()
+                        ).permitAll()
 
                         .anyRequest().authenticated()
                 )
@@ -73,7 +73,7 @@ public class SecurityConfig {
     JwtDecoder jwtDecoder() {
 
         var key = new SecretKeySpec(
-                jwtSecret.getBytes(StandardCharsets.UTF_8),
+                sha256(jwtSecret),
                 "HmacSHA256"
         );
 
@@ -139,6 +139,30 @@ public class SecurityConfig {
 
         converter.setPrincipalClaimName("sub");
 
-        return converter;
+        return new Converter<Jwt, AbstractAuthenticationToken>() {
+          @Override public AbstractAuthenticationToken convert(Jwt token) {
+            try {
+                var factory = new org.springframework.http.client.JdkClientHttpRequestFactory(java.net.http.HttpClient.newBuilder()
+                    .connectTimeout(java.time.Duration.ofSeconds(3)).build());
+                factory.setReadTimeout(java.time.Duration.ofSeconds(3));
+                var identity = org.springframework.web.client.RestClient.builder().requestFactory(factory)
+                    .baseUrl(System.getenv().getOrDefault("AUTH_SERVICE_URL", "http://auth-service:3000")).build()
+                    .get().uri("/internal/identity/current")
+                    .header("Authorization", "Bearer " + token.getTokenValue())
+                    .header("X-Internal-Service-Key", System.getenv("AUTH_INTERNAL_KEY"))
+                    .retrieve().body(com.fasterxml.jackson.databind.JsonNode.class);
+                if (identity == null || !identity.path("id").asText().equals(token.getSubject()) || !identity.path("isActive").asBoolean())
+                    throw new IllegalStateException();
+                var granted = new java.util.ArrayList<org.springframework.security.core.GrantedAuthority>();
+                for (var permission : identity.path("permissions")) granted.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(permission.asText()));
+                var authentication=new org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken(token, granted);
+                authentication.setDetails(identity);return authentication;
+            } catch (Exception failure) { throw new org.springframework.security.authentication.BadCredentialsException("Identity unavailable"); }
+        }};
+    }
+
+    private static byte[] sha256(String secret) {
+        try { return java.security.MessageDigest.getInstance("SHA-256").digest(secret.getBytes(StandardCharsets.UTF_8)); }
+        catch (java.security.NoSuchAlgorithmException exception) { throw new IllegalStateException(exception); }
     }
 }

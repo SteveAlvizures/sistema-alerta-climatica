@@ -26,10 +26,10 @@ management:
 
   endpoint:
     health:
-      show-details: always
+      show-details: never
 
 vigiarural:
   jwt:
-    secret: ${JWT_SECRET}
-    issuer: ${JWT_ISSUER:vigiarural-auth}
-    audience: ${JWT_AUDIENCE:vigiarural}
+    secret: ${JWT_KEY}
+    issuer: ${JWT_ISSUER:climate-alert-api}
+    audience: ${JWT_AUDIENCE:climate-alert-client}

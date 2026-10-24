@@ -1,5 +1,9 @@
 # Guía de desarrollo interno
 
+> Integración final: [informe del 23/10/2026](INFORME_FINAL_FASE3.md). El Compose base
+> conserva el modo estable; `docker-compose.final.yml` agrega los cuatro propietarios
+> nuevos y el corte es explícito después de importar/conciliar. No equivale a producción certificada.
+
 Esta guía describe mantenimiento del código, no estudio o defensa personal.
 Conservar contratos Fase 2 y no extraer servicios nuevos sin datos/contratos
 entregados y un plan incremental. [Integración pendiente](integracion-pendiente.md)
@@ -59,10 +63,9 @@ reparto. Requieren confirmación del equipo:
 - Walter y los responsables que el equipo asigne: URLs internas reales, imágenes,
   contratos/versiones, health, persistencia, migración y operación de Community,
   Sensor, Alert y Audit. La correspondencia nombre→servicio está **PENDIENTE**.
-- Equipo: ingesta/outbox de auditoría administrativa, composición futura de dashboard,
-  estrategia de snapshots, recuperación/retención y disponibilidad parcial en K3s.
+- Equipo: certificar cobertura de auditoría, paridad del dashboard compuesto por
+  HTTP, recuperación/retención y disponibilidad parcial en K3s.
 
-La documentación específica de servicios todavía no entregados no puede completarse
-como si estuvieran implementados. Steve puede mantener la entrada Angular/Gateway,
-Auth y Report y preparar pruebas de contrato; necesita esas entregas para certificar
-los futuros cortes.
+Community y Alert ya se incorporaron selectivamente; Sensor y Audit cuentan con
+implementaciones mínimas verificadas. La aceptación de negocio y operación por
+Astrid/Walter sigue pendiente, sin confundirla con ausencia de estos servicios.

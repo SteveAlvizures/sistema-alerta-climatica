@@ -1,0 +1,200 @@
+# Combine with docker-compose.phase3.yml. Import/verify legacy HTTP snapshots BEFORE enabling new routes.
+services:
+  community-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: climate_community
+      POSTGRES_USER: community_app
+      POSTGRES_PASSWORD: ${COMMUNITY_DATABASE_PASSWORD:?required}
+    volumes: [community-data:/var/lib/postgresql/data]
+    networks: [community-persistence]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U community_app -d climate_community']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  community-service:
+    build: {context: ../../services/community-service}
+    environment:
+      ConnectionStrings__CommunityDatabase: Host=community-postgres;Database=climate_community;Username=community_app;Password=${COMMUNITY_DATABASE_PASSWORD};Timeout=3
+      JWT_KEY: ${JWT_KEY:?required}
+      JWT_ISSUER: ${JWT_ISSUER:-climate-alert-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-climate-alert-client}
+      AUTH_SERVICE_URL: http://auth-service:3000
+      AUTH_INTERNAL_KEY: ${AUTH_INTERNAL_KEY:?required}
+      SENSOR_API_URL: http://sensor-service:8080
+      ALERT_API_URL: http://alert-service:3003
+      Database__ApplyMigrationsOnStartup: "true"
+      Migration__ImportLegacy: ${COMMUNITY_IMPORT_LEGACY:-false}
+      COMMUNITY_IMPORT_URL: http://backend:8080/api/communities
+    networks: [upstream, community-persistence]
+    depends_on:
+      community-postgres: {condition: service_healthy}
+      auth-service: {condition: service_healthy}
+      backend: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, curl, -fsS, --max-time, "4", http://localhost:8080/health/ready]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+  sensor-sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: ${SQLSERVER_EDITION:-Developer}
+      MSSQL_SA_PASSWORD: ${SENSOR_SQL_PASSWORD:?required}
+    volumes: [sensor-data:/var/opt/mssql]
+    networks: [sensor-persistence]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" -b -o /dev/null']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+  sensor-service:
+    build: {context: ../../services/sensor-service}
+    environment:
+      SENSOR_SQL_CONNECTION: Server=sensor-sqlserver;Database=climate_sensors;User Id=sa;Password=${SENSOR_SQL_PASSWORD};TrustServerCertificate=True;Connect Timeout=3
+      JWT_KEY: ${JWT_KEY:?required}
+      JWT_ISSUER: ${JWT_ISSUER:-climate-alert-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-climate-alert-client}
+      AUTH_SERVICE_URL: http://auth-service:3000
+      AUTH_INTERNAL_KEY: ${AUTH_INTERNAL_KEY:?required}
+      COMMUNITY_API_URL: http://community-service:8080
+      ALERT_API_URL: http://alert-service:3003
+      SIMULATED_READING_INTERVAL_SECONDS: ${FINAL_SIMULATION_INTERVAL_SECONDS:-0}
+      Database__ApplyMigrationsOnStartup: "true"
+    networks: [upstream, sensor-persistence]
+    depends_on:
+      sensor-sqlserver: {condition: service_healthy}
+      auth-service: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, curl, -fsS, --max-time, "4", http://localhost:8080/health/ready]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+  alert-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: climate_alerts
+      POSTGRES_USER: alert_app
+      POSTGRES_PASSWORD: ${ALERT_DATABASE_PASSWORD:?required}
+    volumes: [alert-data:/var/lib/postgresql/data]
+    networks: [alert-persistence]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U alert_app -d climate_alerts']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  alert-service:
+    build: {context: ../../services/alert-service}
+    environment:
+      ALERT_SERVICE_PORT: "3003"
+      ALERT_DB_HOST: alert-postgres
+      ALERT_DB_PORT: "5432"
+      ALERT_DB_NAME: climate_alerts
+      ALERT_DB_USER: alert_app
+      ALERT_DB_PASSWORD: ${ALERT_DATABASE_PASSWORD:?required}
+      JWT_KEY: ${JWT_KEY:?required}
+      JWT_ISSUER: ${JWT_ISSUER:-climate-alert-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-climate-alert-client}
+      AUTH_SERVICE_URL: http://auth-service:3000
+      AUTH_INTERNAL_KEY: ${AUTH_INTERNAL_KEY:?required}
+      COMMUNITY_SERVICE_URL: http://community-service:8080
+      SENSOR_SERVICE_URL: http://sensor-service:8080
+    networks: [upstream, alert-persistence]
+    depends_on:
+      alert-postgres: {condition: service_healthy}
+      community-service: {condition: service_healthy}
+      sensor-service: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, curl, -fsS, --max-time, "4", http://localhost:3003/health/ready]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+  audit-mongodb:
+    image: mongo:8.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: audit_root
+      MONGO_INITDB_ROOT_PASSWORD: ${AUDIT_MONGO_ROOT_PASSWORD:?required}
+      AUDIT_MONGO_DATABASE: climate_audit
+      AUDIT_MONGO_USER: audit_app
+      AUDIT_MONGO_PASSWORD: ${AUDIT_MONGO_PASSWORD:?required}
+      LEGACY_AUDIT_URL: http://backend:8080/internal/audit-export
+    volumes:
+      - audit-data:/data/db
+      - ../mongo/init-audit.js:/docker-entrypoint-initdb.d/init-audit.js:ro
+    networks: [audit-persistence]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, mongosh, --quiet, --eval, "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  audit-service:
+    build: {context: ../../services/audit-service}
+    environment:
+      JWT_KEY: ${JWT_KEY:?required}
+      JWT_ISSUER: ${JWT_ISSUER:-climate-alert-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-climate-alert-client}
+      AUTH_SERVICE_URL: http://auth-service:3000
+      AUTH_INTERNAL_KEY: ${AUTH_INTERNAL_KEY:?required}
+      AUDIT_MONGO_PASSWORD: ${AUDIT_MONGO_PASSWORD:?required}
+    networks: [upstream, audit-persistence]
+    depends_on:
+      audit-mongodb: {condition: service_healthy}
+      auth-service: {condition: service_healthy}
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready',timeout=4)"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+  gateway:
+    environment:
+      ReverseProxy__Clusters__community__Destinations__primary__Address: http://community-service:8080/
+      ReverseProxy__Clusters__sensor__Destinations__primary__Address: http://sensor-service:8080/
+      ReverseProxy__Clusters__alert__Destinations__primary__Address: http://alert-service:3003/
+      ReverseProxy__Clusters__audit__Destinations__primary__Address: http://audit-service:8000/
+      ReverseProxy__Routes__communities__ClusterId: ${COMMUNITY_ROUTE_CLUSTER:-monolith}
+      ReverseProxy__Routes__sensors__ClusterId: ${SENSOR_ROUTE_CLUSTER:-monolith}
+      ReverseProxy__Routes__sensor-readings__ClusterId: ${SENSOR_ROUTE_CLUSTER:-monolith}
+      ReverseProxy__Routes__community-sensors__ClusterId: ${SENSOR_ROUTE_CLUSTER:-monolith}
+      ReverseProxy__Routes__alerts__ClusterId: ${ALERT_ROUTE_CLUSTER:-monolith}
+      ReverseProxy__Routes__alert-rules__ClusterId: ${ALERT_ROUTE_CLUSTER:-monolith}
+      ReverseProxy__Routes__community-alerts__ClusterId: ${ALERT_ROUTE_CLUSTER:-monolith}
+      ReverseProxy__Routes__events__ClusterId: ${ALERT_ROUTE_CLUSTER:-monolith}
+      ReverseProxy__Routes__audit-actions__ClusterId: ${AUDIT_ROUTE_CLUSTER:-monolith}
+  report-service:
+    environment:
+      COMMUNITY_API_URL: ${FINAL_REPORT_COMMUNITY_URL:-http://backend:8080}
+      SENSOR_API_URL: ${FINAL_REPORT_SENSOR_URL:-http://backend:8080}
+      READING_API_URL: ${FINAL_REPORT_SENSOR_URL:-http://backend:8080}
+      ALERT_API_URL: ${FINAL_REPORT_ALERT_URL:-http://backend:8080}
+      EVENT_API_URL: ${FINAL_REPORT_ALERT_URL:-http://backend:8080}
+  auth-service:
+    environment:
+      AUTH_AUDIT_URL: ${FINAL_AUTH_AUDIT_URL:-http://backend:8080/internal/auth-events}
+  backend:
+    environment:
+      DASHBOARD_COMMUNITY_URL: ${FINAL_DASHBOARD_COMMUNITY_URL:-}
+      DASHBOARD_SENSOR_URL: ${FINAL_DASHBOARD_SENSOR_URL:-}
+      DASHBOARD_ALERT_URL: ${FINAL_DASHBOARD_ALERT_URL:-}
+      SIMULATED_READING_INTERVAL_SECONDS: "0"
+volumes:
+  community-data: {name: "${FINAL_VOLUME_PREFIX:-climate-final}-community"}
+  sensor-data: {name: "${FINAL_VOLUME_PREFIX:-climate-final}-sensor"}
+  alert-data: {name: "${FINAL_VOLUME_PREFIX:-climate-final}-alert"}
+  audit-data: {name: "${FINAL_VOLUME_PREFIX:-climate-final}-audit"}
+networks:
+  community-persistence: {internal: true}
+  sensor-persistence: {internal: true}
+  alert-persistence: {internal: true}
+  audit-persistence: {internal: true}

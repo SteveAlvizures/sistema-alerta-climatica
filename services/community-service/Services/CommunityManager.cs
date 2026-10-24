@@ -7,7 +7,7 @@ namespace CommunityService.Services;
 
 public sealed class CommunityManager(
     CommunityDbContext database,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider, CommunityRelations relations)
 {
     public async Task<IReadOnlyList<CommunityResponse>>
         GetAllAsync(
@@ -52,7 +52,7 @@ public sealed class CommunityManager(
 
             query = query.Where(x =>
                 x.Name.ToLower().Contains(text) ||
-                x.Location.ToLower().Contains(text));
+                x.Location.ToLower().Contains(text) || (x.Description != null && x.Description.ToLower().Contains(text)));
         }
 
         if (isActive.HasValue)
@@ -65,7 +65,7 @@ public sealed class CommunityManager(
                 municipality.Trim().ToLower();
 
             query = query.Where(
-                x => x.Municipality.ToLower() == value);
+                x => (x.Municipality ?? "").ToLower().Contains(value));
         }
 
         if (!string.IsNullOrWhiteSpace(department))
@@ -74,7 +74,7 @@ public sealed class CommunityManager(
                 department.Trim().ToLower();
 
             query = query.Where(
-                x => x.Department.ToLower() == value);
+                x => (x.Department ?? "").ToLower().Contains(value));
         }
 
         int totalCount =
@@ -245,12 +245,8 @@ public sealed class CommunityManager(
             throw new KeyNotFoundException(
                 "La comunidad solicitada no existe.");
 
-        /*
-         * IMPORTANTE:
-         * En Fase 3 no se consulta la base del Sensor Service.
-         * La verificacion de sensores asociados se agregara
-         * mediante API cuando Sensor Service este disponible.
-         */
+        if (await relations.Count(id, false, cancellationToken) > 0 || await relations.Count(id, true, cancellationToken) > 0)
+            throw new InvalidOperationException("Community has related sensors or alerts.");
 
         database.Communities.Remove(
             community);
@@ -287,7 +283,7 @@ public sealed class CommunityManager(
                 "Ya existe una comunidad con el mismo nombre y ubicación.");
     }
 
-    private static CommunityResponse Map(
+    private CommunityResponse Map(
         Community community)
     {
         return new(
@@ -302,6 +298,6 @@ public sealed class CommunityManager(
             community.Country,
             community.Latitude,
             community.Longitude,
-            0);
+            relations.Count(community.Id, false, CancellationToken.None).GetAwaiter().GetResult());
     }
 }

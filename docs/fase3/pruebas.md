@@ -1,30 +1,34 @@
 # Pruebas y evidencia vigente
 
-Registro único de conteos de la última regresión funcional, ejecutada el 22/10/2026
-(America/Guatemala), sobre `764ac02` y correcciones locales posteriores. **No se
-repitió esa regresión en la revisión exclusivamente documental.** Las suites
-aprobadas no certifican ausencia de todos los defectos ni producción.
+Ejecución del 23/10/2026 (America/Guatemala), rama `integracion-final-fase3`.
+Los timestamps UTC de algunos logs corresponden al 24/10. Las pruebas se ejecutaron
+en entornos aislados; no certifican producción, carga sostenida ni paridad completa.
 
-| Bloque | Última evidencia local |
+| Bloque | Resultado local de este cierre |
 |---|---|
-| Gateway restore/build Release | Correctos, 0 errores y 0 advertencias |
-| Gateway tests | 58 aprobadas, 0 fallidas/omitidas; incluye interoperabilidad Auth real |
-| Auth npm ci/build | Correctos; auditoría npm de esa instalación: 0 vulnerabilidades |
-| Auth tests | 43 aprobadas: 27 unitarias/seguridad y 16 integración PostgreSQL real |
-| Report pytest | 53 aprobadas, 0 fallidas, MongoDB real y WeasyPrint; Ruff sin errores |
-| Backend | 285 aprobadas: Domain 44, Infrastructure 18, Application 223; SQL real habilitado, sin omisiones |
-| Angular build producción | Correcto; aviso previo sensors-page.scss 7.02 kB frente a 6 kB |
-| Angular ChromeHeadless | 282 aprobadas, 0 fallidas |
-| Docker | Builds frontend/Report correctos; stack aislado de ocho servicios healthy |
-| Compose config | Base, production y report-development correctos; solo frontend publica puerto |
-| E2E HTTP | 33 comprobaciones: login, dashboard, shell /reports, ocho generaciones/descargas, historial y validación |
-| Seguridad/persistencia/regresión | 39 comprobaciones; ocho PDFs conservados tras reiniciar Mongo/Report |
-| Caídas, health y logs | 10 comprobaciones adicionales aprobadas |
+| Gateway build Release | 0 errores, 0 advertencias en compilación secuencial |
+| Gateway | 58 aprobadas, 0 fallidas/omitidas; interoperabilidad Auth real |
+| Auth | 43 aprobadas: 27 unitarias/seguridad y 16 PostgreSQL real |
+| Auth build / npm audit | Build correcto; 0 vulnerabilidades reportadas tras actualizar lock/override Multer |
+| Community | 8 aprobadas, 0 fallidas/omitidas |
+| Sensor | 8 aprobadas, 0 fallidas/omitidas |
+| Alert dominio | 11 aprobadas; la prueba opcional de PostgreSQL se omite en el build ordinario |
+| Alert PostgreSQL real | 1 aprobada por separado: asociación alerta-evento, replay idempotente y outbox |
+| Audit MongoDB real | 11 aprobadas, 0 fallidas |
+| Report | 53 pytest aprobadas; MongoDB real y WeasyPrint; Ruff limpio |
+| Backend | 285 aprobadas: Domain 44, Infrastructure 18, Application 223; SQL real, sin omisiones |
+| Angular | 282 aprobadas; build de producción correcto |
+| Docker | 16 contenedores saludables, imágenes construidas localmente |
+| Compose config | Final y producción válidos; la configuración entregable solo publica frontend |
+| E2E integrado | 52 comprobaciones HTTP aprobadas; tres roles, lectura, alerta, cierre de evento y cuatro auditorías de dominio |
+| E2E Report | 33 comprobaciones aprobadas; ocho tipos PDF, descarga, historial y validación |
+| Fallos controlados | 7 comprobaciones aprobadas: exceso de filas 422, Community detenido 502, readiness 503, liveness 200 y recuperacion |
 
-Avisos de herramientas: TestClient de FastAPI/Starlette depreca su integración con
-HTTPX; Karma forzó cierre de Chrome después del SUCCESS. No se cambiaron dependencias
-ni presupuestos para ocultar estos avisos. Los builds Docker no implican una nueva
-auditoría de vulnerabilidades de todas las imágenes.
+Avisos: Angular conserva el aviso previo de presupuesto SCSS (7.02 kB frente a
+6 kB); Karma cerró Chrome forzosamente después de SUCCESS. FastAPI TestClient
+advierte de deprecación HTTPX; Java muestra avisos del agente Mockito/ByteBuddy.
+No se ocultaron avisos cambiando presupuestos. La auditoría npm no sustituye una
+revisión de seguridad de todas las imágenes y dependencias.
 
 ## Reproducir las suites
 
@@ -67,50 +71,57 @@ Report test usa su Mongo independiente y solo limpia `reports_test`; genera PDFs
 reales con fixtures HTTP para fuentes/Auth. En `frontend/angular-app`, ejecutar
 `npm run build` y `npm test -- --watch=false --browsers=ChromeHeadless --reporters=dots`.
 
-## E2E y revisión PDF
+## Nuevos propietarios y E2E
 
-Configurar `REPORT_E2E_URL`, `REPORT_E2E_USERNAME`, `REPORT_E2E_PASSWORD` en un entorno
-privado de validación y ejecutar `python tools/validate-reports.py`. Crea metadatos/
-PDFs y un evento de login; no es una consulta totalmente libre de escrituras.
-No usar credenciales en el texto del comando. `REPORT_E2E_FROM` permite fijar rango;
-por defecto lecturas/estadísticas/ejecutivo usan cinco minutos antes de la última
-lectura disponible. El script no imprime JWT ni credenciales.
+```powershell
+dotnet test services/community-tests/Community.Tests.csproj -c Release -m:1
+dotnet test services/sensor-tests/Sensor.Tests.csproj -c Release -m:1
+docker build --target build -t climate-alert-build services/alert-service
+```
 
-Evidencia local no versionada: `tmp/report-evidence/http-results.json`,
-`edge-results.json`, `failure-results.json`, `docker-health.json`,
-`review-pdf-results.json`, PDFs y renderizados. Los scripts auxiliares locales que
-probaron caídas cargaron secretos privadamente y solo detuvieron servicios del
-stack aislado. No se distribuyen como herramientas de producción.
+La prueba `PersistenceTests` requiere `ALERT_INTEGRATION_TESTS=true` y las variables
+Spring de una base PostgreSQL dedicada: `SPRING_DATASOURCE_URL`,
+`SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`. Ejecutar
+`mvn -B -Dtest=PersistenceTests test` en la imagen build conectada a esa red.
+No ejecutarla contra una base productiva. Audit se verifica con
+`python -m unittest discover -s tests -v` dentro de su contenedor: crea y limpia
+solo colecciones de prefijo `audit_test_` en su Mongo propio.
 
-| PDF real de la última ejecución | Páginas | Bytes |
+Configurar privadamente `PHASE3_E2E_URL`, `PHASE3_E2E_USERNAME`,
+`PHASE3_E2E_PASSWORD` y `PHASE3_E2E_ALLOW_WRITES=true`; ejecutar
+`python tools/validate-phase3-final.py`. Crea datos de prueba y verifica contratos;
+no es una consulta de solo lectura. Para PDF, configurar `REPORT_E2E_URL`,
+`REPORT_E2E_USERNAME`, `REPORT_E2E_PASSWORD` y ejecutar
+`python tools/validate-reports.py`. No escribir credenciales en comandos compartidos.
+
+## PDF y revisión visual
+
+| PDF de la última ejecucion | Páginas | Bytes |
 |---|---:|---:|
-| Comunidades | 2 | 14386 |
-| Sensores | 5 | 23331 |
-| Lecturas | 21 | 69503 |
-| Alertas | 3 | 16730 |
-| Historial de eventos | 3 | 15955 |
-| Estado de sensores | 5 | 22222 |
-| Estadísticas climáticas | 2 | 14483 |
-| Resumen ejecutivo | 2 | 15458 |
+| Comunidades | 2 | 15163 |
+| Sensores | 5 | 24235 |
+| Lecturas | 1 | 12231 |
+| Alertas | 3 | 17881 |
+| Historial de eventos | 3 | 17022 |
+| Estado de sensores | 5 | 23301 |
+| Estadísticas climáticas | 2 | 14046 |
+| Resumen ejecutivo | 2 | 15096 |
 
-Se comprobaron título, usuario, generación UTC, filtros, pie/numeración en cada
-página y firma/MIME/tamaño por HTTP. Se inspeccionaron primeras páginas renderizadas
-de los ocho tipos y la página 2 de 27 de la prueba con 130 nombres largos y HTML
-escapado. También se probaron los ocho tipos vacíos, N/D, unidades y límites.
-Esto no equivale a inspeccionar visualmente cada página de todo PDF posible.
+Se comprobaron título, usuario, fecha UTC, filtros, numeración, firma/MIME y tamaño.
+Se inspeccionaron primeras páginas renderizadas de los ocho documentos y página 2
+de 27 de un fixture con nombres largos y HTML escapado. No se observaron cortes ni
+superposiciones en esas muestras; no se afirma revisión visual de todas las páginas.
 
-## Pendiente y hallazgos posteriores
+Evidencia local ignorada por Git: `tmp/final-e2e-results.json`,
+`tmp/final-failures-results.json`, `tmp/alert-real-postgres.log` y
+`tmp/report-evidence/` (PDF, imágenes y resultados). Los auxiliares de caídas solo
+detuvieron servicios del stack aislado y restauraron su disponibilidad.
 
-- Inspección interactiva de Angular/capturas del [manual de usuario](manual-usuario.md).
-- Carga sostenida, instalación nativa completa por plataforma, K3s, TLS externo y
-  restauración integral de producción.
-- Contratos de los futuros servicios reales: no existen todavía para probar su corte.
-- La revisión documental detectó dos entradas Reportes en
-  [sidebar.ts](../../frontend/angular-app/src/app/layout/sidebar/sidebar.ts), líneas
-  28 y 61. No se corrigió funcionalidad en esta tarea; ambas usan el mismo label
-  que el template utiliza como track. Revisar duplicación antes del siguiente cierre funcional.
+## Pendiente
 
-Los conteos antiguos de incrementos intermedios se retiraron de las páginas
-oficiales vigentes para evitar confusiones. La revisión documental valida enlaces,
-rutas locales, comentarios y ausencia de cambios ejecutables frente a su estado
-inicial; no añade resultados funcionales a la tabla anterior.
+Inspección interactiva de Angular y capturas del manual por falta de navegador
+integrado. ChromeHeadless sí estuvo disponible para las pruebas automatizadas.
+Faltan carga sostenida, paridad completa del dominio, restauración integral,
+TLS/despliegue real y K3s. Los servicios ya existen; falta certificar el corte
+productivo y los criterios de aceptación del equipo. La opción Reportes del
+sidebar ya es única en la rama base de Steve; no se modificó Angular en este cierre.

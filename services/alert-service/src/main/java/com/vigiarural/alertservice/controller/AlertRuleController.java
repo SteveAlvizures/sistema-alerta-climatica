@@ -27,13 +27,11 @@ public class AlertRuleController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('alerts.read')")
     public List<AlertRuleResponse> getAll() {
         return service.getAll();
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('alerts.read')")
     public AlertRuleResponse getById(
             @PathVariable UUID id
     ) {
@@ -41,7 +39,7 @@ public class AlertRuleController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('alerts.write')")
+    @PreAuthorize("hasAuthority('OperateSystem')")
     public ResponseEntity<AlertRuleResponse> create(
             @Valid
             @RequestBody
@@ -64,7 +62,7 @@ public class AlertRuleController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('alerts.write')")
+    @PreAuthorize("hasAuthority('OperateSystem')")
     public AlertRuleResponse update(
             @PathVariable UUID id,
             @Valid
@@ -78,7 +76,7 @@ public class AlertRuleController {
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasAuthority('alerts.write')")
+    @PreAuthorize("hasAuthority('OperateSystem')")
     public AlertRuleResponse changeStatus(
             @PathVariable UUID id,
             @RequestBody

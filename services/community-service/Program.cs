@@ -1,4 +1,7 @@
+using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using CommunityService.Data;
 using CommunityService.Errors;
 using CommunityService.Security;
@@ -7,135 +10,93 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-var builder =
-    WebApplication.CreateBuilder(args);
-
+var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.ConfigureKestrel(o => o.AddServerHeader = false);
 builder.Services.AddControllers();
-
 builder.Services.AddProblemDetails();
-
-builder.Services.AddExceptionHandler<
-    GlobalExceptionHandler>();
-
-builder.Services.AddSingleton(
-    TimeProvider.System);
-
-string connectionString =
-    builder.Configuration
-        .GetConnectionString(
-            "CommunityDatabase")
-    ?? throw new InvalidOperationException(
-        "No se configuró CommunityDatabase.");
-
-builder.Services.AddDbContext<
-    CommunityDbContext>(
-    options =>
-        options.UseNpgsql(
-            connectionString));
-
-builder.Services.AddScoped<
-    CommunityManager>();
-
-string jwtSecret =
-    builder.Configuration[
-        "Jwt:Secret"]
-    ?? throw new InvalidOperationException(
-        "No se configuró Jwt:Secret.");
-
-string jwtIssuer =
-    builder.Configuration[
-        "Jwt:Issuer"]
-    ?? throw new InvalidOperationException(
-        "No se configuró Jwt:Issuer.");
-
-string jwtAudience =
-    builder.Configuration[
-        "Jwt:Audience"]
-    ?? throw new InvalidOperationException(
-        "No se configuró Jwt:Audience.");
-
-builder.Services
-    .AddAuthentication(
-        JwtBearerDefaults
-            .AuthenticationScheme)
-    .AddJwtBearer(
-        options =>
-        {
-            options.MapInboundClaims = false;
-
-            options.TokenValidationParameters =
-                new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidIssuer = jwtIssuer,
-
-                    ValidateAudience = true,
-                    ValidAudience = jwtAudience,
-
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey =
-                        new SymmetricSecurityKey(
-                            Encoding.UTF8.GetBytes(
-                                jwtSecret)),
-
-                    ValidateLifetime = true,
-
-                    ClockSkew =
-                        TimeSpan.FromSeconds(
-                            30),
-
-                    NameClaimType = "name",
-                    RoleClaimType = "role"
-                };
-        });
-
-builder.Services.AddAuthorization(
-    options =>
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddDbContext<CommunityDbContext>(o => o.UseNpgsql(
+    builder.Configuration.GetConnectionString("CommunityDatabase") ?? throw new InvalidOperationException("Community database required.")));
+builder.Services.AddScoped<CommunityManager>();
+builder.Services.AddHttpClient("internal", c => c.Timeout = TimeSpan.FromSeconds(3))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddScoped<CommunityRelations>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHostedService<CommunityAuditWorker>();
+string key = builder.Configuration["JWT_KEY"] ?? throw new InvalidOperationException("JWT_KEY required.");
+if (key.Length < 24) throw new InvalidOperationException("JWT_KEY too short.");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o =>
+{
+    o.MapInboundClaims = false; o.IncludeErrorDetails = false;
+    o.TokenValidationParameters = new()
     {
-        options.AddPolicy(
-            AuthPolicies.AuthenticatedUser,
-            policy =>
-                policy.RequireAuthenticatedUser());
-
-        options.AddPolicy(
-            AuthPolicies.ReadCommunities,
-            policy =>
-                policy
-                    .RequireAuthenticatedUser()
-                    .RequireClaim(
-                        "permissions",
-                        "communities.read"));
-
-        options.AddPolicy(
-            AuthPolicies.WriteCommunities,
-            policy =>
-                policy
-                    .RequireAuthenticatedUser()
-                    .RequireClaim(
-                        "permissions",
-                        "communities.write"));
-
-        options.AddPolicy(
-            AuthPolicies.OperateSystem,
-            policy =>
-                policy
-                    .RequireAuthenticatedUser()
-                    .RequireAssertion(
-                        context =>
-                            context.User.IsInRole(
-                                "Administrator") ||
-                            context.User.IsInRole(
-                                "Operator")));
-    });
-
-var app =
-    builder.Build();
-
+        ValidateIssuer = true, ValidIssuer = builder.Configuration["JWT_ISSUER"] ?? "climate-alert-api",
+        ValidateAudience = true, ValidAudience = builder.Configuration["JWT_AUDIENCE"] ?? "climate-alert-client",
+        ValidateIssuerSigningKey = true, IssuerSigningKey = new SymmetricSecurityKey(SHA256.HashData(Encoding.UTF8.GetBytes(key))),
+        ValidAlgorithms = [SecurityAlgorithms.HmacSha256], ValidateLifetime = true, ClockSkew = TimeSpan.Zero,
+        RoleClaimType = "role", NameClaimType = "name"
+    };
+    o.Events = new JwtBearerEvents { OnTokenValidated = async context =>
+    {
+        // Resolve live Auth identity instead of authorizing from stale JWT roles.
+        var config = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+        using var request = new HttpRequestMessage(HttpMethod.Get, config["AUTH_SERVICE_URL"]!.TrimEnd('/') + "/internal/identity/current");
+        request.Headers.TryAddWithoutValidation("Authorization", context.Request.Headers.Authorization.ToString());
+        request.Headers.TryAddWithoutValidation("X-Internal-Service-Key", config["AUTH_INTERNAL_KEY"]);
+        try
+        {
+            var client = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>().CreateClient("internal");
+            using var response = await client.SendAsync(request, context.HttpContext.RequestAborted);
+            if (!response.IsSuccessStatusCode) { context.Fail("Identity unavailable."); return; }
+            var current = await response.Content.ReadFromJsonAsync<JsonElement>(context.HttpContext.RequestAborted);
+            if (current.GetProperty("id").GetString() != context.Principal!.FindFirstValue("sub") || !current.GetProperty("isActive").GetBoolean())
+            { context.Fail("Inactive identity."); return; }
+            var identity = (ClaimsIdentity)context.Principal!.Identity!;
+            foreach (var claim in identity.FindAll("role").ToArray()) identity.RemoveClaim(claim);
+            identity.AddClaim(new("role", current.GetProperty("role").GetString()!));
+            identity.AddClaim(new("name", current.GetProperty("name").GetString()!));
+            identity.AddClaim(new("username", current.GetProperty("username").GetString()!));
+        }
+        catch (Exception e) when (e is HttpRequestException or OperationCanceledException or JsonException)
+        { context.Fail("Identity unavailable."); }
+    }};
+});
+builder.Services.AddAuthorization(o =>
+{
+    o.AddPolicy(AuthPolicies.AuthenticatedUser, p => p.RequireAuthenticatedUser());
+    o.AddPolicy(AuthPolicies.WriteCommunities, p => p.RequireRole("Administrator", "Operator"));
+});
+var app = builder.Build();
 app.UseExceptionHandler();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapControllers();
-
+app.Use(async (context, next) =>
+{
+    context.TraceIdentifier = Guid.TryParse(context.Request.Headers["X-Correlation-ID"], out var id) ? id.ToString() : Guid.NewGuid().ToString();
+    context.Response.Headers["X-Correlation-ID"] = context.TraceIdentifier;
+    await next();
+});
+app.UseAuthentication(); app.UseAuthorization(); app.MapControllers();
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<CommunityDbContext>();
+    if (builder.Configuration.GetValue("Database:ApplyMigrationsOnStartup", false)) await db.Database.MigrateAsync();
+    // Opt-in insert-only HTTP import preserves IDs without foreign database credentials.
+    if (builder.Configuration.GetValue("Migration:ImportLegacy", false))
+    {
+        var http = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("internal");
+        var rows = await http.GetFromJsonAsync<JsonElement>(builder.Configuration["COMMUNITY_IMPORT_URL"]!);
+        foreach (var row in rows.EnumerateArray())
+        {
+            var id = row.GetProperty("id").GetGuid();
+            if (await db.Communities.AnyAsync(c => c.Id == id)) continue;
+            string? Text(string name) => row.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
+            decimal? Number(string name) => row.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDecimal() : null;
+            var item = new CommunityService.Domain.Community(Text("name")!, Text("location")!, Text("description"),
+                Text("municipality"), Text("department"), Text("country"), Number("latitude"), Number("longitude"),
+                row.GetProperty("isActive").GetBoolean(), row.GetProperty("createdAt").GetDateTimeOffset());
+            db.Entry(item).Property(c => c.Id).CurrentValue = id; db.Communities.Add(item);
+        }
+        await db.SaveChangesAsync();
+    }
+}
 app.Run();

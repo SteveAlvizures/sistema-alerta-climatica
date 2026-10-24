@@ -30,7 +30,6 @@ public class AlertController {
     }
 
     @GetMapping("/api/alerts")
-    @PreAuthorize("hasAuthority('alerts.read')")
     public AlertPageResponse getPage(
             @RequestParam(defaultValue = "1")
             int page,
@@ -77,7 +76,6 @@ public class AlertController {
     }
 
     @GetMapping("/api/alerts/{id}")
-    @PreAuthorize("hasAuthority('alerts.read')")
     public AlertResponse getById(
             @PathVariable UUID id
     ) {
@@ -85,7 +83,6 @@ public class AlertController {
     }
 
     @GetMapping("/api/communities/{communityId}/alerts")
-    @PreAuthorize("hasAuthority('alerts.read')")
     public List<AlertResponse> getByCommunity(
             @PathVariable UUID communityId
     ) {
@@ -95,7 +92,7 @@ public class AlertController {
     }
 
     @PatchMapping("/api/alerts/{id}/acknowledge")
-    @PreAuthorize("hasAuthority('alerts.write')")
+    @PreAuthorize("hasAuthority('OperateSystem')")
     public AlertResponse acknowledge(
             @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt
@@ -109,7 +106,7 @@ public class AlertController {
     }
 
     @PatchMapping("/api/alerts/{id}/resolve")
-    @PreAuthorize("hasAuthority('alerts.write')")
+    @PreAuthorize("hasAuthority('OperateSystem')")
     public AlertResponse resolve(
             @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt
@@ -123,7 +120,7 @@ public class AlertController {
     }
 
     @PostMapping("/api/alerts/evaluate")
-    @PreAuthorize("hasAuthority('alerts.write')")
+    @PreAuthorize("hasAuthority('OperateSystem')")
     public void evaluate(
             @Valid
             @RequestBody

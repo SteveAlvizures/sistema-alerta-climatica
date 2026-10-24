@@ -117,5 +117,46 @@ combina inventario actual con actividad del período elegido.
 
 Las capturas están **PENDIENTES** y deben tomarse en el sistema local con datos de
 prueba. La inspección visual interactiva no quedó validada en la revisión anterior.
-Existe un hallazgo de dos accesos iguales a Reportes en la navegación; ambos apuntan
-a la misma pantalla. Su corrección funcional queda fuera de esta revisión documental.
+La opción Reportes aparece una sola vez para cuentas autorizadas.
+
+## Comunidades, sensores, alertas, eventos y bitácora
+
+En Comunidades, consulta ubicación, estado y datos administrativos y aplica filtros.
+Una cuenta operadora/administradora puede crear, editar o cambiar estado. El sistema
+impide eliminar una comunidad con sensores, reglas, alertas o eventos relacionados.
+
+En Sensores, filtra por comunidad/tipo/estado y abre el detalle para ver unidad,
+instalación, última lectura e historial. Las cuentas operadoras pueden registrar una
+lectura manual. La simulación solo se ejecuta si el operador del despliegue la habilita;
+sus datos no son observaciones físicas certificadas.
+
+En Reglas se establecen variable, fenómeno, nivel, límites y vigencia. En Alertas,
+una cuenta operadora puede atender una abierta y cerrar una atendida. Revisa el
+valor y condición que originaron la alerta; no cierres registros reales como prueba.
+Eventos reúne incidentes y enlaza sensores/alertas. La Bitácora solo es visible
+para Administrator. La bitácora recoge las operaciones principales implementadas;
+no certifica todos los rechazos ni cada detalle de transiciones automáticas.
+
+[CAPTURA PENDIENTE: Comunidades y filtros]
+
+- Abrir: Comunidades con datos de prueba.
+- Debe verse: municipio/departamento, estado y paginación.
+- Demuestra: consulta y administración territorial.
+
+[CAPTURA PENDIENTE: Sensor y lecturas]
+
+- Abrir: detalle de un sensor de prueba con lecturas.
+- Debe verse: unidad, estado, fecha y tabla histórica.
+- Demuestra: seguimiento de observaciones.
+
+[CAPTURA PENDIENTE: Alerta y evento asociados]
+
+- Abrir: una alerta de prueba y el detalle de su evento.
+- Debe verse: fenómeno, nivel, valor, umbral, estado y enlaces.
+- Demuestra: trazabilidad y ciclo operativo.
+
+[CAPTURA PENDIENTE: Bitácora de administrador]
+
+- Abrir: Bitácora con una cuenta administradora de prueba.
+- Debe verse: usuario, acción, recurso, fecha y filtros, sin datos sensibles.
+- Demuestra: consulta autorizada de registros disponibles.

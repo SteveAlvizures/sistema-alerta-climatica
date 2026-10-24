@@ -11,8 +11,25 @@ public sealed record AuthAuditEvent(Guid Id, ExternalIdentity Actor, ExternalIde
 // Transitional audit ingestion only. Never exposed by Gateway, never exports passwords.
 public static class AuthIntegrationEndpoints
 {
-    public static void MapAuthIntegration(this IEndpointRouteBuilder endpoints) =>
+    public static void MapAuthIntegration(this IEndpointRouteBuilder endpoints)
+    {
         endpoints.MapPost("/internal/auth-events", Receive).ExcludeFromDescription();
+        endpoints.MapGet("/internal/audit-export", Export).ExcludeFromDescription();
+    }
+
+    // Transitional HTTP feed preserves atomic legacy audit writes without exposing SQL credentials to Audit.
+    private static async Task<IResult> Export(HttpContext context, ClimateAlertDbContext db, IConfiguration configuration,
+        DateTimeOffset? after, Guid? afterId, CancellationToken cancellationToken)
+    {
+        if (!ExternalIdentityIntegration.HasServiceKey(context, configuration)) return Results.Unauthorized();
+        var query = db.AuditActions.AsNoTracking();
+        if (after.HasValue)
+            query = query.Where(a => a.OccurredAt > after.Value || (a.OccurredAt == after.Value &&
+                (!afterId.HasValue || a.Id.CompareTo(afterId.Value) > 0)));
+        return Results.Ok(await query.OrderBy(a => a.OccurredAt).ThenBy(a => a.Id).Take(100)
+            .Select(a => new { a.Id, a.OccurredAt, Username = a.User.Name, a.Action, a.AffectedEntity,
+                a.AffectedRecordId, a.Description, UserId = a.UserId }).ToListAsync(cancellationToken));
+    }
 
     private static async Task<IResult> Receive(AuthAuditEvent item, HttpContext context,
         ClimateAlertDbContext db, IConfiguration configuration, CancellationToken cancellationToken)

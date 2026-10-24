@@ -10,11 +10,11 @@ public sealed class Community
         string name,
         string location,
         string? description,
-        string municipality,
-        string department,
-        string country,
-        decimal latitude,
-        decimal longitude,
+        string? municipality,
+        string? department,
+        string? country,
+        decimal? latitude,
+        decimal? longitude,
         bool isActive,
         DateTimeOffset createdAt)
     {
@@ -42,15 +42,15 @@ public sealed class Community
 
     public string? Description { get; private set; }
 
-    public string Municipality { get; private set; } = null!;
+    public string? Municipality { get; private set; } = null!;
 
-    public string Department { get; private set; } = null!;
+    public string? Department { get; private set; } = null!;
 
-    public string Country { get; private set; } = null!;
+    public string? Country { get; private set; } = null!;
 
-    public decimal Latitude { get; private set; }
+    public decimal? Latitude { get; private set; }
 
-    public decimal Longitude { get; private set; }
+    public decimal? Longitude { get; private set; }
 
     public bool IsActive { get; private set; }
 
@@ -60,11 +60,11 @@ public sealed class Community
         string name,
         string location,
         string? description,
-        string municipality,
-        string department,
-        string country,
-        decimal latitude,
-        decimal longitude,
+        string? municipality,
+        string? department,
+        string? country,
+        decimal? latitude,
+        decimal? longitude,
         bool isActive)
     {
         Name = Required(name, nameof(name), 150);
@@ -75,17 +75,17 @@ public sealed class Community
             nameof(description),
             1000);
 
-        Municipality = Required(
+        Municipality = NormalizeOptional(
             municipality,
             nameof(municipality),
             150);
 
-        Department = Required(
+        Department = NormalizeOptional(
             department,
             nameof(department),
             150);
 
-        Country = Required(
+        Country = NormalizeOptional(
             country,
             nameof(country),
             100);

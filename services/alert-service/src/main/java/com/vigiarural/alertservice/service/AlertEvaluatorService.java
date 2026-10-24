@@ -15,14 +15,17 @@ import java.util.List;
 public class AlertEvaluatorService {
 
     private final AlertRuleRepository rules;
+    private final AuditPublisher audit;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
     private final AlertRepository alerts;
     private final ClimateEventRepository events;
 
     public AlertEvaluatorService(
             AlertRuleRepository rules,
             AlertRepository alerts,
-            ClimateEventRepository events
+            ClimateEventRepository events, org.springframework.jdbc.core.JdbcTemplate jdbc, AuditPublisher audit
     ) {
+        this.audit=audit; this.jdbc = jdbc;
         this.rules = rules;
         this.alerts = alerts;
         this.events = events;
@@ -31,6 +34,8 @@ public class AlertEvaluatorService {
     public void evaluate(
             EvaluateReadingRequest reading
     ) {
+        jdbc.execute("SELECT pg_advisory_xact_lock(" + reading.sensorId().hashCode() + "," + reading.variable().ordinal() + ")");
+        if (jdbc.update("INSERT INTO evaluation_receipts(reading_id) VALUES (?) ON CONFLICT DO NOTHING",reading.readingId())==0)return;
         if (!reading.sensorActive())
             return;
 
@@ -40,6 +45,7 @@ public class AlertEvaluatorService {
             return;
         }
 
+        audit.system("LecturaEvaluada","SensorReading",reading.readingId());
         List<AlertRule> candidates =
                 rules.findByCommunityIdAndVariableAndActiveTrue(
                         reading.communityId(),
@@ -115,7 +121,7 @@ public class AlertEvaluatorService {
                             reading.receivedAt()
                     );
 
-            alerts.save(current);
+            current = alerts.save(current);
         } else {
             current.transition(
                     applicable,

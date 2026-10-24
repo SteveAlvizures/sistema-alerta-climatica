@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 namespace CommunityService.Data;
 
 public sealed class CommunityDbContext(
-    DbContextOptions<CommunityDbContext> options)
+    DbContextOptions<CommunityDbContext> options, IHttpContextAccessor? http = null)
     : DbContext(options)
 {
     public DbSet<Community> Communities =>
@@ -13,6 +13,7 @@ public sealed class CommunityDbContext(
     protected override void OnModelCreating(
         ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<CommunityService.Services.CommunityAuditEvent>().HasKey(e=>e.Id);
         var entity =
             modelBuilder.Entity<Community>();
 
@@ -40,17 +41,17 @@ public sealed class CommunityDbContext(
         entity.Property(x => x.Municipality)
             .HasColumnName("municipality")
             .HasMaxLength(150)
-            .IsRequired();
+            .IsRequired(false);
 
         entity.Property(x => x.Department)
             .HasColumnName("department")
             .HasMaxLength(150)
-            .IsRequired();
+            .IsRequired(false);
 
         entity.Property(x => x.Country)
             .HasColumnName("country")
             .HasMaxLength(100)
-            .IsRequired();
+            .IsRequired(false);
 
         entity.Property(x => x.Latitude)
             .HasColumnName("latitude")
@@ -75,5 +76,25 @@ public sealed class CommunityDbContext(
                     x.Location
                 })
             .IsUnique();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken ct=default)
+    {
+        var user=http?.HttpContext?.User;
+        if(user?.Identity?.IsAuthenticated==true && Guid.TryParse(user.FindFirst("sub")?.Value,out var userId))
+        {
+            var actor=new{id=userId,name=user.FindFirst("name")?.Value??"",username=user.FindFirst("username")?.Value??""};
+            foreach(var entry in ChangeTracker.Entries<Community>().Where(e=>e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted).ToArray())
+            {
+                var item=new CommunityService.Services.CommunityAuditEvent();
+                string action=entry.State==EntityState.Added?"ComunidadCreada":entry.State==EntityState.Deleted?"ComunidadEliminada":
+                    entry.Property(c=>c.IsActive).IsModified?(entry.Entity.IsActive?"ComunidadActivada":"ComunidadDesactivada"):"ComunidadEditada";
+                item.Payload=System.Text.Json.JsonSerializer.Serialize(new{id=item.Id,actor,target=actor,action,
+                    description=action,affectedRecordId=entry.Entity.Id,occurredAt=item.CreatedAt,resource="Community",
+                    correlationId=http!.HttpContext!.TraceIdentifier,result="Success"});
+                Set<CommunityService.Services.CommunityAuditEvent>().Add(item);
+            }
+        }
+        return base.SaveChangesAsync(ct);
     }
 }

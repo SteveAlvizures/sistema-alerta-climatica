@@ -1,5 +1,9 @@
 # API de Fase 3
 
+> Integración final: [informe del 23/10/2026](INFORME_FINAL_FASE3.md). El Compose base
+> conserva el modo estable; `docker-compose.final.yml` agrega los cuatro propietarios
+> nuevos y el corte es explícito después de importar/conciliar. No equivale a producción certificada.
+
 El navegador usa `/api` en el origen web. Gateway conserva paths y cuerpos; no
 existe un prefijo público por tecnología o nombre de contenedor. Los health se
 consultan sin `/api` en el origen Nginx o directamente al proceso.
@@ -59,8 +63,9 @@ su respuesta histórica `{message}`.
 
 ## Monolito e integración interna
 
-Comunidades, sensores, lecturas, alertas, reglas, eventos, auditoría y dashboard
-siguen en el monolito. [Integración pendiente](integracion-pendiente.md) enumera
+En modo base esas rutas siguen en el monolito. En el corte final, comunidades
+van a Community; sensores/lecturas a Sensor; reglas/alertas/eventos a Alert;
+auditoría a Audit. Dashboard conserva su URL y se compone por APIs en el backend. [Integración pendiente](integracion-pendiente.md) enumera
 rutas, filtros y modelos exactos; [endpoints de Fase 2](../endpoints.md) es referencia
 del dominio, con Auth/Report sustituidos por los contratos actuales de esta página.
 
@@ -69,3 +74,13 @@ identidad vigente con permissions. Monolito POST `/internal/auth-events` recibe 
 outbox e identifica duplicados por id. Son contratos internos y no se publican
 por Gateway. Esquemas y acciones: [integración pendiente](integracion-pendiente.md#audit).
 No existe Swagger público de Report: docs/redoc/openapi están deshabilitados.
+
+## Canales internos del cierre
+
+Sensor expone `/internal/import` para lotes insert-only y
+`/internal/dashboard-readings` para la ventana de 30 lecturas por sensor.
+Alert expone `/internal/migration`, `/internal/readings/evaluate` y
+`/internal/events/summary`. Audit recibe `/internal/auth-events`; backend sirve
+`/internal/audit-export`. Todos requieren clave de servicio, quedan fuera de las
+rutas públicas y no aceptan credenciales de bases ajenas. No son APIs del navegador.
+La cobertura/paridad restante se identifica en el [informe final](INFORME_FINAL_FASE3.md#20-limitaciones-actuales).

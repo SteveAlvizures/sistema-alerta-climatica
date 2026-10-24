@@ -1,0 +1,19 @@
+# Add after phase3 + final + phase3.production. Configuration prepared; production runtime not certified.
+services:
+  sensor-sqlserver:
+    environment:
+      MSSQL_PID: ${SQLSERVER_EDITION:-Express}
+  community-service:
+    mem_limit: 512m
+    cpus: 1.0
+  sensor-service:
+    mem_limit: 768m
+    cpus: 1.0
+  alert-service:
+    mem_limit: 768m
+    cpus: 1.0
+    environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70
+  audit-service:
+    mem_limit: 384m
+    cpus: 1.0

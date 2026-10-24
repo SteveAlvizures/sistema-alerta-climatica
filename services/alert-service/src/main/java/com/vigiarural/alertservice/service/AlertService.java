@@ -17,11 +17,15 @@ import java.util.UUID;
 public class AlertService {
 
     private final AlertRepository repository;
-
-    public AlertService(
-            AlertRepository repository
-    ) {
-        this.repository = repository;
+    private final AuditPublisher audit;
+    private final com.vigiarural.alertservice.repository.AlertRuleRepository rules;
+    private final com.vigiarural.alertservice.repository.ClimateEventRepository events;
+    private final com.vigiarural.alertservice.integration.CommunityClient communities;
+    private final com.vigiarural.alertservice.integration.SensorClient sensors;
+    public AlertService(AlertRepository repository, com.vigiarural.alertservice.repository.AlertRuleRepository rules,
+            com.vigiarural.alertservice.repository.ClimateEventRepository events,
+            com.vigiarural.alertservice.integration.CommunityClient communities, com.vigiarural.alertservice.integration.SensorClient sensors, AuditPublisher audit) {
+        this.audit=audit; this.repository=repository; this.rules=rules; this.events=events; this.communities=communities; this.sensors=sensors;
     }
 
     @Transactional(readOnly = true)
@@ -45,13 +49,7 @@ public class AlertService {
             );
         }
 
-        page = Math.max(1, page);
-
-        if (pageSize != 10 &&
-                pageSize != 20 &&
-                pageSize != 50) {
-            pageSize = 20;
-        }
+        if (page < 1 || page > 100000 || pageSize < 1 || pageSize > 100) throw new IllegalArgumentException("Invalid page");
 
         List<Alert> filtered =
                 repository
@@ -181,6 +179,7 @@ public class AlertService {
                 responsibleId
         );
 
+        audit.record("AlertaAtendida","Alert",alert.getId());
         return map(alert);
     }
 
@@ -195,6 +194,10 @@ public class AlertService {
                 responsibleId
         );
 
+        audit.record("AlertaCerrada","Alert",alert.getId());
+        repository.flush();
+        if (alert.getEventId()!=null && !repository.existsByCommunityIdAndPhenomenonAndStatusNot(alert.getCommunityId(),alert.getPhenomenon(),AlertStatus.Closed))
+            events.findById(alert.getEventId()).ifPresent(e->e.close(alert.getUpdatedAt()));
         return map(alert);
     }
 
@@ -210,6 +213,12 @@ public class AlertService {
     }
 
     private AlertResponse map(Alert alert) {
+        var attrs=(org.springframework.web.context.request.ServletRequestAttributes)org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes();
+        var authorization=attrs.getRequest().getHeader("Authorization");
+        var community=communities.getById(alert.getCommunityId(),authorization);
+        var sensor=sensors.getById(alert.getSensorId(),authorization);
+        var rule=rules.findById(alert.getRuleId()).orElseThrow();
+        String unit=switch(alert.getVariable()) {case Temperature->"\u00b0C";case RelativeHumidity->"%";case WindSpeed->"km/h";case RainfallLevel->"mm";case RiverOrReservoirLevel->"m";case SmokeConcentration->"ppm";default->"";};
         return new AlertResponse(
                 alert.getId(),
                 alert.getCommunityId(),
@@ -233,7 +242,8 @@ public class AlertService {
                 alert.getComparisonOperatorSnapshot(),
                 alert.getAcknowledgedAt(),
                 alert.getAcknowledgedById(),
-                alert.getClosedById()
+                alert.getClosedById(), unit, community.name(), sensor.name(), sensor.code(), rule.getName(),rule.getCode(),
+                alert.getStatus().name(), null, null
         );
     }
 }

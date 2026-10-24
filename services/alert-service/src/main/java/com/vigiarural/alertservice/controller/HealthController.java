@@ -17,7 +17,10 @@ public class HealthController {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    @GetMapping("/health")
+    @GetMapping({"/health", "/health/live"})
+    public Map<String,Object> live() { return Map.of("status", "Healthy"); }
+
+    @GetMapping("/health/ready")
     public ResponseEntity<Map<String, Object>> health() {
 
         jdbcTemplate.queryForObject(

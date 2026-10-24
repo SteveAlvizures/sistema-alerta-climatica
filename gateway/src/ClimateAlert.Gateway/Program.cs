@@ -36,7 +36,8 @@ public static class GatewayApplication
         // restart a healthy Gateway whenever a database or an upstream is unavailable.
         builder.Services.AddHealthChecks().AddCheck<UpstreamHealthCheck>("backend", tags: ["ready"])
             .AddCheck<AuthUpstreamHealthCheck>("auth", tags: ["ready"])
-            .AddCheck<ReportUpstreamHealthCheck>("reports", tags: ["ready"]);
+            .AddCheck<ReportUpstreamHealthCheck>("reports", tags: ["ready"])
+            .AddCheck<ExtractedServicesHealthCheck>("extracted-services", tags: ["ready"]);
 
         var app = builder.Build();
         app.UseMiddleware<CorrelationMiddleware>();

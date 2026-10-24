@@ -12,20 +12,20 @@ public sealed record CreateCommunityRequest(
     [MaxLength(1000)]
     string? Description,
 
-    [Required, MaxLength(150)]
-    string Municipality,
+    [MaxLength(150)]
+    string? Municipality,
 
-    [Required, MaxLength(150)]
-    string Department,
+    [MaxLength(150)]
+    string? Department,
 
-    [Required, MaxLength(100)]
-    string Country,
+    [MaxLength(100)]
+    string? Country,
 
     [Range(-90, 90)]
-    decimal Latitude,
+    decimal? Latitude,
 
     [Range(-180, 180)]
-    decimal Longitude,
+    decimal? Longitude,
 
     bool IsActive = true);
 
@@ -39,20 +39,20 @@ public sealed record UpdateCommunityRequest(
     [MaxLength(1000)]
     string? Description,
 
-    [Required, MaxLength(150)]
-    string Municipality,
+    [MaxLength(150)]
+    string? Municipality,
 
-    [Required, MaxLength(150)]
-    string Department,
+    [MaxLength(150)]
+    string? Department,
 
-    [Required, MaxLength(100)]
-    string Country,
+    [MaxLength(100)]
+    string? Country,
 
     [Range(-90, 90)]
-    decimal Latitude,
+    decimal? Latitude,
 
     [Range(-180, 180)]
-    decimal Longitude,
+    decimal? Longitude,
 
     bool? IsActive = null);
 
@@ -66,18 +66,18 @@ public sealed record CommunityResponse(
     string? Description,
     bool IsActive,
     DateTimeOffset CreatedAt,
-    string Municipality,
-    string Department,
-    string Country,
-    decimal Latitude,
-    decimal Longitude,
+    string? Municipality,
+    string? Department,
+    string? Country,
+    decimal? Latitude,
+    decimal? Longitude,
     int SensorCount = 0);
 
 public sealed record PagedResponse<T>(
-    IReadOnlyList<T> Items,
-    int Page,
+    IReadOnlyList<T> Data,
+    int PageIndex,
     int PageSize,
     int TotalPages,
     int TotalCount,
-    bool HasPreviousPage,
-    bool HasNextPage);
+    bool HasPrevious,
+    bool HasNext);

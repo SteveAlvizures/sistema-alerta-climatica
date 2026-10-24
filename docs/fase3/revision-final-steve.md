@@ -1,9 +1,13 @@
-# Revisión técnica de cierre de Fase 3
+# Antecedente: revisión técnica de Steve del 22/10/2026
+
+> Integración final: [informe del 23/10/2026](INFORME_FINAL_FASE3.md). El Compose base
+> conserva el modo estable; `docker-compose.final.yml` agrega los cuatro propietarios
+> nuevos y el corte es explícito después de importar/conciliar. No equivale a producción certificada.
 
 Fecha local de revisión: 22/10/2026 (America/Guatemala). Rama `steve-fase3`.
 Base: `764ac02 feat: implementar report service y reportería frontend`.
 Los PDFs registran su fecha de generación en UTC, por lo que muestran 23/10/2026.
-Este cierre mantiene Community, Sensor, Alert y Audit en el monolito, sin OAuth,
+Este antecedente histórico mantuvo Community, Sensor, Alert y Audit en el monolito, sin OAuth,
 migraciones destructivas, commit ni push. Los resultados vigentes se centralizan en [pruebas](pruebas.md).
 Este documento distingue la regresión funcional previa de la revisión documental posterior.
 

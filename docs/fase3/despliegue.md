@@ -1,6 +1,47 @@
 # Despliegue y recuperación
 
+> Integración final: [informe del 23/10/2026](INFORME_FINAL_FASE3.md). El Compose base
+> conserva el modo estable; `docker-compose.final.yml` agrega los cuatro propietarios
+> nuevos y el corte es explícito después de importar/conciliar. No equivale a producción certificada.
+
 ## Alcance implementado
+
+El modo final combina el archivo base con
+[docker-compose.final.yml](../../deploy/compose/docker-compose.final.yml): 16
+contenedores, incluidos Community, Sensor, Alert, Audit y sus cuatro bases propias.
+El backend continúa como composición HTTP del dashboard y exportador del historial
+antiguo de auditoría. No retirar todavía su base ni sus volúmenes.
+
+### Corte incremental de los cuatro dominios
+
+1. Copiar `deploy/compose/final.env.example` a `.env.final`, completar secretos
+   únicos y conservar los destinos `monolith`. No publicar ese archivo.
+2. Combinar ambos Compose con `--env-file .env --env-file .env.final`. Para la
+   primera importación de comunidades habilitar `COMMUNITY_IMPORT_LEGACY=true`;
+   después volver a `false`. Solo inserta IDs ausentes por HTTP.
+3. Con las escrituras y simulación detenidas, ejecutar
+   `python tools/migrate-phase3-http.py`, configurando `MIGRATION_SOURCE_URL`,
+   `MIGRATION_USERNAME` y `MIGRATION_PASSWORD` privadamente. La herramienta importa
+   sensores, lecturas, reglas, alertas y eventos mediante endpoints internos;
+   nunca elimina ni sobrescribe el origen. Conciliar conteos e IDs antes del corte.
+4. Añadir `--env-file deploy/compose/final-cutover.env.example` al final de los
+   archivos de entorno y ejecutar `up -d --wait --wait-timeout 180`. Ese archivo
+   cambia rutas, clientes de Report, destino de auditoría de Auth y dashboard.
+5. Comprobar `/health/live`, `/health/ready` y las pruebas de contrato/E2E. Ante
+   fallo, detener escrituras antes de restaurar destinos; el origen no contiene
+   las nuevas escrituras de los propietarios y requiere conciliación explícita.
+
+Comando de arranque tras importar y conciliar:
+
+```powershell
+docker compose --env-file .env --env-file .env.final --env-file deploy/compose/final-cutover.env.example -f deploy/compose/docker-compose.phase3.yml -f deploy/compose/docker-compose.final.yml up -d --build --wait --wait-timeout 180
+```
+
+Para producción se agregan, en ese orden, los overlays `docker-compose.phase3.production.yml`
+y `docker-compose.final.production.yml`. Revisar origen HTTPS y recursos antes de
+ejecutarlos. Esta combinación se prepara para despliegue; no acredita un despliegue
+real ni recuperación ensayada en VPS. Respaldar las siete persistencias con las
+herramientas de cada motor; nunca usar `down -v` como procedimiento de recuperación.
 
 El archivo [docker-compose.phase3.yml](../../deploy/compose/docker-compose.phase3.yml)
 define ocho servicios: frontend, gateway, auth-service, auth-postgres,

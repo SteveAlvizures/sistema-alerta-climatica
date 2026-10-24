@@ -54,6 +54,15 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String,Object>> dataConflict(Exception error) {return response(HttpStatus.CONFLICT,"Conflict","A conflicting record already exists.");}
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Map<String,Object>> forbidden(Exception error) {return response(HttpStatus.FORBIDDEN,"Forbidden","Permission required.");}
+    @ExceptionHandler(org.springframework.web.client.RestClientException.class)
+    public ResponseEntity<Map<String,Object>> upstream(Exception error) {return response(HttpStatus.SERVICE_UNAVAILABLE,"Unavailable","Referenced service unavailable.");}
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String,Object>> unexpected(Exception error) {return response(HttpStatus.INTERNAL_SERVER_ERROR,"Error","Operation could not be completed.");}
+
     private ResponseEntity<Map<String, Object>>
     response(
             HttpStatus status,

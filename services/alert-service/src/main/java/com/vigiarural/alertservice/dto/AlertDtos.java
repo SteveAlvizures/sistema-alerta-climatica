@@ -49,7 +49,9 @@ public final class AlertDtos {
             String comparisonOperator,
             OffsetDateTime acknowledgedAt,
             UUID acknowledgedById,
-            UUID closedById
+            UUID closedById,
+            String unit, String communityName, String sensorName, String sensorCode,
+            String ruleName, String ruleCode, String statusLabel, String acknowledgedByName, String closedByName
     ) {
     }
 

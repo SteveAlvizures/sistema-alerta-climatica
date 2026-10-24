@@ -18,9 +18,11 @@ public class SensorClient {
             @Value("${SENSOR_SERVICE_URL:http://127.0.0.1:3004}")
             String baseUrl
     ) {
+        var factory = new org.springframework.http.client.JdkClientHttpRequestFactory(java.net.http.HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(3)).build());
+        factory.setReadTimeout(java.time.Duration.ofSeconds(3));
         this.client =
                 RestClient.builder()
-                        .baseUrl(baseUrl)
+                        .requestFactory(factory).baseUrl(baseUrl)
                         .build();
     }
 
@@ -33,7 +35,7 @@ public class SensorClient {
                 .uri("/api/sensors/{id}", id)
                 .header(
                         HttpHeaders.AUTHORIZATION,
-                        authorization
+                        authorization == null ? "" : authorization
                 )
                 .retrieve()
                 .body(SensorInfo.class);

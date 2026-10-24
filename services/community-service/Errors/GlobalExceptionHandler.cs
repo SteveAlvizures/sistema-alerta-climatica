@@ -44,19 +44,8 @@ public sealed class GlobalExceptionHandler(
                 break;
         }
 
-        if (statusCode >= 500)
-        {
-            logger.LogError(
-                exception,
-                "Error interno procesando la solicitud.");
-        }
-        else
-        {
-            logger.LogWarning(
-                exception,
-                "Solicitud rechazada con código {StatusCode}.",
-                statusCode);
-        }
+        if (exception is HttpRequestException or OperationCanceledException) statusCode = 503;
+        logger.LogWarning("Community request failed status={StatusCode}", statusCode);
 
         httpContext.Response.StatusCode = statusCode;
 
@@ -64,8 +53,7 @@ public sealed class GlobalExceptionHandler(
         {
             Status = statusCode,
             Title = title,
-            Detail = statusCode ==
-                     StatusCodes.Status500InternalServerError
+            Detail = statusCode >= 500
                 ? "Ocurrió un error interno."
                 : exception.Message
         };

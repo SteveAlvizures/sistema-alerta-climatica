@@ -8,17 +8,11 @@ namespace CommunityService.Controllers;
 
 [ApiController]
 [Route("api/communities")]
-[Authorize(
-    Policy =
-        AuthPolicies.AuthenticatedUser)]
 public sealed class CommunitiesController(
     CommunityManager service)
     : ControllerBase
 {
     [HttpGet]
-    [Authorize(
-        Policy =
-            AuthPolicies.ReadCommunities)]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? search = null,
         [FromQuery] bool? isActive = null,
@@ -48,9 +42,6 @@ public sealed class CommunitiesController(
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(
-        Policy =
-            AuthPolicies.ReadCommunities)]
     public async Task<IActionResult> GetById(
         Guid id,
         CancellationToken cancellationToken)

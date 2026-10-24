@@ -1,5 +1,9 @@
 # Auth Service de Fase 3
 
+> Integración final: [informe del 23/10/2026](INFORME_FINAL_FASE3.md). El Compose base
+> conserva el modo estable; `docker-compose.final.yml` agrega los cuatro propietarios
+> nuevos y el corte es explícito después de importar/conciliar. No equivale a producción certificada.
+
 ## Responsabilidades y propiedad
 
 ```text
@@ -141,7 +145,7 @@ outbox se confirman en una transacción PostgreSQL.
 
 Un worker entrega eventos ordenados con reintentos y lock por lote. El monolito
 guarda proyección y auditoría juntos mediante EF. Si la respuesta se pierde, el
-reintento no duplica la acción. No se extrae Audit Service ni se hace escritura
+reintento no duplica la acción. En el modo base se conserva el receptor del monolito; el overlay final usa Audit Service mediante HTTP. No se hace escritura
 directa de Auth sobre SQL Server.
 
 Logout conserva el comportamiento anterior: registra una intención durable de

@@ -20,14 +20,16 @@ import java.util.UUID;
 public class AlertRuleService {
 
     private final AlertRuleRepository repository;
+    private final AuditPublisher audit;
     private final CommunityClient communityClient;
     private final SensorClient sensorClient;
 
     public AlertRuleService(
             AlertRuleRepository repository,
             CommunityClient communityClient,
-            SensorClient sensorClient
+            SensorClient sensorClient, AuditPublisher audit
     ) {
+        this.audit=audit;
         this.repository = repository;
         this.communityClient = communityClient;
         this.sensorClient = sensorClient;
@@ -86,13 +88,15 @@ public class AlertRuleService {
                 );
         }
 
-        String code =
+        String code = request.code() != null && !request.code().isBlank() ? request.code().trim() :
                 generateCode(
                         request.communityId(),
                         community.name(),
                         request.variable()
                 );
 
+        if(code.length()>100)throw new IllegalArgumentException("Rule code is too long.");
+        if (repository.existsByCodeIgnoreCase(code)) throw new IllegalStateException("Rule code already exists.");
         String name =
                 request.name() == null ||
                 request.name().isBlank()
@@ -142,6 +146,7 @@ public class AlertRuleService {
         }
 
         repository.save(rule);
+        audit.record("ReglaCreada","AlertRule",rule.getId());
 
         return map(rule);
     }
@@ -165,6 +170,7 @@ public class AlertRuleService {
                 request.isActive()
         );
 
+        audit.record("ReglaEditada","AlertRule",rule.getId());
         return map(rule);
     }
 
@@ -180,6 +186,7 @@ public class AlertRuleService {
         else
             rule.disable();
 
+        audit.record("ReglaEditada","AlertRule",rule.getId());
         return map(rule);
     }
 
@@ -231,8 +238,8 @@ public class AlertRuleService {
                         )
                         .orElse(0) + 1;
 
-        return prefix +
-                String.format("%03d", sequence);
+        while(repository.existsByCodeIgnoreCase(prefix+String.format("%03d",sequence))) sequence++;
+        return prefix+String.format("%03d",sequence);
     }
 
     private static String abbreviation(

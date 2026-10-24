@@ -1,5 +1,9 @@
 # Seguridad de Fase 3
 
+> Integración final: [informe del 23/10/2026](INFORME_FINAL_FASE3.md). El Compose base
+> conserva el modo estable; `docker-compose.final.yml` agrega los cuatro propietarios
+> nuevos y el corte es explícito después de importar/conciliar. No equivale a producción certificada.
+
 ## Fronteras y autenticación implementadas
 
 Angular usa `/api`; el interceptor compara origen y prefijo completo antes de
@@ -56,6 +60,19 @@ inesperados se sanitizan. Backend mantiene logging propio; no se afirma que ya
 exista tracing distribuido completo. No activar logs detallados sin revisar datos.
 
 ## Evidencia y pendientes
+
+En el modo final Community, Sensor, Alert y Audit comprueban firma HS256 con la
+misma derivación SHA-256 de la clave UTF-8 y consultan la identidad vigente en Auth.
+No se confía en roles obsoletos del token. Las rutas internas de importación,
+evaluación, auditoría y composición requieren clave interna; no tienen rutas
+públicas en Gateway. Las outboxes almacenan un payload permitido, nunca el bearer.
+Cada servicio tiene credenciales de su persistencia y consulta otros dominios por
+HTTP. Las redes y los volúmenes separados no sustituyen permisos mínimos ni backups.
+
+El lock de Auth se actualizó y fija Multer 2.5.0 mediante override; la auditoría npm
+de este cierre reportó cero vulnerabilidades. Sensor fija Pkcs 10.0.13 para corregir
+la dependencia transitiva detectada. No se afirma una auditoría exhaustiva de Java,
+Python o imágenes. Spring solo valida JWT; no se habilitaron flujos OAuth/OIDC.
 
 **PROBADO LOCALMENTE:** firma/audiencia/emisor/expiración, permisos vigentes,
 propiedad, headers, CORS, fallos y ausencia de secretos configurados en los archivos

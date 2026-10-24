@@ -1,5 +1,9 @@
 # Report Service y Reportes en Angular
 
+> Integración final: [informe del 23/10/2026](INFORME_FINAL_FASE3.md). El Compose base
+> conserva el modo estable; `docker-compose.final.yml` agrega los cuatro propietarios
+> nuevos y el corte es explícito después de importar/conciliar. No equivale a producción certificada.
+
 ## Alcance del tercer incremento
 
 Report Service genera ocho tipos de PDF mediante FastAPI, Jinja2 y WeasyPrint.
@@ -281,5 +285,11 @@ La regresión posterior al commit `764ac02`, los ajustes de robustez y la revisi
 final de los ocho PDFs están en [revision-final-steve.md](revision-final-steve.md).
 La lectura de salida del renderizador ahora se limita durante la transferencia y
 un fallo de lectura posterior a completar GridFS no degrada el documento a Failed.
-Los contratos y variables para las futuras fuentes están en
+Los contratos y variables para las fuentes del modo final están en
 [integracion-pendiente.md](integracion-pendiente.md).
+
+En el modo final esas fuentes ya tienen implementaciones: los overrides
+`FINAL_REPORT_COMMUNITY_URL`, `FINAL_REPORT_SENSOR_URL` y `FINAL_REPORT_ALERT_URL`
+apuntan a sus propietarios HTTP. El overlay también cambia lecturas y eventos a
+Sensor/Alert respectivamente. No se modificó el motor Python, los templates ni
+GridFS para integrar estas fuentes; se comprobaron los ocho tipos por Gateway.

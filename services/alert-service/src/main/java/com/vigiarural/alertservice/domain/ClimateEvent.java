@@ -91,7 +91,7 @@ public class ClimateEvent {
             );
 
         this.description = description.trim();
-        this.level = level;
+        if (level.ordinal() > this.level.ordinal()) this.level = level;
         updatedAt = at;
     }
 

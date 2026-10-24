@@ -1,6 +1,10 @@
 # Arquitectura de Fase 3
 
-## Tercer incremento: Auth y Report extraídos
+> Integración final: [informe del 23/10/2026](INFORME_FINAL_FASE3.md). El Compose base
+> conserva el modo estable; `docker-compose.final.yml` agrega los cuatro propietarios
+> nuevos y el corte es explícito después de importar/conciliar. No equivale a producción certificada.
+
+## Modo base conservado: Auth y Report extraídos
 
 ```text
 Navegador Angular 22 (/api)
@@ -28,7 +32,7 @@ originales y una proyección de identidad necesaria para sus claves foráneas, s
 fuente de autenticación en el modo externo. No se modificó el esquema SQL Server.
 Los contratos públicos permanecen estables. Gateway no accede a bases de datos.
 
-## Arquitectura objetivo, todavía no implementada
+## Arquitectura de servicios del overlay final
 
 ```text
 Angular 22+
@@ -44,7 +48,7 @@ API Gateway — ASP.NET Core 10 + YARP
     +--> Audit      — Python / FastAPI             --> MongoDB propio
 ```
 
-Reglas y eventos climáticos pertenecen al futuro Alert Service. Las bases de datos
+Reglas y eventos climáticos pertenecen a Alert en el corte final. Las bases de datos
 son propiedad de cada servicio; los demás las consultarán mediante contratos HTTP
 o proyecciones alimentadas por eventos, nunca mediante conexiones directas.
 
@@ -79,8 +83,8 @@ Consulta [Operación del Gateway](gateway.md) para comandos, pruebas y limitacio
 La extracción y el corte de identidad se describen en [Auth Service](auth-service.md).
 
 El tercer incremento se describe en [Report Service](report-service.md) y su
-[validación](validacion-reportes.md). La arquitectura objetivo completa conserva
-Community, Sensor, Alert y Audit como extracciones pendientes.
+[validación](validacion-reportes.md). La configuración base conserva
+las rutas legacy en el modo base; el overlay final activa propietarios separados.
 
 ## Flujos y fronteras de confianza
 
@@ -118,3 +122,19 @@ Los cortes futuros requieren contratos compatibles, migración/reconciliación d
 datos y actualización de destinos YARP/clientes internos, sin cambiar Angular.
 [Integración pendiente](integracion-pendiente.md) especifica rutas y dependencias.
 El índice del entregable está en [README](README.md).
+
+## Estado de la integración final
+
+El cierre agrega Community (.NET/PostgreSQL), Sensor (.NET/SQL Server), Alert
+(Java/Spring/PostgreSQL) y Audit (FastAPI/Mongo), además de Auth/Report existentes.
+`docker-compose.final.yml` define 16 contenedores con backend/SQL transitorios.
+El corte cambia ClusterId sin modificar Angular y conserva las rutas anidadas.
+Report consulta los nuevos propietarios; dashboard se compone por HTTP desde el
+backend; Audit recibe outbox Auth y un feed HTTP de auditoría legacy. Sensor entrega
+lecturas a Alert por outbox y conserva UUID deduplicados en el receptor.
+
+No se eliminaron las bases originales. La importación HTTP insert-only preservó
+38 sensores, 69,120 lecturas, 13 reglas, 14 alertas y 14 eventos del snapshot.
+Paridad avanzada Sensor/Alert, auditoría de nuevas mutaciones y retirada definitiva
+del backend siguen pendientes; no lo está la existencia del código de esos servicios.
+Diagrama y detalle: [informe final](INFORME_FINAL_FASE3.md#5-arquitectura-de-microservicios).

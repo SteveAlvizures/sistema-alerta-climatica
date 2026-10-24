@@ -1,11 +1,17 @@
-# Integración pendiente con Community, Sensor, Alert y Audit
+# Integración final y pendientes de paridad
 
-Baseline: rama `steve-fase3`, commit `764ac02`. Los cuatro servicios todavía no
-existen en esta rama. Sus rutas siguen atendidas por el monolito. Este documento
-describe los contratos actuales, no una API alternativa. Angular usa solamente
-`/api` a través de Gateway; no necesita conocer destinos internos.
+Rama `integracion-final-fase3`, desde `5bc6bce`. Community y Alert se incorporaron
+selectivamente de Astrid; Sensor y Audit tienen versiones mínimas nuevas. Auth y
+Report de Steve se conservan. El modo base permanece disponible; el overlay final
+permite activar propietarios separados después de importar y conciliar datos.
 
-## Entrega necesaria de cada integrante
+**Ya no está pendiente la existencia de estos cuatro servicios.** Siguen pendientes
+paridad avanzada, auditoría completa de sus mutaciones, hardening, carga, respaldo/
+restauración integral y retirada del monolito. Los contratos siguientes son baseline
+de aceptación; no se declara cumplido todo caso de negocio solo por mantener sus URLs.
+[Informe final](INFORME_FINAL_FASE3.md), [pruebas](pruebas.md) y [despliegue](despliegue.md).
+
+## Validaciones pendientes del equipo
 
 Entregar URL interna con esquema/puerto y DNS de Compose/K3s, imagen y variables
 documentadas, persistencia propia, procedimiento de migración no destructivo,
@@ -13,7 +19,7 @@ contratos compatibles, pruebas de contrato y health. Confirmar validación JWT y
 consulta de identidad vigente de Auth; las cabeceras `X-User-*` no son identidad.
 No compartir credenciales ni acceder a bases de otros servicios.
 
-| Servicio futuro | Rutas actuales que debe atender | Referencia ejecutable |
+| Propietario en el corte | Rutas actuales que debe atender | Referencia ejecutable |
 |---|---|---|
 | Community | `/api/communities` y `/{id}`, `/{id}/status` | [Controller](../../backend/src/ClimateAlert.Api/Controllers/CommunitiesController.cs) |
 | Sensor | `/api/sensors`, `/{id}`, `/{id}/status`, `/{id}/readings`, `/{id}/readings/latest`; `/api/sensor-readings`, `/latest`; `/api/communities/{id}/sensors` | [Sensors](../../backend/src/ClimateAlert.Api/Controllers/SensorsController.cs), [Readings](../../backend/src/ClimateAlert.Api/Controllers/SensorReadingsController.cs) |
@@ -155,8 +161,9 @@ ingesta adicional acordado. No afirmar que basta cambiar una URL para extraerla.
 
 ## Cambio exacto de destinos, sin cambiar Angular
 
-Crear clusters YARP solamente cuando existan destinos reales. No activar nombres
-DNS hipotéticos. Variables de configuración .NET para un servicio ya entregado:
+Los destinos reales del overlay son community-service:8080, sensor-service:8080,
+alert-service:3003 y audit-service:8000. El archivo final-cutover.env.example
+activa sus clusters después de migrar; no cambiar nombres públicos de Angular. Variables de configuración .NET para un servicio ya entregado:
 
 ```text
 ReverseProxy__Clusters__community__Destinations__primary__Address=<URL interna Community terminada en />
@@ -181,8 +188,8 @@ Report consulta directamente APIs internas, por lo que además debe cambiarse
 `COMMUNITY_API_URL`, `SENSOR_API_URL`, `READING_API_URL`,
 `ALERT_API_URL`, `EVENT_API_URL` según propietario. Auth debe cambiar
 `AUTH_AUDIT_URL` hacia la ingesta de Audit cuando esté lista. Revisar redes Compose,
-dependencias y readiness de Gateway: actualmente comprueba monolito/Auth/Report;
-agregar comprobaciones de los nuevos destinos y acordar disponibilidad parcial.
+dependencias y readiness de Gateway: comprueba monolito/Auth/Report y los clusters nuevos activados mediante
+ExtractedServicesHealthCheck. Falta acordar disponibilidad parcial para K3s.
 En el Compose entregado esas cinco URLs de Report se parametrizan desde el archivo
 de entorno como `REPORT_COMMUNITY_API_URL`, `REPORT_SENSOR_API_URL`,
 `REPORT_READING_API_URL`, `REPORT_ALERT_API_URL`, `REPORT_EVENT_API_URL`.
@@ -199,5 +206,5 @@ en la base nueva, se requiere reconciliación antes de volver al monolito. Cambi
 rutas no migra datos ni resuelve por sí solo claves foráneas de Fase 2.
 
 Steve puede preparar configuración, pruebas de contrato y despliegue, conservar
-Angular estable y mantener Gateway/Auth/Report. El corte y la migración requieren
-los servicios, datos compatibles y validaciones de los otros integrantes.
+Angular estable y mantener Gateway/Auth/Report. Los servicios ya están disponibles en la rama; la aceptación productiva requiere
+validaciones de negocio, datos y operación con Astrid/Walter.

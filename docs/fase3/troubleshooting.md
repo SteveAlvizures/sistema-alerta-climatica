@@ -1,5 +1,22 @@
 # Troubleshooting
 
+En modo final, 502 al consultar comunidades/sensores/alertas puede indicar que el
+propietario HTTP no está disponible; no cambiar credenciales de otra base para
+resolverlo. Consultar su health y logs con correlación. Readiness 503 con liveness
+200 durante una caída es esperado. Los PDFs existentes pueden descargarse aunque
+una fuente de datos esté caída. Un 422 al generar un reporte con demasiadas filas
+requiere acotar filtros, no aumentar límites sin medir memoria y tiempo.
+
+Si después del arranque se ven datos legacy, comprobar las cuatro variables
+`*_ROUTE_CLUSTER`: por seguridad el overlay no corta tráfico automáticamente.
+Antes de habilitarlas, importar/conciliar con escrituras detenidas. Si falta una
+acción reciente de auditoría, revisar outbox y disponibilidad de Audit: la entrega
+es eventual e idempotente. No borrar pendientes ni reiniciar volúmenes.
+
+> Integración final: [informe del 23/10/2026](INFORME_FINAL_FASE3.md). El Compose base
+> conserva el modo estable; `docker-compose.final.yml` agrega los cuatro propietarios
+> nuevos y el corte es explícito después de importar/conciliar. No equivale a producción certificada.
+
 Usar primero health, estado de contenedores y el ID de correlación, sin copiar
 credenciales, JWT, exportaciones de usuarios o logs privados a incidencias públicas.
 Los comandos básicos están en [manual técnico](manual-tecnico.md#health-logs-y-recuperación).

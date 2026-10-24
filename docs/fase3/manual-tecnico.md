@@ -1,15 +1,19 @@
 # Manual técnico
 
+> Integración final: [informe del 23/10/2026](INFORME_FINAL_FASE3.md). El Compose base
+> conserva el modo estable; `docker-compose.final.yml` agrega los cuatro propietarios
+> nuevos y el corte es explícito después de importar/conciliar. No equivale a producción certificada.
+
 ## Estado y tecnologías
 
 **IMPLEMENTADO:** Angular 22.2/TypeScript 6, Gateway ASP.NET Core 10/YARP 2.3,
 Auth NestJS 11/Node 24 con PostgreSQL 17, Report FastAPI/Python 3.13 con MongoDB 8,
-Jinja2 3.1.6 y WeasyPrint 68.1. El monolito .NET 10 conserva SQL Server 2022.
+Jinja2 3.1.6 y WeasyPrint 68.1. Community usa .NET 10/PostgreSQL 17; Sensor .NET 10/SQL Server 2022; Alert Java 21/Spring Boot 3.3.5/PostgreSQL 17; Audit Python 3.13/FastAPI/MongoDB 8. El monolito .NET 10 conserva SQL Server 2022 para compatibilidad.
 Versiones concretas de paquetes: package-lock de Angular/Auth, proyectos .NET y
 `services/report-service/requirements.lock`; no actualizarlas durante una instalación.
 
 **PROBADO LOCALMENTE:** builds, suites y stack aislado indicados en
-[pruebas](pruebas.md). **PENDIENTE:** extracción de Community/Sensor/Alert/Audit,
+[pruebas](pruebas.md). **PENDIENTE:** certificar paridad completa de Community/Sensor/Alert/Audit,
 OAuth/OIDC (Fase 4), manifiestos K3s y despliegue de producción verificado.
 
 Consulta [arquitectura](arquitectura.md) para componentes y flujos, y
@@ -36,6 +40,18 @@ documentado en [despliegue](despliegue.md). Auth no crea un administrador desde 
 se importan las cuentas existentes.
 
 ## Variables y configuración
+
+En modo final añadir los cinco secretos y el prefijo de volúmenes de
+[final.env.example](../../deploy/compose/final.env.example). Los destinos no secretos
+del corte están en [final-cutover.env.example](../../deploy/compose/final-cutover.env.example).
+Community y Sensor aplican exclusivamente sus migraciones EF; Alert usa Flyway
+(esquema, recibos idempotentes y outbox). Audit crea índices propios de Mongo.
+Los puertos internos son Community/Sensor 8080, Alert 3003 y Audit 8000; no se
+publican al host. Los clientes se configuran por nombres DNS de Compose.
+
+La instalación completa de los seis servicios sigue el procedimiento incremental
+de [despliegue](despliegue.md#corte-incremental-de-los-cuatro-dominios). Las instrucciones
+base siguientes siguen siendo válidas para el modo estable de ocho contenedores.
 
 | Grupo | Variables / finalidad |
 |---|---|
