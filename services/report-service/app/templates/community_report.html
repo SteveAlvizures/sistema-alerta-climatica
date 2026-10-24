@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            color: #222;
+        }
+
+        h1, h2 {
+            margin-bottom: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #999;
+            padding: 5px;
+            text-align: left;
+        }
+
+        th {
+            background: #eee;
+        }
+
+        .summary {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Vigía Rural - Reporte de Comunidad</h1>
+
+<div class="summary">
+    <strong>Comunidad:</strong> {{ community.name }}<br>
+    <strong>Ubicación:</strong> {{ community.location }}<br>
+    <strong>Municipio:</strong> {{ community.municipality }}<br>
+    <strong>Departamento:</strong> {{ community.department }}<br>
+    <strong>Generado:</strong> {{ generated_at }}<br>
+
+    {% if date_from %}
+    <strong>Desde:</strong> {{ date_from }}<br>
+    {% endif %}
+
+    {% if date_to %}
+    <strong>Hasta:</strong> {{ date_to }}<br>
+    {% endif %}
+</div>
+
+<h2>Lecturas de sensores</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Sensor</th>
+            <th>Variable</th>
+            <th>Valor</th>
+            <th>Fecha</th>
+        </tr>
+    </thead>
+
+    <tbody>
+    {% for reading in readings %}
+        <tr>
+            <td>{{ reading.sensorName or reading.sensorCode or "-" }}</td>
+            <td>{{ reading.variable or "-" }}</td>
+            <td>{{ reading.value or "-" }}</td>
+            <td>{{ reading.recordedAt or reading.createdAt or "-" }}</td>
+        </tr>
+    {% else %}
+        <tr>
+            <td colspan="4">No existen lecturas para este período.</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h2>Alertas</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Nivel</th>
+            <th>Fenómeno</th>
+            <th>Estado</th>
+            <th>Mensaje</th>
+            <th>Fecha</th>
+        </tr>
+    </thead>
+
+    <tbody>
+    {% for alert in alerts %}
+        <tr>
+            <td>{{ alert.level or "-" }}</td>
+            <td>{{ alert.phenomenon or "-" }}</td>
+            <td>{{ alert.status or "-" }}</td>
+            <td>{{ alert.message or "-" }}</td>
+            <td>{{ alert.detectedAt or "-" }}</td>
+        </tr>
+    {% else %}
+        <tr>
+            <td colspan="5">No existen alertas para esta comunidad.</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,488 @@
+name: vigiarural-phase3
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+
+  # =========================================================
+  # AUTH SERVICE + POSTGRESQL
+  # =========================================================
+
+  auth-postgres:
+    image: postgres:17-alpine
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME:-auth_db}
+      POSTGRES_USER: ${AUTH_DB_USER:-auth_user}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD is required}
+    volumes:
+      - auth-postgres-data:/var/lib/postgresql/data
+    networks:
+      - auth-persistence
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: ../../services/auth-service
+      dockerfile: Dockerfile
+    logging: *default-logging
+    environment:
+      PORT: "3001"
+
+      AUTH_DB_HOST: auth-postgres
+      AUTH_DB_PORT: "5432"
+      AUTH_DB_NAME: ${AUTH_DB_NAME:-auth_db}
+      AUTH_DB_USER: ${AUTH_DB_USER:-auth_user}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD is required}
+
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      JWT_ISSUER: ${JWT_ISSUER:-vigiarural-auth}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-vigiarural}
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+    networks:
+      - upstream
+      - auth-persistence
+    expose:
+      - "3001"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    restart: unless-stopped
+
+
+  # =========================================================
+  # COMMUNITY SERVICE + POSTGRESQL
+  # =========================================================
+
+  community-postgres:
+    image: postgres:17-alpine
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: ${COMMUNITY_DB_NAME:-community_db}
+      POSTGRES_USER: ${COMMUNITY_DB_USER:-community_user}
+      POSTGRES_PASSWORD: ${COMMUNITY_DB_PASSWORD:?COMMUNITY_DB_PASSWORD is required}
+    volumes:
+      - community-postgres-data:/var/lib/postgresql/data
+    networks:
+      - community-persistence
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  community-service:
+    build:
+      context: ../../services/community-service
+      dockerfile: Dockerfile
+    logging: *default-logging
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:3002
+
+      ConnectionStrings__CommunityDatabase: "Host=community-postgres;Port=5432;Database=${COMMUNITY_DB_NAME:-community_db};Username=${COMMUNITY_DB_USER:-community_user};Password=${COMMUNITY_DB_PASSWORD:?COMMUNITY_DB_PASSWORD is required}"
+
+      Jwt__Secret: ${JWT_SECRET:?JWT_SECRET is required}
+      Jwt__Issuer: ${JWT_ISSUER:-vigiarural-auth}
+      Jwt__Audience: ${JWT_AUDIENCE:-vigiarural}
+    depends_on:
+      community-postgres:
+        condition: service_healthy
+    networks:
+      - upstream
+      - community-persistence
+    expose:
+      - "3002"
+    restart: unless-stopped
+
+
+  # =========================================================
+  # ALERT SERVICE + POSTGRESQL
+  # =========================================================
+
+  alert-postgres:
+    image: postgres:17-alpine
+    logging: *default-logging
+    environment:
+      POSTGRES_DB: ${ALERT_DB_NAME:-alert_db}
+      POSTGRES_USER: ${ALERT_DB_USER:-alert_user}
+      POSTGRES_PASSWORD: ${ALERT_DB_PASSWORD:?ALERT_DB_PASSWORD is required}
+    volumes:
+      - alert-postgres-data:/var/lib/postgresql/data
+    networks:
+      - alert-persistence
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  alert-service:
+    build:
+      context: ../../services/alert-service
+      dockerfile: Dockerfile
+    logging: *default-logging
+    environment:
+      ALERT_SERVICE_PORT: "3003"
+
+      ALERT_DB_HOST: alert-postgres
+      ALERT_DB_PORT: "5432"
+      ALERT_DB_NAME: ${ALERT_DB_NAME:-alert_db}
+      ALERT_DB_USER: ${ALERT_DB_USER:-alert_user}
+      ALERT_DB_PASSWORD: ${ALERT_DB_PASSWORD:?ALERT_DB_PASSWORD is required}
+
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-vigiarural-auth}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-vigiarural}
+
+      COMMUNITY_SERVICE_URL: http://community-service:3002
+      SENSOR_SERVICE_URL: http://sensor-service:3004
+    depends_on:
+      alert-postgres:
+        condition: service_healthy
+      community-service:
+        condition: service_started
+    networks:
+      - upstream
+      - alert-persistence
+    expose:
+      - "3003"
+    restart: unless-stopped
+
+
+  # =========================================================
+  # SENSOR SERVICE + SQL SERVER
+  # =========================================================
+
+  sensor-sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    logging: *default-logging
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: ${SENSOR_SQLSERVER_EDITION:-Developer}
+      MSSQL_SA_PASSWORD: ${SENSOR_DB_PASSWORD:?SENSOR_DB_PASSWORD is required}
+    volumes:
+      - sensor-sqlserver-data:/var/opt/mssql
+    networks:
+      - sensor-persistence
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" -b -o /dev/null"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  sensor-service:
+    build:
+      context: ../../services/sensor-service
+      dockerfile: Dockerfile
+    logging: *default-logging
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:3004
+
+      SENSOR_DB_HOST: sensor-sqlserver
+      SENSOR_DB_PORT: "1433"
+      SENSOR_DB_NAME: ${SENSOR_DB_NAME:-sensor_db}
+      SENSOR_DB_USER: ${SENSOR_DB_USER:-sa}
+      SENSOR_DB_PASSWORD: ${SENSOR_DB_PASSWORD:?SENSOR_DB_PASSWORD is required}
+
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-vigiarural-auth}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-vigiarural}
+
+      COMMUNITY_SERVICE_URL: http://community-service:3002
+      ALERT_SERVICE_URL: http://alert-service:3003
+    depends_on:
+      sensor-sqlserver:
+        condition: service_healthy
+      community-service:
+        condition: service_started
+      alert-service:
+        condition: service_started
+    networks:
+      - upstream
+      - sensor-persistence
+    expose:
+      - "3004"
+    restart: unless-stopped
+
+
+  # =========================================================
+  # REPORT SERVICE + MONGODB
+  # =========================================================
+
+  report-mongodb:
+    image: mongo:8
+    logging: *default-logging
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${REPORT_MONGO_USER:-report_admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${REPORT_MONGO_PASSWORD:?REPORT_MONGO_PASSWORD is required}
+    volumes:
+      - report-mongodb-data:/data/db
+    networks:
+      - report-persistence
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --username \"$$MONGO_INITDB_ROOT_USERNAME\" --password \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval \"quit(db.adminCommand('ping').ok ? 0 : 2)\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  report-service:
+    build:
+      context: ../../services/report-service
+      dockerfile: Dockerfile
+    logging: *default-logging
+    environment:
+      REPORT_PORT: "3005"
+
+      MONGO_HOST: report-mongodb
+      MONGO_PORT: "27017"
+      MONGO_DB: ${REPORT_MONGO_DB:-report_db}
+      MONGO_USER: ${REPORT_MONGO_USER:-report_admin}
+      MONGO_PASSWORD: ${REPORT_MONGO_PASSWORD:?REPORT_MONGO_PASSWORD is required}
+
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-vigiarural-auth}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-vigiarural}
+
+      COMMUNITY_SERVICE_URL: http://community-service:3002
+      SENSOR_SERVICE_URL: http://sensor-service:3004
+      ALERT_SERVICE_URL: http://alert-service:3003
+    depends_on:
+      report-mongodb:
+        condition: service_healthy
+      community-service:
+        condition: service_started
+      sensor-service:
+        condition: service_started
+      alert-service:
+        condition: service_started
+    networks:
+      - upstream
+      - report-persistence
+    expose:
+      - "3005"
+    restart: unless-stopped
+
+
+  # =========================================================
+  # AUDIT SERVICE + MONGODB
+  # =========================================================
+
+  audit-mongodb:
+    image: mongo:8
+    logging: *default-logging
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-audit_admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?MONGO_PASSWORD is required}
+    volumes:
+      - audit-mongodb-data:/data/db
+    networks:
+      - audit-persistence
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --username \"$$MONGO_INITDB_ROOT_USERNAME\" --password \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval \"quit(db.adminCommand('ping').ok ? 0 : 2)\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  audit-service:
+    build:
+      context: ../../services/audit-service
+      dockerfile: Dockerfile
+    logging: *default-logging
+    environment:
+      AUDIT_PORT: "3006"
+
+      MONGO_HOST: audit-mongodb
+      MONGO_PORT: "27017"
+      MONGO_DB: ${MONGO_DB:-audit_db}
+      MONGO_USER: ${MONGO_USER:-audit_admin}
+      MONGO_PASSWORD: ${MONGO_PASSWORD:?MONGO_PASSWORD is required}
+
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-vigiarural-auth}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-vigiarural}
+    depends_on:
+      audit-mongodb:
+        condition: service_healthy
+    networks:
+      - upstream
+      - audit-persistence
+    expose:
+      - "3006"
+    restart: unless-stopped
+
+
+  # =========================================================
+  # API GATEWAY
+  # =========================================================
+
+  gateway:
+    build:
+      context: ../../gateway
+      dockerfile: Dockerfile
+    logging: *default-logging
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-vigiarural-auth}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-vigiarural}
+
+      ReverseProxy__Clusters__auth__Destinations__auth-service__Address: http://auth-service:3001/
+      ReverseProxy__Clusters__community__Destinations__community-service__Address: http://community-service:3002/
+      ReverseProxy__Clusters__alert__Destinations__alert-service__Address: http://alert-service:3003/
+      ReverseProxy__Clusters__sensor__Destinations__sensor-service__Address: http://sensor-service:3004/
+      ReverseProxy__Clusters__report__Destinations__report-service__Address: http://report-service:3005/
+      ReverseProxy__Clusters__audit__Destinations__audit-service__Address: http://audit-service:3006/
+
+      Gateway__AllowedOrigins__0: ${FRONTEND_ORIGIN:-http://localhost:4200}
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      community-service:
+        condition: service_started
+      alert-service:
+        condition: service_started
+      sensor-service:
+        condition: service_started
+      report-service:
+        condition: service_started
+      audit-service:
+        condition: service_started
+    ports:
+      - "${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_PORT:-5160}:8080"
+    networks:
+      - edge
+      - upstream
+    restart: unless-stopped
+
+
+  # =========================================================
+  # FRONTEND ANGULAR + NGINX
+  # =========================================================
+
+  frontend:
+    build:
+      context: ../../frontend/angular-app
+      dockerfile: Dockerfile
+    logging: *default-logging
+    ports:
+      - "${FRONTEND_BIND:-127.0.0.1}:${FRONTEND_PORT:-8082}:80"
+    volumes:
+      - ../nginx/nginx.phase3.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      gateway:
+        condition: service_started
+    networks:
+      - edge
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-q",
+          "--spider",
+          "http://127.0.0.1/"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+
+# =========================================================
+# VOLUMES
+# =========================================================
+
+volumes:
+  auth-postgres-data:
+  community-postgres-data:
+  alert-postgres-data:
+  sensor-sqlserver-data:
+  report-mongodb-data:
+  audit-mongodb-data:
+
+
+# =========================================================
+# NETWORKS
+# =========================================================
+
+networks:
+  edge:
+
+  upstream:
+    internal: true
+
+  auth-persistence:
+    internal: true
+
+  community-persistence:
+    internal: true
+
+  alert-persistence:
+    internal: true
+
+  sensor-persistence:
+    internal: true
+
+  report-persistence:
+    internal: true
+
+  audit-persistence:
+    internal: true

@@ -1,0 +1,566 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: auth-service
+          image: vigiarural/auth-service:phase3
+          ports:
+            - containerPort: 3001
+          env:
+            - name: PORT
+              value: "3001"
+            - name: AUTH_DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: AUTH_DB_HOST
+            - name: AUTH_DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: AUTH_DB_PORT
+            - name: AUTH_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: AUTH_DB_NAME
+            - name: AUTH_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: AUTH_DB_USER
+            - name: AUTH_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: AUTH_DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: JWT_SECRET
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_AUDIENCE
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 20
+            periodSeconds: 20
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: community-service
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: community-service
+  template:
+    metadata:
+      labels:
+        app: community-service
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: community-service
+          image: vigiarural/community-service:phase3
+          ports:
+            - containerPort: 3002
+          env:
+            - name: ASPNETCORE_URLS
+              value: "http://+:3002"
+            - name: COMMUNITY_DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: COMMUNITY_DB_HOST
+            - name: COMMUNITY_DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: COMMUNITY_DB_PORT
+            - name: COMMUNITY_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: COMMUNITY_DB_NAME
+            - name: COMMUNITY_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: COMMUNITY_DB_USER
+            - name: COMMUNITY_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: COMMUNITY_DB_PASSWORD
+            - name: ConnectionStrings__CommunityDatabase
+              value: "Host=$(COMMUNITY_DB_HOST);Port=$(COMMUNITY_DB_PORT);Database=$(COMMUNITY_DB_NAME);Username=$(COMMUNITY_DB_USER);Password=$(COMMUNITY_DB_PASSWORD)"
+            - name: Jwt__Secret
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: JWT_SECRET
+            - name: Jwt__Issuer
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_ISSUER
+            - name: Jwt__Audience
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_AUDIENCE
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 20
+            periodSeconds: 20
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alert-service
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alert-service
+  template:
+    metadata:
+      labels:
+        app: alert-service
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: alert-service
+          image: vigiarural/alert-service:phase3
+          ports:
+            - containerPort: 3003
+          env:
+            - name: ALERT_SERVICE_PORT
+              value: "3003"
+            - name: ALERT_DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: ALERT_DB_HOST
+            - name: ALERT_DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: ALERT_DB_PORT
+            - name: ALERT_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: ALERT_DB_NAME
+            - name: ALERT_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: ALERT_DB_USER
+            - name: ALERT_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: ALERT_DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: JWT_SECRET
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_AUDIENCE
+            - name: COMMUNITY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: COMMUNITY_SERVICE_URL
+            - name: SENSOR_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: SENSOR_SERVICE_URL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3003
+            initialDelaySeconds: 25
+            periodSeconds: 20
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sensor-service
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sensor-service
+  template:
+    metadata:
+      labels:
+        app: sensor-service
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: sensor-service
+          image: vigiarural/sensor-service:phase3
+          ports:
+            - containerPort: 3004
+          env:
+            - name: ASPNETCORE_URLS
+              value: "http://+:3004"
+            - name: SENSOR_DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: SENSOR_DB_HOST
+            - name: SENSOR_DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: SENSOR_DB_PORT
+            - name: SENSOR_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: SENSOR_DB_NAME
+            - name: SENSOR_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: SENSOR_DB_USER
+            - name: SENSOR_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: SENSOR_DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: JWT_SECRET
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_AUDIENCE
+            - name: COMMUNITY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: COMMUNITY_SERVICE_URL
+            - name: ALERT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: ALERT_SERVICE_URL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3004
+            initialDelaySeconds: 20
+            periodSeconds: 20
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: report-service
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: report-service
+  template:
+    metadata:
+      labels:
+        app: report-service
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: report-service
+          image: vigiarural/report-service:phase3
+          ports:
+            - containerPort: 3005
+          env:
+            - name: REPORT_PORT
+              value: "3005"
+            - name: MONGO_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: REPORT_MONGO_HOST
+            - name: MONGO_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: REPORT_MONGO_PORT
+            - name: MONGO_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: REPORT_MONGO_DB
+            - name: MONGO_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: REPORT_MONGO_USER
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: REPORT_MONGO_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: JWT_SECRET
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_AUDIENCE
+            - name: COMMUNITY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: COMMUNITY_SERVICE_URL
+            - name: SENSOR_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: SENSOR_SERVICE_URL
+            - name: ALERT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: ALERT_SERVICE_URL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3005
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3005
+            initialDelaySeconds: 20
+            periodSeconds: 20
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-service
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: audit-service
+  template:
+    metadata:
+      labels:
+        app: audit-service
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: audit-service
+          image: vigiarural/audit-service:phase3
+          ports:
+            - containerPort: 3006
+          env:
+            - name: AUDIT_PORT
+              value: "3006"
+            - name: MONGO_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: AUDIT_MONGO_HOST
+            - name: MONGO_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: AUDIT_MONGO_PORT
+            - name: MONGO_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: AUDIT_MONGO_DB
+            - name: MONGO_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: AUDIT_MONGO_USER
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: MONGO_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: JWT_SECRET
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_AUDIENCE
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3006
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3006
+            initialDelaySeconds: 20
+            periodSeconds: 20
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: gateway
+          image: vigiarural/gateway:phase3
+          ports:
+            - containerPort: 8080
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: JWT_SECRET
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_ISSUER
+            - name: JWT_AUDIENCE
+              valueFrom:
+                configMapKeyRef:
+                  name: vigiarural-config
+                  key: JWT_AUDIENCE
+            - name: ReverseProxy__Clusters__auth__Destinations__auth-service__Address
+              value: "http://auth-service:3001/"
+            - name: ReverseProxy__Clusters__community__Destinations__community-service__Address
+              value: "http://community-service:3002/"
+            - name: ReverseProxy__Clusters__alert__Destinations__alert-service__Address
+              value: "http://alert-service:3003/"
+            - name: ReverseProxy__Clusters__sensor__Destinations__sensor-service__Address
+              value: "http://sensor-service:3004/"
+            - name: ReverseProxy__Clusters__report__Destinations__report-service__Address
+              value: "http://report-service:3005/"
+            - name: ReverseProxy__Clusters__audit__Destinations__audit-service__Address
+              value: "http://audit-service:3006/"
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 25
+            periodSeconds: 20

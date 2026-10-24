@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: vigiarural
+spec:
+  selector:
+    app: auth-service
+  ports:
+    - port: 3001
+      targetPort: 3001
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: community-service
+  namespace: vigiarural
+spec:
+  selector:
+    app: community-service
+  ports:
+    - port: 3002
+      targetPort: 3002
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alert-service
+  namespace: vigiarural
+spec:
+  selector:
+    app: alert-service
+  ports:
+    - port: 3003
+      targetPort: 3003
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sensor-service
+  namespace: vigiarural
+spec:
+  selector:
+    app: sensor-service
+  ports:
+    - port: 3004
+      targetPort: 3004
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: report-service
+  namespace: vigiarural
+spec:
+  selector:
+    app: report-service
+  ports:
+    - port: 3005
+      targetPort: 3005
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audit-service
+  namespace: vigiarural
+spec:
+  selector:
+    app: audit-service
+  ports:
+    - port: 3006
+      targetPort: 3006
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: vigiarural
+spec:
+  selector:
+    app: gateway
+  ports:
+    - port: 8080
+      targetPort: 8080

@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vigiarural-config
+  namespace: vigiarural
+data:
+  JWT_ISSUER: "vigiarural-auth"
+  JWT_AUDIENCE: "vigiarural"
+
+  AUTH_DB_HOST: "auth-postgres"
+  AUTH_DB_PORT: "5432"
+  AUTH_DB_NAME: "auth_db"
+  AUTH_DB_USER: "auth_user"
+
+  COMMUNITY_DB_HOST: "community-postgres"
+  COMMUNITY_DB_PORT: "5432"
+  COMMUNITY_DB_NAME: "community_db"
+  COMMUNITY_DB_USER: "community_user"
+
+  ALERT_DB_HOST: "alert-postgres"
+  ALERT_DB_PORT: "5432"
+  ALERT_DB_NAME: "alert_db"
+  ALERT_DB_USER: "alert_user"
+
+  SENSOR_DB_HOST: "sensor-sqlserver"
+  SENSOR_DB_PORT: "1433"
+  SENSOR_DB_NAME: "sensor_db"
+  SENSOR_DB_USER: "sa"
+
+  REPORT_MONGO_HOST: "report-mongodb"
+  REPORT_MONGO_PORT: "27017"
+  REPORT_MONGO_DB: "report_db"
+  REPORT_MONGO_USER: "report_admin"
+
+  AUDIT_MONGO_HOST: "audit-mongodb"
+  AUDIT_MONGO_PORT: "27017"
+  AUDIT_MONGO_DB: "audit_db"
+  AUDIT_MONGO_USER: "audit_admin"
+
+  COMMUNITY_SERVICE_URL: "http://community-service:3002"
+  ALERT_SERVICE_URL: "http://alert-service:3003"
+  SENSOR_SERVICE_URL: "http://sensor-service:3004"
