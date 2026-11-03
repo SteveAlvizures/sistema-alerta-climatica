@@ -2,7 +2,7 @@
   <p class="sidebar__label">Monitoreo</p>
 
   <ul>
-    @for (item of visibleNavigation; track item.label) {
+    @for (item of visibleNavigation(); track item.route) {
       <li>
         <button
           type="button"

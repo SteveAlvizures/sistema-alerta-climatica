@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { DashboardDataService } from '../../core/services/dashboard-data.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -24,7 +24,7 @@ export class Sidebar {
   protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  protected readonly navigation: NavigationItem[] = [
+  protected readonly navigation: readonly NavigationItem[] = [
     {
       label: 'Resumen',
       symbol: '⌂',
@@ -62,10 +62,10 @@ export class Sidebar {
     { label: 'Bitácora', symbol: '☷', route: '/audit-log', upcoming: false, administratorOnly: true },
   ];
 
-  protected get visibleNavigation(): NavigationItem[] {
-    return this.navigation.filter((item) => (!item.operatorOnly || this.auth.canOperate()) && (!item.administratorOnly || this.auth.canViewAudit())
-      && (!item.authenticationRequired || this.auth.session() !== null));
-  }
+  // Route changes reuse this menu; only a session/permission change rebuilds its visible items.
+  protected readonly visibleNavigation = computed(() => this.navigation.filter((item) =>
+    (!item.operatorOnly || this.auth.canOperate()) && (!item.administratorOnly || this.auth.canViewAudit())
+      && (!item.authenticationRequired || this.auth.session() !== null)));
 
   protected navigate(item: NavigationItem): void {
     if (!item.route || item.upcoming) {
