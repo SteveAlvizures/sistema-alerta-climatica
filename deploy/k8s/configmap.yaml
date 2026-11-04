@@ -40,3 +40,8 @@ data:
   COMMUNITY_SERVICE_URL: "http://community-service:3002"
   ALERT_SERVICE_URL: "http://alert-service:3003"
   SENSOR_SERVICE_URL: "http://sensor-service:3004"
+
+  GOOGLE_CALLBACK_URL: "https://vigiarural.site/api/auth/callback/google"
+  GITHUB_CALLBACK_URL: "https://vigiarural.site/api/auth/callback/github"
+  FRONTEND_OAUTH_SUCCESS_URL: "https://vigiarural.site/auth/callback"
+  FRONTEND_ORIGIN: "https://vigiarural.site"

@@ -1,0 +1,354 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-postgres
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-postgres
+  template:
+    metadata:
+      labels:
+        app: auth-postgres
+    spec:
+      containers:
+        - name: auth-postgres
+          image: postgres:17-alpine
+          env:
+            - name: POSTGRES_DB
+              value: "auth_db"
+            - name: POSTGRES_USER
+              value: "auth_user"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: AUTH_DB_PASSWORD
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: auth-postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U auth_user -d auth_db
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U auth_user -d auth_db
+            initialDelaySeconds: 20
+            periodSeconds: 20
+      volumes:
+        - name: auth-postgres-data
+          persistentVolumeClaim:
+            claimName: auth-postgres-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-postgres
+  namespace: vigiarural
+spec:
+  selector:
+    app: auth-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: community-postgres
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: community-postgres
+  template:
+    metadata:
+      labels:
+        app: community-postgres
+    spec:
+      containers:
+        - name: community-postgres
+          image: postgres:17-alpine
+          env:
+            - name: POSTGRES_DB
+              value: "community_db"
+            - name: POSTGRES_USER
+              value: "community_user"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: COMMUNITY_DB_PASSWORD
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: community-postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U community_user -d community_db
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U community_user -d community_db
+            initialDelaySeconds: 20
+            periodSeconds: 20
+      volumes:
+        - name: community-postgres-data
+          persistentVolumeClaim:
+            claimName: community-postgres-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: community-postgres
+  namespace: vigiarural
+spec:
+  selector:
+    app: community-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alert-postgres
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alert-postgres
+  template:
+    metadata:
+      labels:
+        app: alert-postgres
+    spec:
+      containers:
+        - name: alert-postgres
+          image: postgres:17-alpine
+          env:
+            - name: POSTGRES_DB
+              value: "alert_db"
+            - name: POSTGRES_USER
+              value: "alert_user"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: ALERT_DB_PASSWORD
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: alert-postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U alert_user -d alert_db
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - pg_isready -U alert_user -d alert_db
+            initialDelaySeconds: 20
+            periodSeconds: 20
+      volumes:
+        - name: alert-postgres-data
+          persistentVolumeClaim:
+            claimName: alert-postgres-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alert-postgres
+  namespace: vigiarural
+spec:
+  selector:
+    app: alert-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sensor-sqlserver
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sensor-sqlserver
+  template:
+    metadata:
+      labels:
+        app: sensor-sqlserver
+    spec:
+      containers:
+        - name: sensor-sqlserver
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: MSSQL_PID
+              value: "Developer"
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: SENSOR_DB_PASSWORD
+          ports:
+            - containerPort: 1433
+          volumeMounts:
+            - name: sensor-sqlserver-data
+              mountPath: /var/opt/mssql
+      volumes:
+        - name: sensor-sqlserver-data
+          persistentVolumeClaim:
+            claimName: sensor-sqlserver-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sensor-sqlserver
+  namespace: vigiarural
+spec:
+  selector:
+    app: sensor-sqlserver
+  ports:
+    - port: 1433
+      targetPort: 1433
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: report-mongodb
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: report-mongodb
+  template:
+    metadata:
+      labels:
+        app: report-mongodb
+    spec:
+      containers:
+        - name: report-mongodb
+          image: mongo:8
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "report_admin"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: REPORT_MONGO_PASSWORD
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: report-mongodb-data
+              mountPath: /data/db
+      volumes:
+        - name: report-mongodb-data
+          persistentVolumeClaim:
+            claimName: report-mongodb-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: report-mongodb
+  namespace: vigiarural
+spec:
+  selector:
+    app: report-mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-mongodb
+  namespace: vigiarural
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: audit-mongodb
+  template:
+    metadata:
+      labels:
+        app: audit-mongodb
+    spec:
+      containers:
+        - name: audit-mongodb
+          image: mongo:8
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "audit_admin"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vigiarural-secrets
+                  key: MONGO_PASSWORD
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: audit-mongodb-data
+              mountPath: /data/db
+      volumes:
+        - name: audit-mongodb-data
+          persistentVolumeClaim:
+            claimName: audit-mongodb-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audit-mongodb
+  namespace: vigiarural
+spec:
+  selector:
+    app: audit-mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
