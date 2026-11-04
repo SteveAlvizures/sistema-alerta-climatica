@@ -77,6 +77,8 @@ public sealed class GatewayFixture : IAsyncLifetime
             return Results.Ok();
         });
         backend.MapGet("/api/probe/unavailable", () => Results.Json(new { message = "Business unavailable" }, statusCode: 503));
+        // The new Sensor cluster participates in aggregate readiness; simulate its ready dependency here.
+        backend.MapGet("/health/ready", () => Results.Ok(new { status = "Healthy" }));
         backend.MapGet("/api/reports/transport/{status:int}", (int status, HttpContext context) =>
         {
             context.Response.Headers["X-Internal-Host"] = "report-service:8000";
@@ -136,6 +138,7 @@ public sealed class GatewayFixture : IAsyncLifetime
                 ["ReverseProxy:Clusters:monolith:Destinations:backend:Address"] = address,
                 ["ReverseProxy:Clusters:auth:Destinations:auth-service:Address"] = address,
                 ["ReverseProxy:Clusters:reports:Destinations:report-service:Address"] = address,
+                ["ReverseProxy:Clusters:sensor:Destinations:primary:Address"] = address,
                 ["Gateway:AuthHealthPath"] = "health",
                 ["Gateway:ReportHealthPath"] = "health"
             };

@@ -42,6 +42,19 @@ public static class GatewayApplication
         var app = builder.Build();
         app.UseMiddleware<CorrelationMiddleware>();
         app.UseExceptionHandler();
+        app.UseExplicitProxyProtocol();
+        // Device keys require TLS directly or a protocol hint from an explicitly trusted TLS proxy.
+        app.Use(async (context, next) =>
+        {
+            if (!app.Environment.IsDevelopment() && (context.Request.Path.StartsWithSegments("/api/device-readings")
+                || context.Request.Path.StartsWithSegments("/api/device-credentials"))
+                && !context.Request.IsHttps)
+            {
+                await Results.Problem(statusCode: 400, detail: "HTTPS is required for device ingestion.").ExecuteAsync(context);
+                return;
+            }
+            await next();
+        });
         app.UseRouting();
         app.UseCors();
         // Preliminary cryptographic validation only. The monolith still checks the current

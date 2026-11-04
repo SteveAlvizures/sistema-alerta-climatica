@@ -6,6 +6,7 @@ public sealed class SensorDb(DbContextOptions<SensorDb> options,IHttpContextAcce
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<EvaluationDispatch>().HasKey(e=>e.Id);
+        DeviceIngestion.ConfigureModel(b);
         b.Entity<SensorRecord>().HasIndex(s=>new{s.CommunityId,s.Code}).IsUnique();
         b.Entity<SensorRecord>().Property(s=>s.Code).HasMaxLength(80);
         b.Entity<SensorRecord>().Ignore(s=>s.IsActive);

@@ -34,6 +34,9 @@ public static class ProxyTransforms
             // Forwarding is deliberately disabled until a trusted proxy policy is configured.
             foreach (var name in context.ProxyRequest.Headers.Select(header => header.Key).Where(IsUntrustedHeader).ToArray())
                 context.ProxyRequest.Headers.Remove(name);
+            // A device secret belongs only to ingestion, never to unrelated upstreams.
+            if (!context.HttpContext.Request.Path.Equals(new PathString("/api/device-readings")))
+                context.ProxyRequest.Headers.Remove("X-Device-Key");
             context.ProxyRequest.Headers.Remove(CorrelationMiddleware.HeaderName);
             context.ProxyRequest.Headers.TryAddWithoutValidation(CorrelationMiddleware.HeaderName, context.HttpContext.TraceIdentifier);
             return ValueTask.CompletedTask;
@@ -43,6 +46,7 @@ public static class ProxyTransforms
             var headers = context.HttpContext.Response.Headers;
             foreach (var name in headers.Keys.Where(name => IsUntrustedHeader(name)
                 || name.Equals("Server", StringComparison.OrdinalIgnoreCase)
+                || name.Equals("X-Device-Key", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("X-Powered-By", StringComparison.OrdinalIgnoreCase)
                 || name.StartsWith("X-AspNet", StringComparison.OrdinalIgnoreCase)
                 || name.StartsWith("Access-Control-", StringComparison.OrdinalIgnoreCase)

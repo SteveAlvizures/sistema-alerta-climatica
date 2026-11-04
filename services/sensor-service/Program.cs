@@ -2,6 +2,13 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+var app = await SensorApplication.Build(args);
+app.Run();
+
+public static class SensorApplication
+{
+public static async Task<WebApplication> Build(string[] args, Action<WebApplicationBuilder>? configure = null)
+{
 var builder=WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrel(o=>o.AddServerHeader=false);
 builder.Services.AddDbContext<SensorDb>(o=>o.UseSqlServer(builder.Configuration["SENSOR_SQL_CONNECTION"] ?? throw new InvalidOperationException("Sensor SQL connection required")));
@@ -9,6 +16,8 @@ builder.AddCurrentIdentity();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHostedService<EvaluationWorker>();
 builder.Services.AddHostedService<SimulationWorker>();
+builder.Services.AddDeviceIngestion();
+configure?.Invoke(builder);
 var app=builder.Build();
 app.Use(async (context,next)=>
 {
@@ -21,7 +30,21 @@ app.Use(async (context,next)=>
             extensions:new Dictionary<string,object?>{{"correlationId",context.TraceIdentifier}}).ExecuteAsync(context);
     }
 });
+app.Use(async (context, next) =>
+{
+    bool devicePath = context.Request.Path.StartsWithSegments("/api/device-readings")
+        || context.Request.Path.StartsWithSegments("/api/device-credentials");
+    if (devicePath && !app.Environment.IsDevelopment()
+        && app.Configuration.GetValue("DeviceIngestion:RequireHttps", true) && !context.Request.IsHttps)
+    {
+        await Results.Problem(statusCode: 400, detail: "HTTPS is required.").ExecuteAsync(context);
+        return;
+    }
+    await next();
+});
 app.UseAuthentication();app.UseAuthorization();
+app.UseRateLimiter();
+app.MapDeviceIngestion();
 app.MapGet("/health",()=>Results.Ok(new{status="Healthy"}));
 app.MapGet("/health/live",()=>Results.Ok(new{status="Healthy"}));
 app.MapGet("/health/ready",async(SensorDb db)=>await db.Database.CanConnectAsync()?Results.Ok(new{status="Healthy"}):Results.StatusCode(503));
@@ -80,7 +103,8 @@ app.MapPost("/internal/import",async(HttpRequest req,ImportBatch batch,SensorDb 
 });
 await using(var scope=app.Services.CreateAsyncScope())
     if(builder.Configuration.GetValue("Database:ApplyMigrationsOnStartup",false))await scope.ServiceProvider.GetRequiredService<SensorDb>().Database.MigrateAsync();
-app.Run();
+return app;
+}
 
 static async Task<SensorRecord> Required(SensorDb db,Guid id)=>await db.Sensors.SingleOrDefaultAsync(s=>s.Id==id)??throw new KeyNotFoundException("Sensor not found");
 static IQueryable<SensorRecord> Filter(IQueryable<SensorRecord> q,HttpRequest req)
@@ -139,4 +163,6 @@ static async Task<IResult> History(HttpRequest req,SensorDb db,bool latest)
 static bool ServiceKey(HttpRequest request,IConfiguration config) {
     var expected=Encoding.UTF8.GetBytes(config["AUTH_INTERNAL_KEY"]??"");
     return expected.Length>=32&&CryptographicOperations.FixedTimeEquals(expected,Encoding.UTF8.GetBytes(request.Headers["X-Internal-Service-Key"].ToString()));
+}
+
 }

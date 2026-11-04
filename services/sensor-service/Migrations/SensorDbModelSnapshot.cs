@@ -21,6 +21,62 @@ namespace SensorService.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("DeviceCredential", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<Guid>("SensorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KeyHash")
+                        .IsUnique();
+
+                    b.HasIndex("SensorId");
+
+                    b.ToTable("DeviceCredential");
+                });
+
+            modelBuilder.Entity("DeviceReadingReceipt", b =>
+                {
+                    b.Property<Guid>("DeviceCredentialId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ReadingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("DeviceCredentialId", "MessageId");
+
+                    b.HasIndex("ReadingId");
+
+                    b.ToTable("DeviceReadingReceipt");
+                });
+
             modelBuilder.Entity("EvaluationDispatch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -156,6 +212,30 @@ namespace SensorService.Migrations
                         .IsUnique();
 
                     b.ToTable("Sensors");
+                });
+
+            modelBuilder.Entity("DeviceCredential", b =>
+                {
+                    b.HasOne("SensorRecord", null)
+                        .WithMany()
+                        .HasForeignKey("SensorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DeviceReadingReceipt", b =>
+                {
+                    b.HasOne("DeviceCredential", null)
+                        .WithMany()
+                        .HasForeignKey("DeviceCredentialId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ReadingRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ReadingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ReadingRecord", b =>

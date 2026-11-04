@@ -57,6 +57,8 @@ services:
   sensor-service:
     build: {context: ../../services/sensor-service}
     environment:
+      # Plain HTTP is restricted to the private upstream network; Gateway enforces public HTTPS.
+      DeviceIngestion__RequireHttps: "false"
       SENSOR_SQL_CONNECTION: Server=sensor-sqlserver;Database=climate_sensors;User Id=sa;Password=${SENSOR_SQL_PASSWORD};TrustServerCertificate=True;Connect Timeout=3
       JWT_KEY: ${JWT_KEY:?required}
       JWT_ISSUER: ${JWT_ISSUER:-climate-alert-api}
