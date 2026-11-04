@@ -10,14 +10,16 @@ describe('DashboardPage polling', () => {
   beforeEach(async () => {
     refreshSelected.calls.reset(); selectCommunity.calls.reset();
     await TestBed.configureTestingModule({ imports: [DashboardPage], providers: [{ provide: DashboardDataService, useValue: {
-      refreshSelected, selectCommunity, source: signal('api'), loadState: signal('loading'), communities: signal([]), selectedCommunityId: signal(null), dashboard: signal(null), errorMessage: signal(null), retry: jasmine.createSpy(),
+      refreshSelected, selectCommunity, stopRefreshing: jasmine.createSpy(), source: signal('api'), loadState: signal('loading'), communities: signal([]), selectedCommunityId: signal(null), dashboard: signal(null), errorMessage: signal(null), retry: jasmine.createSpy(),
     } }] }).overrideComponent(DashboardPage, { set: { template: '' } }).compileComponents();
   });
-  it('refreshes every 15 seconds without duplicating the initial load and stops after destruction', fakeAsync(() => {
+  it('refreshes every second without duplicating the initial load and stops after destruction', fakeAsync(() => {
     const fixture = TestBed.createComponent(DashboardPage); fixture.detectChanges(); tick(0);
+    fixture.componentInstance.ngOnInit(); // Re-entry replaces the timer instead of accumulating it.
     expect(refreshSelected).not.toHaveBeenCalled();
-    tick(15_000); expect(refreshSelected).toHaveBeenCalledTimes(1);
-    fixture.destroy(); tick(30_000); expect(refreshSelected).toHaveBeenCalledTimes(1);
+    tick(1000); expect(refreshSelected).toHaveBeenCalledTimes(1);
+    fixture.destroy(); tick(3000); expect(refreshSelected).toHaveBeenCalledTimes(1);
+    expect(TestBed.inject(DashboardDataService).stopRefreshing).toHaveBeenCalledTimes(1);
   }));
   it('selects a changed community immediately', () => {
     const fixture = TestBed.createComponent(DashboardPage); fixture.detectChanges();
@@ -30,7 +32,7 @@ describe('Dashboard persisted summary', () => {
   it('shows four KPIs and real event metadata and detail link', async () => {
     await TestBed.configureTestingModule({ imports: [DashboardPage], providers: [provideRouter([]), { provide: DashboardDataService, useValue: {
       source: signal('api'), loadState: signal('ready'), communities: signal([]), selectedCommunityId: signal('c1'),
-      refreshSelected: jasmine.createSpy(), dashboard: signal({ communityName: 'Community', level: null, levelMessage: 'No active alerts',
+      refreshSelected: jasmine.createSpy(), stopRefreshing: jasmine.createSpy(), dashboard: signal({ communityName: 'Community', level: null, levelMessage: 'No active alerts',
         kpis: { totalCommunities: 7, activeSensors: 3, inactiveSensors: 2, activeAlerts: 1 }, indicators: [], sensors: [], activeAlerts: [], trend: [],
         recentEvents: [{ id: 'real-event', title: 'Storm', detail: 'Community \u00b7 Active \u00b7 Persisted event', occurredAt: '01/10/2026 12:00', tone: 'yellow' }] })
     } }] }).compileComponents();

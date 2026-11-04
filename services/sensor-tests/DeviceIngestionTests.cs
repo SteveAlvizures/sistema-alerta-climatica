@@ -260,6 +260,30 @@ public sealed class DeviceIngestionTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Unauthorized, (await Send(new { sensorId, value = 24.5, messageId = Guid.NewGuid() }, key)).StatusCode);
     }
 
+    [Theory]
+    [InlineData("Temperature", "C", 28.0)]
+    [InlineData("RelativeHumidity", "%", 64.0)]
+    [InlineData("RainfallLevel", "estado", 0.0)]
+    [InlineData("RainfallLevel", "estado", 1.0)]
+    [InlineData("RainfallLevel", "estado", 2.0)]
+    [InlineData("RiverOrReservoirLevel", "%", 0.0)]
+    [InlineData("RiverOrReservoirLevel", "%", 100.0)]
+    public async Task FourPhysicalVariablesKeepSensorUnitsAndIdempotency(string variable, string unit, double value)
+    {
+        await Change(db => { var sensor = db.Sensors.Single(); sensor.MeasurementType = variable; sensor.Unit = unit; });
+        var body = new { sensorId, value, messageId = Guid.NewGuid() };
+        var created = await Send(body);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var first = await created.Content.ReadFromJsonAsync<ReadingRecord>();
+        Assert.Equal(variable, first!.Variable); Assert.Equal(unit, first.Unit); Assert.Equal("Physical", first.Origin);
+        var repeat = await Send(body);
+        Assert.Equal(HttpStatusCode.OK, repeat.StatusCode);
+        Assert.Equal(first.Id, (await repeat.Content.ReadFromJsonAsync<ReadingRecord>())!.Id);
+        Assert.Equal(HttpStatusCode.Conflict, (await Send(new { sensorId, value = value + 0.1, body.messageId })).StatusCode);
+        await using var scope = app.Services.CreateAsyncScope();
+        Assert.Single(await scope.ServiceProvider.GetRequiredService<SensorDb>().Readings.ToListAsync());
+    }
+
     private sealed class IdentityStub : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)

@@ -27,6 +27,7 @@ import { ClimateAlert, DangerLevel } from '../models/climate-alert.model';
 import { ClimateDashboardState, ClimateTrendSeries, TrendMetric } from '../models/climate-dashboard.model';
 import { ClimateIndicator } from '../models/climate-indicator.model';
 import { ClimateSensor } from '../models/sensor.model';
+import { formatSensorReading, isEsp32Rain } from '../models/physical-reading';
 import { CommunityApiService } from './community-api.service';
 import { AlertApiService } from './alert-api.service';
 import { SensorApiService } from './sensor-api.service';
@@ -172,11 +173,15 @@ export class DashboardDataService {
   }
 
   refreshSelected(): void {
+    if (this.source() !== 'api' || (this.activeRequest && !this.activeRequest.closed)) return;
+    if (!this.communities().length) { this.loadCommunities(); return; }
     const community = this.communities().find(item => item.id === this.selectedCommunityId());
     if (!community || this.source() !== 'api' || (this.activeRequest && !this.activeRequest.closed)) return;
     const version = this.beginRequest(true);
     this.observeOutcome(this.getCommunityOutcome(community), version, true);
   }
+
+  stopRefreshing(): void { this.cancelActiveRequest(); }
 
   updateSelectedAlert(action: AlertAction): void {
     const alert = this.apiDashboard()?.alert;
@@ -219,13 +224,32 @@ export class DashboardDataService {
   }
 
   private getCommunityOutcome(community: CommunityDto): Observable<LoadOutcome> {
+    return this.dashboardApi.get(community.id).pipe(switchMap(summary => {
+      // The extracted-services dashboard already carries a coherent sensor/history snapshot.
+      // Avoid N additional latest-reading requests on every one-second refresh.
+      if (summary.sensors && summary.alerts) {
+        return this.alertRuleApi.getAll().pipe(map(rules => {
+          const history = summary.readingEvolution;
+          const items = summary.sensors!.filter(s => s.communityId === community.id).map(sensor => ({ sensor,
+            reading: history.filter(r => r.sensorId === sensor.id)
+              .sort((a,b) => Date.parse(b.measuredAt)-Date.parse(a.measuredAt))[0] ?? null,
+          }));
+          return { state: items.length ? 'ready' : 'no-sensors', dashboard: this.createApiDashboard(community, items,
+            summary.alerts!.filter(a => a.communityId === community.id), history,
+            rules.filter(r => r.communityId === community.id && r.isActive), summary) } as LoadOutcome;
+        }));
+      }
+      return this.getLegacyCommunityOutcome(community, summary);
+    }));
+  }
+
+  private getLegacyCommunityOutcome(community: CommunityDto, summary: DashboardSummary): Observable<LoadOutcome> {
     return forkJoin({
-      summary: this.dashboardApi.get(community.id),
       sensors: this.sensorApi.getByCommunity(community.id),
       alerts: this.alertApi.getByCommunity(community.id),
       rules: this.alertRuleApi.getAll(),
     }).pipe(
-      switchMap(({ sensors, alerts, rules, summary }): Observable<LoadOutcome> => {
+      switchMap(({ sensors, alerts, rules }): Observable<LoadOutcome> => {
         const communityAlerts = alerts.filter((alert) => alert.communityId === community.id);
         const communityRules = rules.filter((rule) => rule.communityId === community.id && rule.isActive);
         if (sensors.length === 0) {
@@ -342,7 +366,9 @@ export class DashboardDataService {
       lastUpdated: latestDate ? new Date(latestDate) : new Date(),
       indicators: items.filter(item => item.sensor.status === 'Active' && indicatorDefinitions.some(def => def.variable === item.sensor.measurementType)).map(({ sensor, reading }) => {
         const definition = indicatorDefinitions.find(item => item.variable === sensor.measurementType)!;
+        const relativeDevice = sensor.origin === 'Physical' && ['ESP32-RAIN-01', 'ESP32-WATER-LEVEL-01'].includes(sensor.code);
         const sensorRules = rules.filter(rule => rule.variable === sensor.measurementType && (!rule.sensorId || rule.sensorId === sensor.id)
+          && (!relativeDevice || rule.unit === (reading?.unit ?? sensor.unit))
           && (!reading || this.ruleIsEnabled(rule, reading.measuredAt)));
         const matchingRule = reading ? sensorRules.filter(rule => this.ruleMatches(rule, reading.value))
           .sort((left, right) => dangerLevelPriority[right.dangerLevel] - dangerLevelPriority[left.dangerLevel])[0] : undefined;
@@ -353,12 +379,12 @@ export class DashboardDataService {
           .sort((left, right) => Date.parse(left.measuredAt) - Date.parse(right.measuredAt)).slice(-15);
         return {
           key: definition.key,
-          name: measurementLabels[sensor.measurementType], sensorId: sensor.id,
-          value: reading ? `${reading.value} ${reading.unit}` : 'Sin lectura', detail: sensor.name,
+          name: isEsp32Rain(sensor) ? 'Superficie de lluvia' : measurementLabels[sensor.measurementType], sensorId: sensor.id,
+          value: reading ? formatSensorReading(sensor, reading) : 'Sin lectura', detail: sensor.name,
           status, tone: matchingRule ? dangerLevelTones[matchingRule.dangerLevel] : 'green',
           lastReading: reading ? this.formatDateTime(reading.measuredAt) : 'Sin lectura registrada',
           nextActivation: nextRule ? `${dangerLevelLabels[nextRule.dangerLevel]} · ${nextRule.activationPoint} ${nextRule.unit}` : 'Sin otro punto configurado',
-          trend: sensorTrend.map(item => ({ label: this.formatDateTime(item.measuredAt), value: item.value, unit: item.unit })),
+          trend: isEsp32Rain(sensor) ? [] : sensorTrend.map(item => ({ label: this.formatDateTime(item.measuredAt), value: item.value, unit: item.unit })),
         };
       }),
       sensors: items.map(({ sensor, reading }) => this.mapSensor(sensor, reading)),
@@ -369,7 +395,7 @@ export class DashboardDataService {
         detail: `${event.communityName} \u00b7 ${event.status === 'Open' ? 'Activo' : 'Cerrado'} \u00b7 ${event.description}`,
         occurredAt: this.formatDateTime(event.occurredAt), tone: dangerLevelTones[event.level],
       })),
-      trend: this.createTrend(history, rules),
+      trend: this.createTrend(history.filter(r => !items.some(item => item.sensor.id === r.sensorId && isEsp32Rain(item.sensor))), rules),
     };
   }
 

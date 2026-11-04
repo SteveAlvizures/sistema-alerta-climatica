@@ -11,6 +11,8 @@ import { SensorStatus } from '../../components/sensor-status/sensor-status';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 
+export const DASHBOARD_REFRESH_INTERVAL_MS = 1000;
+
 @Component({
   selector: 'app-dashboard-page',
   imports: [RouterLink, ClimateTrend, StatusBadge, AlertSummary, IndicatorCard, RecentHistory, SensorStatus],
@@ -24,8 +26,12 @@ export class DashboardPage implements OnInit, OnDestroy {
   protected readonly dangerLevels: DangerLevel[] = ['Normal', 'Precaución', 'Alerta', 'Emergencia'];
   private refreshSubscription?: Subscription;
 
-  ngOnInit(): void { this.refreshSubscription = timer(15_000, 15_000).subscribe(() => this.climate.refreshSelected()); }
-  ngOnDestroy(): void { this.refreshSubscription?.unsubscribe(); }
+  ngOnInit(): void {
+    this.refreshSubscription?.unsubscribe();
+    this.refreshSubscription = timer(DASHBOARD_REFRESH_INTERVAL_MS, DASHBOARD_REFRESH_INTERVAL_MS)
+      .subscribe(() => this.climate.refreshSelected());
+  }
+  ngOnDestroy(): void { this.refreshSubscription?.unsubscribe(); this.climate.stopRefreshing(); }
   protected levelTone(level: DangerLevel): 'green' | 'yellow' | 'orange' | 'red' {
     return { Normal: 'green', 'Precaución': 'yellow', Alerta: 'orange', Emergencia: 'red' }[level] as 'green' | 'yellow' | 'orange' | 'red';
   }

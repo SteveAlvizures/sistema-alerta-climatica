@@ -44,3 +44,6 @@ appsettings.*.Local.json
 /estudio/
 **/target/
 *.tsbuildinfo
+
+# Configuración privada del ESP32
+/firmware/esp32-vigia-rural/secrets.h

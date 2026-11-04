@@ -312,6 +312,37 @@ describe('DashboardDataService', () => {
     expect(get.calls.mostRecent().args).toEqual([secondCommunity.id]);
   });
 
+  it('uses the dashboard snapshot, prevents overlapping refreshes, recovers and cancels on stop', () => {
+    const physical = {...sensor, code:'ESP32-DHT11-TEMP-01', origin:'Physical' as const};
+    const snapshot = {totalCommunities:1,activeSensors:1,inactiveSensors:0,activeAlerts:0, sensors:[physical],alerts:[],
+      readingEvolution:[{id:'real',sensorId:sensor.id,variable:'Temperature',value:28,unit:'C',measuredAt:community.createdAt,receivedAt:community.createdAt,origin:'Physical'}],recentEvents:[],alertDistributionByLevel:[]};
+    const pending = new Subject<typeof snapshot>();
+    const stopped = new Subject<typeof snapshot>();
+    const get = jasmine.createSpy().and.returnValues(of(snapshot),pending,throwError(() => new Error('offline')),of(snapshot),stopped);
+    TestBed.overrideProvider(DashboardApiService,{useValue:{get}});
+    const service = create(of([community]));
+    expect(service.dashboard()?.indicators[0].value).toBe('28.0 °C');
+    service.refreshSelected(); service.refreshSelected();
+    expect(get).toHaveBeenCalledTimes(2);
+    pending.error(new Error('offline'));
+    service.refreshSelected(); service.refreshSelected();
+    expect(get).toHaveBeenCalledTimes(4);
+    expect(service.loadState()).toBe('ready');
+    service.refreshSelected(); expect(stopped.observed).toBeTrue();
+    service.stopRefreshing(); expect(stopped.observed).toBeFalse();
+  });
+
+  it('does not apply legacy millimetre rules to categorical ESP32 rain', () => {
+    const rain = {...sensor,code:'ESP32-RAIN-01',origin:'Physical' as const,measurementType:'RainfallLevel' as const,unit:'estado'};
+    const reading: SensorReadingDto = {id:'rain',sensorId:rain.id,variable:'RainfallLevel',value:2,unit:'estado',measuredAt:community.createdAt,receivedAt:community.createdAt,origin:'Physical'};
+    const legacyRule = {id:'mm-rule',communityId:community.id,sensorId:null,variable:'RainfallLevel',unit:'mm',dangerLevel:'Red',
+      isActive:true,validFrom:'2020-01-01T00:00:00Z',validUntil:null,comparisonOperator:'>',activationPoint:1} as AlertRuleDto;
+    TestBed.overrideProvider(AlertRuleApiService,{useValue:{getAll:() => of([legacyRule])}});
+    const indicator = create(of([community]),of([rain]),of(reading)).dashboard()!.indicators[0];
+    expect(indicator.value).toBe('Muy mojado'); expect(indicator.status).toBe('Normal');
+    expect(indicator.trend).toEqual([]);
+  });
+
   describe('alert lifecycle', () => {
     function createLifecycle(
       status: AlertDto['status'] = 'Open',
