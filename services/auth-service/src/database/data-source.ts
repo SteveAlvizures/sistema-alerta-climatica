@@ -5,32 +5,47 @@ import { DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity.js';
 import { Role } from '../roles/entities/role.entity.js';
 import { Permission } from '../permissions/entities/permission.entity.js';
+import { ExternalAccount } from '../auth/entities/external-account.entity.js';
 
 config();
 
 const AppDataSource = new DataSource({
   type: 'postgres',
 
-  host: process.env.AUTH_DB_HOST,
-  port: Number(process.env.AUTH_DB_PORT ?? 5432),
+  host:
+    process.env.AUTH_DB_HOST,
 
-  database: process.env.AUTH_DB_NAME,
-  username: process.env.AUTH_DB_USER,
-  password: process.env.AUTH_DB_PASSWORD,
+  port:
+    Number(
+      process.env.AUTH_DB_PORT ??
+      5432,
+    ),
+
+  database:
+    process.env.AUTH_DB_NAME,
+
+  username:
+    process.env.AUTH_DB_USER,
+
+  password:
+    process.env.AUTH_DB_PASSWORD,
 
   entities: [
     User,
     Role,
     Permission,
+    ExternalAccount,
   ],
 
   migrations: [
     'dist/database/migrations/*.js',
   ],
 
-  migrationsTableName: 'migrations',
+  migrationsTableName:
+    'migrations',
 
-  synchronize: false,
+  synchronize:
+    false,
 });
 
 export default AppDataSource;

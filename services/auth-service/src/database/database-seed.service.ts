@@ -1,4 +1,8 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import {
+  Injectable,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
+
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -6,21 +10,27 @@ import { Role } from '../roles/entities/role.entity.js';
 import { Permission } from '../permissions/entities/permission.entity.js';
 
 @Injectable()
-export class DatabaseSeedService implements OnApplicationBootstrap {
+export class DatabaseSeedService
+  implements OnApplicationBootstrap
+{
   constructor(
     @InjectRepository(Role)
-    private readonly rolesRepository: Repository<Role>,
+    private readonly rolesRepository:
+      Repository<Role>,
 
     @InjectRepository(Permission)
-    private readonly permissionsRepository: Repository<Permission>,
+    private readonly permissionsRepository:
+      Repository<Permission>,
   ) {}
 
-  async onApplicationBootstrap(): Promise<void> {
+  async onApplicationBootstrap():
+    Promise<void> {
     await this.seedPermissions();
     await this.seedRoles();
   }
 
-  private async seedPermissions(): Promise<void> {
+  private async seedPermissions():
+    Promise<void> {
     const permissions = [
       ['users.read', 'Consultar usuarios'],
       ['users.write', 'Crear y modificar usuarios'],
@@ -36,25 +46,34 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
       ['audit.write', 'Registrar eventos de auditoría'],
     ];
 
-    for (const [name, description] of permissions) {
-      const existing = await this.permissionsRepository.findOne({
-        where: { name },
-      });
+    for (
+      const [name, description]
+      of permissions
+    ) {
+      const existing =
+        await this.permissionsRepository
+          .findOne({
+            where: { name },
+          });
 
       if (!existing) {
-        await this.permissionsRepository.save(
-          this.permissionsRepository.create({
-            name,
-            description,
-          }),
-        );
+        await this.permissionsRepository
+          .save(
+            this.permissionsRepository
+              .create({
+                name,
+                description,
+              }),
+          );
       }
     }
   }
 
-  private async seedRoles(): Promise<void> {
-    const definitions: Record<string, string[]> = {
-      Administrator: [
+  private async seedRoles():
+    Promise<void> {
+    const definitions:
+      Record<string, string[]> = {
+      ADMIN: [
         'users.read',
         'users.write',
         'communities.read',
@@ -69,7 +88,7 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
         'audit.write',
       ],
 
-      Operator: [
+      OPERATOR: [
         'communities.read',
         'communities.write',
         'sensors.read',
@@ -82,7 +101,7 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
         'audit.write',
       ],
 
-      ConsultationUser: [
+      VIEWER: [
         'communities.read',
         'sensors.read',
         'alerts.read',
@@ -91,40 +110,70 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
       ],
     };
 
-    const descriptions: Record<string, string> = {
-      Administrator: 'Administrador del sistema',
-      Operator: 'Operador del sistema',
-      ConsultationUser: 'Usuario de consulta',
+    const descriptions:
+      Record<string, string> = {
+      ADMIN:
+        'Administrador del sistema',
+
+      OPERATOR:
+        'Operador del sistema',
+
+      VIEWER:
+        'Usuario de consulta',
     };
 
-    for (const [roleName, permissionNames] of Object.entries(
-      definitions,
-    )) {
-      let role = await this.rolesRepository.findOne({
-        where: { name: roleName },
-        relations: {
-          permissions: true,
-        },
-      });
+    for (
+      const [
+        roleName,
+        permissionNames,
+      ] of Object.entries(
+        definitions,
+      )
+    ) {
+      let role =
+        await this.rolesRepository
+          .findOne({
+            where: {
+              name: roleName,
+            },
+            relations: {
+              permissions: true,
+            },
+          });
 
       if (!role) {
-        role = this.rolesRepository.create({
-          name: roleName,
-          description: descriptions[roleName],
-          permissions: [],
-        });
+        role =
+          this.rolesRepository
+            .create({
+              name: roleName,
+              description:
+                descriptions[
+                  roleName
+                ],
+              permissions: [],
+            });
       }
 
-      const permissions = await this.permissionsRepository
-        .createQueryBuilder('permission')
-        .where('permission.name IN (:...names)', {
-          names: permissionNames,
-        })
-        .getMany();
+      const permissions =
+        await this
+          .permissionsRepository
+          .createQueryBuilder(
+            'permission',
+          )
+          .where(
+            'permission.name IN (:...names)',
+            {
+              names:
+                permissionNames,
+            },
+          )
+          .getMany();
 
-      role.permissions = permissions;
+      role.permissions =
+        permissions;
 
-      await this.rolesRepository.save(role);
+      await this.rolesRepository
+        .save(role);
     }
   }
 }

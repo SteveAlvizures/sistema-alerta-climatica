@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import {
+  ConfigModule,
+  ConfigService,
+} from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller.js';
@@ -15,6 +18,7 @@ import { HealthModule } from './health/health.module.js';
 import { User } from './users/entities/user.entity.js';
 import { Role } from './roles/entities/role.entity.js';
 import { Permission } from './permissions/entities/permission.entity.js';
+import { ExternalAccount } from './auth/entities/external-account.entity.js';
 
 @Module({
   imports: [
@@ -24,13 +28,8 @@ import { Permission } from './permissions/entities/permission.entity.js';
     }),
 
     TypeOrmModule.forRootAsync({
-      imports: [
-        ConfigModule,
-      ],
-
-      inject: [
-        ConfigService,
-      ],
+      imports: [ConfigModule],
+      inject: [ConfigService],
 
       useFactory: (
         config: ConfigService,
@@ -67,10 +66,10 @@ import { Permission } from './permissions/entities/permission.entity.js';
           User,
           Role,
           Permission,
+          ExternalAccount,
         ],
 
         synchronize: false,
-
         retryAttempts: 5,
         retryDelay: 3000,
       }),

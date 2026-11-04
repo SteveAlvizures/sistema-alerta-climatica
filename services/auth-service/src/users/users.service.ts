@@ -153,11 +153,11 @@ export class UsersService {
     }
 
     if (
-      user.role.name === 'Administrator' &&
+      user.role.name === 'ADMIN' &&
       user.isActive &&
       !isActive
     ) {
-      await this.ensureAnotherAdministratorExists(user.id);
+      await this.ensureAnotherAdminExists(user.id);
     }
 
     user.isActive = isActive;
@@ -177,19 +177,19 @@ export class UsersService {
 
     if (
       id === actorId &&
-      newRole.name !== 'Administrator'
+      newRole.name !== 'ADMIN'
     ) {
       throw new ConflictException(
-        'No puedes quitar el rol Administrator de tu propia cuenta.',
+        'No puedes quitar el rol ADMIN de tu propia cuenta.',
       );
     }
 
     if (
-      user.role.name === 'Administrator' &&
+      user.role.name === 'ADMIN' &&
       user.isActive &&
-      newRole.name !== 'Administrator'
+      newRole.name !== 'ADMIN'
     ) {
-      await this.ensureAnotherAdministratorExists(user.id);
+      await this.ensureAnotherAdminExists(user.id);
     }
 
     user.role = newRole;
@@ -229,14 +229,14 @@ export class UsersService {
 
   private async getRequiredRole(name: string): Promise<Role> {
     const validRoles = [
-      'Administrator',
-      'Operator',
-      'ConsultationUser',
+      'ADMIN',
+      'OPERATOR',
+      'VIEWER',
     ];
 
     if (!validRoles.includes(name)) {
       throw new ConflictException(
-        'Selecciona un rol válido: Administrator, Operator o ConsultationUser.',
+        'Selecciona un rol válido: ADMIN, OPERATOR o VIEWER.',
       );
     }
 
@@ -273,7 +273,7 @@ export class UsersService {
     }
   }
 
-  private async ensureAnotherAdministratorExists(
+  private async ensureAnotherAdminExists(
     excludedUserId: string,
   ): Promise<void> {
     const count = await this.usersRepository
@@ -284,7 +284,7 @@ export class UsersService {
       })
       .andWhere('user.isActive = true')
       .andWhere('role.name = :role', {
-        role: 'Administrator',
+        role: 'ADMIN',
       })
       .getCount();
 

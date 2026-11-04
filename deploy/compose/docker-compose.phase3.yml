@@ -52,14 +52,29 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
       JWT_ISSUER: ${JWT_ISSUER:-vigiarural-auth}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-vigiarural}
+
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is required}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://vigiarural.site/api/auth/callback/google}
+
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:?GITHUB_CLIENT_ID is required}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:?GITHUB_CLIENT_SECRET is required}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-https://vigiarural.site/api/auth/callback/github}
+
+      FRONTEND_OAUTH_SUCCESS_URL: ${FRONTEND_OAUTH_SUCCESS_URL:-https://vigiarural.site/auth/callback}
+
     depends_on:
       auth-postgres:
         condition: service_healthy
+
     networks:
       - upstream
       - auth-persistence
+      - auth-egress
+
     expose:
       - "3001"
+
     healthcheck:
       test:
         [
@@ -72,6 +87,7 @@ services:
       timeout: 5s
       retries: 12
       start_period: 15s
+
     restart: unless-stopped
 
 
@@ -115,14 +131,18 @@ services:
       Jwt__Secret: ${JWT_SECRET:?JWT_SECRET is required}
       Jwt__Issuer: ${JWT_ISSUER:-vigiarural-auth}
       Jwt__Audience: ${JWT_AUDIENCE:-vigiarural}
+
     depends_on:
       community-postgres:
         condition: service_healthy
+
     networks:
       - upstream
       - community-persistence
+
     expose:
       - "3002"
+
     restart: unless-stopped
 
 
@@ -172,16 +192,20 @@ services:
 
       COMMUNITY_SERVICE_URL: http://community-service:3002
       SENSOR_SERVICE_URL: http://sensor-service:3004
+
     depends_on:
       alert-postgres:
         condition: service_healthy
       community-service:
         condition: service_started
+
     networks:
       - upstream
       - alert-persistence
+
     expose:
       - "3003"
+
     restart: unless-stopped
 
 
@@ -233,6 +257,7 @@ services:
 
       COMMUNITY_SERVICE_URL: http://community-service:3002
       ALERT_SERVICE_URL: http://alert-service:3003
+
     depends_on:
       sensor-sqlserver:
         condition: service_healthy
@@ -240,11 +265,14 @@ services:
         condition: service_started
       alert-service:
         condition: service_started
+
     networks:
       - upstream
       - sensor-persistence
+
     expose:
       - "3004"
+
     restart: unless-stopped
 
 
@@ -295,6 +323,7 @@ services:
       COMMUNITY_SERVICE_URL: http://community-service:3002
       SENSOR_SERVICE_URL: http://sensor-service:3004
       ALERT_SERVICE_URL: http://alert-service:3003
+
     depends_on:
       report-mongodb:
         condition: service_healthy
@@ -304,11 +333,14 @@ services:
         condition: service_started
       alert-service:
         condition: service_started
+
     networks:
       - upstream
       - report-persistence
+
     expose:
       - "3005"
+
     restart: unless-stopped
 
 
@@ -355,14 +387,18 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_ISSUER: ${JWT_ISSUER:-vigiarural-auth}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-vigiarural}
+
     depends_on:
       audit-mongodb:
         condition: service_healthy
+
     networks:
       - upstream
       - audit-persistence
+
     expose:
       - "3006"
+
     restart: unless-stopped
 
 
@@ -391,6 +427,7 @@ services:
       ReverseProxy__Clusters__audit__Destinations__audit-service__Address: http://audit-service:3006/
 
       Gateway__AllowedOrigins__0: ${FRONTEND_ORIGIN:-http://localhost:4200}
+
     depends_on:
       auth-service:
         condition: service_healthy
@@ -404,11 +441,14 @@ services:
         condition: service_started
       audit-service:
         condition: service_started
+
     ports:
       - "${GATEWAY_BIND:-127.0.0.1}:${GATEWAY_PORT:-5160}:8080"
+
     networks:
       - edge
       - upstream
+
     restart: unless-stopped
 
 
@@ -425,11 +465,14 @@ services:
       - "${FRONTEND_BIND:-127.0.0.1}:${FRONTEND_PORT:-8082}:80"
     volumes:
       - ../nginx/nginx.phase3.conf:/etc/nginx/conf.d/default.conf:ro
+
     depends_on:
       gateway:
         condition: service_started
+
     networks:
       - edge
+
     healthcheck:
       test:
         [
@@ -443,6 +486,7 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
     restart: unless-stopped
 
 
@@ -464,10 +508,13 @@ volumes:
 # =========================================================
 
 networks:
+
   edge:
 
   upstream:
     internal: true
+
+  auth-egress:
 
   auth-persistence:
     internal: true

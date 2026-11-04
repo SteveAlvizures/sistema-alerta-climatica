@@ -2,6 +2,6 @@ import { IsIn, IsString } from 'class-validator';
 
 export class ChangeUserRoleDto {
   @IsString()
-  @IsIn(['Administrator', 'Operator', 'ConsultationUser'])
+  @IsIn(['ADMIN', 'OPERATOR', 'VIEWER'])
   role: string;
 }

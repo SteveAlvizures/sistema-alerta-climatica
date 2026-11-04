@@ -41,7 +41,7 @@ interface AuthenticatedRequest {
   RolesGuard,
   PermissionsGuard,
 )
-@Roles('Administrator')
+@Roles('ADMIN')
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,

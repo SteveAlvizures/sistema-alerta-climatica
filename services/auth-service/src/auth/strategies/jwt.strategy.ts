@@ -1,6 +1,15 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { PassportStrategy } from '@nestjs/passport';
+import {
+  Injectable,
+} from '@nestjs/common';
+
+import {
+  ConfigService,
+} from '@nestjs/config';
+
+import {
+  PassportStrategy,
+} from '@nestjs/passport';
+
 import {
   ExtractJwt,
   Strategy,
@@ -11,43 +20,81 @@ export interface JwtPayload {
   email: string;
   name: string;
   role: string;
+  roles?: string[];
   permissions: string[];
+  provider?: string;
   jti: string;
 }
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(
-  Strategy,
-) {
-  constructor(config: ConfigService) {
+export class JwtStrategy
+  extends PassportStrategy(
+    Strategy,
+  )
+{
+  constructor(
+    config:
+      ConfigService,
+  ) {
     super({
       jwtFromRequest:
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
-      ignoreExpiration: false,
+        ExtractJwt
+          .fromAuthHeaderAsBearerToken(),
+
+      ignoreExpiration:
+        false,
+
       secretOrKey:
-        config.getOrThrow<string>(
-          'JWT_SECRET',
-        ),
+        config
+          .getOrThrow<string>(
+            'JWT_SECRET',
+          ),
+
       issuer:
-        config.getOrThrow<string>(
-          'JWT_ISSUER',
-        ),
+        config
+          .getOrThrow<string>(
+            'JWT_ISSUER',
+          ),
+
       audience:
-        config.getOrThrow<string>(
-          'JWT_AUDIENCE',
-        ),
+        config
+          .getOrThrow<string>(
+            'JWT_AUDIENCE',
+          ),
     });
   }
 
-  validate(payload: JwtPayload) {
+  validate(
+    payload:
+      JwtPayload,
+  ) {
     return {
-      id: payload.sub,
-      email: payload.email,
-      name: payload.name,
-      role: payload.role,
+      id:
+        payload.sub,
+
+      email:
+        payload.email,
+
+      name:
+        payload.name,
+
+      role:
+        payload.role,
+
+      roles:
+        payload.roles ??
+        [payload.role],
+
       permissions:
-        payload.permissions ?? [],
-      jti: payload.jti,
+        payload.permissions ??
+        [],
+
+      provider:
+        payload.provider ??
+        'local',
+
+      jti:
+        payload.jti,
     };
   }
 }

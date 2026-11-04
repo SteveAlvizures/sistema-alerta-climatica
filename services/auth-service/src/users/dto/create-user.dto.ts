@@ -23,6 +23,6 @@ export class CreateUserDto {
   password: string;
 
   @IsString()
-  @IsIn(['Administrator', 'Operator', 'ConsultationUser'])
+  @IsIn(['ADMIN', 'OPERATOR', 'VIEWER'])
   role: string;
 }

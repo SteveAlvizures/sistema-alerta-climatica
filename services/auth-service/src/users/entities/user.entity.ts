@@ -14,26 +14,49 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ length: 150 })
+  @Column({
+    type: 'varchar',
+    length: 150,
+  })
   name: string;
 
-  @Column({ unique: true, length: 254 })
+  @Column({
+    type: 'varchar',
+    unique: true,
+    length: 254,
+  })
   email: string;
 
-  @Column({ name: 'password_hash' })
-  passwordHash: string;
-
-  @ManyToOne(() => Role, (role) => role.users, {
-    eager: true,
-    nullable: false,
+  @Column({
+    name: 'password_hash',
+    type: 'varchar',
+    nullable: true,
   })
-  @JoinColumn({ name: 'role_id' })
+  passwordHash: string | null;
+
+  @ManyToOne(
+    () => Role,
+    (role) => role.users,
+    {
+      eager: true,
+      nullable: false,
+    },
+  )
+  @JoinColumn({
+    name: 'role_id',
+  })
   role: Role;
 
-  @Column({ name: 'is_active', default: true })
+  @Column({
+    name: 'is_active',
+    type: 'boolean',
+    default: true,
+  })
   isActive: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({
+    name: 'created_at',
+  })
   createdAt: Date;
 
   @Column({
