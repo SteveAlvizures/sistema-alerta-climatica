@@ -671,6 +671,18 @@ export class AuthService {
       },
     );
 
+    if (
+      provider === 'google' ||
+      provider === 'github'
+    ) {
+      await this.registerLoginAudit(
+        completeUser,
+        provider,
+        issuer,
+        audience,
+      );
+    }
+
     return {
       accessToken,
       expiresAt,
@@ -682,6 +694,103 @@ export class AuthService {
         completeUser.role.name,
       provider,
     };
+  }
+
+  private async registerLoginAudit(
+    user: User,
+    provider: ExternalProvider,
+    issuer: string,
+    audience: string,
+  ): Promise<void> {
+    try {
+      /*
+       * Token interno de corta duración utilizado únicamente
+       * para registrar el evento en Audit Service.
+       */
+      const auditToken =
+        await this.jwtService.signAsync(
+          {
+            sub:
+              user.id,
+            email:
+              user.email,
+            username:
+              user.email,
+            name:
+              user.name,
+            role:
+              'SYSTEM',
+            roles: [
+              'SYSTEM',
+            ],
+            permissions: [
+              'audit.write',
+            ],
+            provider:
+              'internal',
+            jti:
+              randomUUID(),
+          },
+          {
+            issuer,
+            audience,
+            expiresIn:
+              '2m',
+          },
+        );
+
+      const action =
+        provider === 'google'
+          ? 'LOGIN_GOOGLE_SUCCESS'
+          : 'LOGIN_GITHUB_SUCCESS';
+
+      const response =
+        await fetch(
+          'http://audit-service:3006/api/audit-events',
+          {
+            method: 'POST',
+            headers: {
+              Authorization:
+                `Bearer ${auditToken}`,
+              'Content-Type':
+                'application/json',
+            },
+            body:
+              JSON.stringify({
+                action,
+                entity_type:
+                  'AUTHENTICATION',
+                entity_id:
+                  user.id,
+                description:
+                  `Inicio de sesión exitoso mediante ${provider}.`,
+                metadata: {
+                  provider,
+                  email:
+                    user.email,
+                  role:
+                    user.role?.name ??
+                    'UNKNOWN',
+                },
+              }),
+          },
+        );
+
+      if (!response.ok) {
+        console.warn(
+          `No fue posible registrar auditoría de login ${provider}. HTTP ${response.status}`,
+        );
+      }
+    } catch (error) {
+      /*
+       * Una falla de auditoría no debe impedir
+       * que el usuario pueda autenticarse.
+       */
+      console.warn(
+        'No fue posible registrar el evento de auditoría:',
+        error,
+      );
+    }
   }
 
   private async createOAuthState(
