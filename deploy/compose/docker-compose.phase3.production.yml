@@ -1,5 +1,9 @@
 # Overlay: always combine with docker-compose.phase3.yml.
 services:
+  auth-service:
+    environment:
+      OAUTH_ENV: production
+      OAUTH_PUBLIC_ORIGIN: https://vigiarural.site
   sqlserver:
     environment:
       MSSQL_PID: ${SQLSERVER_EDITION:-Express}

@@ -4,7 +4,7 @@ import { PoolClient } from 'pg';
 import { Database } from '../persistence/database';
 import { IdentityPasswords } from '../auth/passwords';
 import { Identity, identityRow } from '../identity/identity.guard';
-import { Role } from '../identity/roles';
+import { Role, normalizeRole, canonicalRole } from '../identity/roles';
 import { Outbox } from '../integration/outbox';
 
 export function validText(value:unknown,max:number,label:string):string {
@@ -17,11 +17,12 @@ export function validUsername(value:unknown):string {
   return result;
 }
 export function validRole(value:unknown):Role {
+  if(value==='ADMIN'||value==='OPERATOR'||value==='VIEWER') return normalizeRole(value);
   if (value!=='Administrator' && value!=='Operator' && value!=='ConsultationUser') throw new BadRequestException('Selecciona un rol válido: Administrator, Operator o ConsultationUser.');
   return value;
 }
 export function response(user:Identity) {
-  const {permissions:_,...result}=user; return result;
+  const {permissions:_,...result}=user; return {...result,role:canonicalRole(user.role)};
 }
 @Injectable()
 export class UsersService {

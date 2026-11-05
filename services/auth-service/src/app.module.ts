@@ -11,6 +11,8 @@ import { AdministratorGuard, IdentityGuard } from './identity/identity.guard';
 import { InternalGuard } from './identity/internal.guard';
 import { Outbox } from './integration/outbox';
 import { HealthController } from './health/health.controller';
-@Module({controllers:[AuthController,UsersController,IdentityController,HealthController],
-  providers:[Database,Tokens,AuthService,{provide:CredentialVerifier,useClass:LocalIdentityCredentials},UsersService,IdentityGuard,AdministratorGuard,InternalGuard,Outbox]})
+import { OAuthController } from './auth/oauth.controller';
+import { OAuthService } from './auth/oauth.service';
+@Module({controllers:[AuthController,OAuthController,UsersController,IdentityController,HealthController],
+  providers:[Database,Tokens,AuthService,OAuthService,{provide:CredentialVerifier,useClass:LocalIdentityCredentials},UsersService,IdentityGuard,AdministratorGuard,InternalGuard,Outbox]})
 export class AppModule {}

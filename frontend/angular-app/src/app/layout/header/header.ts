@@ -6,6 +6,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { ActiveAlertsService } from '../../core/services/active-alerts.service';
 import { ApiDangerLevel } from '../../core/models/api.model';
+import { officialRole } from '../../core/models/roles';
 
 @Component({ selector: 'app-header', imports: [StatusBadge, RouterLink], templateUrl: './header.html', changeDetection: ChangeDetectionStrategy.Eager,
  styleUrl: './header.scss' })
@@ -19,7 +20,7 @@ export class Header implements OnInit {
   protected formatTime(date: Date): string { return new Intl.DateTimeFormat('es-GT', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date); }
   protected toggleSource(): void { this.climate.setSource(this.climate.source() === 'api' ? 'simulation' : 'api'); }
   protected logout(): void { this.auth.logout(); void this.router.navigateByUrl('/'); }
-  protected sessionLabel(role: string): string { return role === 'Administrator' ? 'Administrador' : role === 'Operator' ? 'Operador' : 'Usuario de consulta'; }
+  protected sessionLabel(role: string): string { return officialRole(role) === 'ADMIN' ? 'Administrador' : officialRole(role) === 'OPERATOR' ? 'Operador' : 'Usuario de consulta'; }
   protected levelLabel(level: ApiDangerLevel | null): string {
     return level ? ({ Green: 'Normal', Yellow: 'Precaución', Orange: 'Alerta', Red: 'Emergencia' }[level]) : '';
   }

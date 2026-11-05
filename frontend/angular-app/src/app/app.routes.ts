@@ -4,6 +4,7 @@ import { authenticatedGuard } from './core/guards/authenticated.guard';
 import { reportsGuard } from './core/guards/reports.guard';
 
 export const routes: Routes = [
+  {path:'auth/callback',loadComponent:()=>import('./features/auth/pages/oauth-callback-page').then(m=>m.OAuthCallbackPage)},
   {
     path: 'login',
     loadComponent: () =>

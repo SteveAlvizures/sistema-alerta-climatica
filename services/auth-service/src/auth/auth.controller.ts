@@ -1,10 +1,10 @@
-import { Body, Controller, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Header, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthRequest, IdentityGuard } from '../identity/identity.guard';
 import { AuthService } from './auth.service';
 @Controller('api/auth')
 export class AuthController {
   constructor(private readonly auth:AuthService) {}
-  @Post('login') @HttpCode(200)
+  @Post('login') @HttpCode(200) @Header('Cache-Control','no-store')
   async login(@Body() body:Record<string,unknown>) {
     return this.auth.login(body);
   }

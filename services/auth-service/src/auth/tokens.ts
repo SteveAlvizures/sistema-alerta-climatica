@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { createHash, randomUUID } from 'node:crypto';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { required } from '../common/config';
+import { canonicalRole, normalizeRole } from '../identity/roles';
 export const NAME_CLAIM = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name';
 export const ROLE_CLAIM = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
 
@@ -16,7 +17,8 @@ export class Tokens {
   issue(user: {id:string; name:string; username:string; role:string}): {accessToken:string; expiresAt:string} {
     const now = Math.floor(Date.now()/1000), exp = now + this.minutes*60;
     const accessToken = jwt.sign({ sub:user.id, email:user.username, [NAME_CLAIM]:user.name,
-      [ROLE_CLAIM]:user.role, jti:randomUUID(), nbf:now, iat:now, exp }, this.key,
+      role:canonicalRole(user.role),roles:[canonicalRole(user.role)],
+      [ROLE_CLAIM]:normalizeRole(user.role), jti:randomUUID(), nbf:now, iat:now, exp }, this.key,
       { algorithm:'HS256', issuer:this.issuer, audience:this.audience });
     return {accessToken, expiresAt:new Date(exp*1000).toISOString()};
   }

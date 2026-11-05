@@ -16,19 +16,21 @@ export class Database implements OnModuleInit, OnModuleDestroy {
   }
   async onModuleInit(): Promise<void> {
     // Versioned, additive schema creation only in the service's own database.
-    const sql = await readFile(resolve('migrations/001_auth.sql'), 'utf8');
+    for (const [version,file] of [[1,'001_auth.sql'],[2,'002_oauth.sql']] as const) {
+    const sql = await readFile(resolve('migrations',file), 'utf8');
     const checksum = createHash('sha256').update(sql).digest('hex');
     await this.transaction(async client => {
       await client.query('SELECT pg_advisory_xact_lock(731003)');
       await client.query('CREATE TABLE IF NOT EXISTS auth_schema_migrations (version integer PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())');
-      const applied = await client.query('SELECT checksum FROM auth_schema_migrations WHERE version=1');
+      const applied = await client.query('SELECT checksum FROM auth_schema_migrations WHERE version=$1',[version]);
       if (applied.rowCount) {
         if (applied.rows[0].checksum !== checksum) throw new Error('Auth migration checksum mismatch');
       } else {
         await client.query(sql);
-        await client.query('INSERT INTO auth_schema_migrations(version,checksum) VALUES(1,$1)', [checksum]);
+        await client.query('INSERT INTO auth_schema_migrations(version,checksum) VALUES($1,$2)', [version,checksum]);
       }
     });
+    }
   }
   async transaction<T>(action: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();

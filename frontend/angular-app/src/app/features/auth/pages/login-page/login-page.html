@@ -11,6 +11,8 @@
       @if (error()) { <p class="login__error" role="alert">{{ error() }}</p> }
       <button class="login__submit" type="submit" [disabled]="submitting() || !username || !password">{{ submitting() ? 'Iniciando sesión…' : 'Iniciar sesión' }}</button>
     </form>
+    <p><a class="login__back" [href]="auth.oauthUrl('google')">Continuar con Google</a></p>
+    <p><a class="login__back" [href]="auth.oauthUrl('github')">Continuar con GitHub</a></p>
     <a class="login__back" routerLink="/">Volver al dashboard público</a>
   </section>
 </main>

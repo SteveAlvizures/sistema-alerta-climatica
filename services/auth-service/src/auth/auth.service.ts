@@ -4,6 +4,7 @@ import { Tokens } from './tokens';
 import { Identity, identityRow } from '../identity/identity.guard';
 import { CredentialVerifier } from '../identity/credential-verifier';
 import { Outbox } from '../integration/outbox';
+import { canonicalRole } from '../identity/roles';
 
 @Injectable()
 export class AuthService {
@@ -16,11 +17,11 @@ export class AuthService {
     return this.db.transaction(async client=>{
       let rows=await client.query('SELECT * FROM auth_users WHERE lower(username)=$1 AND is_active=true FOR UPDATE',[username]);
       if(!rows.rowCount) rows=await client.query('SELECT * FROM auth_users WHERE lower(name)=$1 AND is_active=true LIMIT 2 FOR UPDATE',[username]);
-      if(rows.rowCount!==1 || !await this.credentials.verify(rows.rows[0].password_hash,password)) throw new UnauthorizedException('Usuario o contraseña incorrectos.');
+      if(rows.rowCount!==1 || !rows.rows[0].password_hash || !await this.credentials.verify(rows.rows[0].password_hash,password)) throw new UnauthorizedException('Usuario o contraseña incorrectos.');
       const saved=await client.query('UPDATE auth_users SET last_access_at=now() WHERE id=$1 RETURNING *',[rows.rows[0].id]);
       const user=identityRow(saved.rows[0]);
       await this.outbox.enqueue(client,user,'Login',user,'Inicio de sesión exitoso.');
-      return {...this.tokens.issue(user),name:user.name,email:user.username,role:user.role};
+      return {...this.tokens.issue(user),name:user.name,email:user.username,role:canonicalRole(user.role)};
     });
   }
   async logout(identity:Identity):Promise<void> {

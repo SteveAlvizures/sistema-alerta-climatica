@@ -9,7 +9,9 @@ public static class UserRoles
     // Existing persisted users and JWTs retain read-only access.
     public static string Normalize(string role) => role.Trim() switch
     {
-        "User" => ConsultationUser,
+        "User" or "Viewer" or "VIEWER" => ConsultationUser,
+        "ADMIN" => Administrator,
+        "OPERATOR" => Operator,
         Administrator => Administrator,
         Operator => Operator,
         ConsultationUser => ConsultationUser,

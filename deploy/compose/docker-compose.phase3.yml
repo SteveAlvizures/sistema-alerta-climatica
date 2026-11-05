@@ -95,6 +95,12 @@ services:
       JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES:-60}
       AUTH_INTERNAL_KEY: ${AUTH_INTERNAL_KEY:?AUTH_INTERNAL_KEY is required}
       AUTH_AUDIT_URL: http://backend:8080/internal/auth-events
+      OAUTH_ENV: ${OAUTH_ENV:-local}
+      OAUTH_PUBLIC_ORIGIN: ${OAUTH_PUBLIC_ORIGIN:-http://localhost:4200}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
     depends_on:
       auth-postgres:
         condition: service_healthy

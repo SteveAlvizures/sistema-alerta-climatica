@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { API_BASE_URL } from '../config/api.config';
+import { officialRole } from '../models/roles';
 
 export interface LoginRequest { username: string; password: string; }
 export interface AuthSession { accessToken: string; expiresAt: string; name: string; email: string; role: string; }
@@ -19,9 +20,17 @@ export class AuthService {
     return !!session && new Date(session.expiresAt).getTime() > Date.now();
   });
 
-  canOperate(): boolean { return ['Administrator', 'Operator'].includes(this.validSession()?.role ?? ''); }
+  canOperate(): boolean { return ['ADMIN', 'OPERATOR'].includes(officialRole(this.validSession()?.role ?? '') ?? ''); }
   canManageUsers(): boolean { return this.canViewAudit(); }
-  canViewAudit(): boolean { return this.validSession()?.role === 'Administrator'; }
+  canViewAudit(): boolean { return officialRole(this.validSession()?.role ?? '') === 'ADMIN'; }
+
+  oauthUrl(provider:'google'|'github'):string { return `${this.baseUrl}/auth/oauth/${provider}`; }
+  completeOAuth(code:string):Observable<AuthSession> {
+    return this.http.post<AuthSession>(`${this.baseUrl}/auth/oauth/exchange`,{code}).pipe(tap(session=>{
+      if(typeof session.accessToken!=='string' || !session.accessToken || typeof session.name!=='string' || typeof session.email!=='string' || !officialRole(session.role) || !Number.isFinite(Date.parse(session.expiresAt)) || Date.parse(session.expiresAt)<=Date.now()) throw new Error('Invalid session');
+      sessionStorage.setItem(storageKey,JSON.stringify(session));this.currentSession.set(session);
+    }));
+  }
 
   login(request: LoginRequest): Observable<AuthSession> {
     return this.http.post<AuthSession>(`${this.baseUrl}/auth/login`, request).pipe(tap((session) => {

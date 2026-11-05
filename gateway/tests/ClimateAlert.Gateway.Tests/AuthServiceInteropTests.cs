@@ -54,6 +54,7 @@ public sealed class AuthServiceInteropTests
         var token=new JwtSecurityTokenHandler().ReadJwtToken(response!.AccessToken);
         Assert.Equal("test",token.Issuer);Assert.Contains("test",token.Audiences);
         Assert.Contains(token.Claims,claim=>claim.Type==ClaimTypes.Role&&claim.Value=="Administrator");
+        Assert.Contains(token.Claims,claim=>claim.Type=="role"&&claim.Value=="ADMIN");
         client.DefaultRequestHeaders.Authorization=new("Bearer",response.AccessToken);
         Assert.Equal(HttpStatusCode.OK,(await client.GetAsync("/api/users")).StatusCode);
         Assert.True(await observation.Authenticated.Task.WaitAsync(TimeSpan.FromSeconds(3)));

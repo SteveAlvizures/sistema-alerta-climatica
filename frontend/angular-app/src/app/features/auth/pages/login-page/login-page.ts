@@ -9,7 +9,7 @@ import { ThemeService } from '../../../../core/services/theme.service';
 @Component({ selector: 'app-login-page', imports: [FormsModule, RouterLink], templateUrl: './login-page.html', changeDetection: ChangeDetectionStrategy.Eager,
  styleUrl: './login-page.scss' })
 export class LoginPage {
-  private readonly auth = inject(AuthService);
+  protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   protected readonly theme = inject(ThemeService);
   protected readonly submitting = signal(false);

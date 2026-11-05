@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { IdentityPasswords } from '../auth/passwords';
 
-// Phase 4 extension point; no OAuth/OIDC endpoints or providers are implemented.
+// Local passwords retain their existing .NET-compatible format; OAuth uses external accounts.
 export abstract class CredentialVerifier {
   abstract verify(storedHash:string,password:string):Promise<boolean>;
 }

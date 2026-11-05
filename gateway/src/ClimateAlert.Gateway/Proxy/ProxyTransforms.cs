@@ -55,7 +55,12 @@ public static class ProxyTransforms
 
             // CreatedAtAction/redirects must never reveal an upstream authority.
             if (headers.Location.Count == 1 && Uri.TryCreate(headers.Location.ToString(), UriKind.Absolute, out var location)
-                && (location.Scheme == "http" || location.Scheme == "https"))
+                && (location.Scheme == "http" || location.Scheme == "https")
+                && !(context.HttpContext.Request.Path.StartsWithSegments("/api/auth/oauth")
+                    && location.Scheme == "https"
+                    && ((location.Host == "accounts.google.com" && location.AbsolutePath == "/o/oauth2/v2/auth")
+                        || (location.Host == "github.com" && location.AbsolutePath == "/login/oauth/authorize"))
+                    && location.IsDefaultPort && string.IsNullOrEmpty(location.UserInfo)))
                 headers.Location = location.PathAndQuery + location.Fragment;
             return ValueTask.CompletedTask;
         });

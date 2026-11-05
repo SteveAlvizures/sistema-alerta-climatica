@@ -5,9 +5,11 @@ import { FormsModule } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 import { UserApiService, UserDto, UserFilters, UserRole } from '../../../../core/services/user-api.service';
+import { officialRole } from '../../../../core/models/roles';
 
 const emptyFilters = (): UserFilters => ({ search: '', role: '', isActive: '' });
 const roleLabels: Record<UserRole, string> = {
+  ADMIN:'Administrador',OPERATOR:'Operador',VIEWER:'Usuario de consulta',
   Administrator: 'Administrador', Operator: 'Operador', ConsultationUser: 'Usuario de consulta',
 };
 
@@ -21,7 +23,7 @@ export class UsersPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
   private listRequest?: Subscription;
-  readonly roles = Object.keys(roleLabels) as UserRole[];
+  readonly roles:UserRole[] = ['ADMIN','OPERATOR','VIEWER'];
   users: UserDto[] = [];
   draftFilters = emptyFilters();
   activeFilters = emptyFilters();
@@ -40,7 +42,7 @@ export class UsersPage implements OnInit {
   name = '';
   username = '';
   password = '';
-  role: UserRole = 'ConsultationUser';
+  role: UserRole = 'VIEWER';
 
   ngOnInit(): void { this.load(); }
   canManage(): boolean { return this.auth.canManageUsers(); }
@@ -57,7 +59,7 @@ export class UsersPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: result => {
           this.users = result.data;
-          this.roleDraft = Object.fromEntries(result.data.map(user => [user.id, user.role]));
+          this.roleDraft = Object.fromEntries(result.data.map(user => [user.id, officialRole(user.role)??'VIEWER']));
           this.page = result.pageIndex; this.totalCount = result.totalCount; this.totalPages = result.totalPages;
           this.hasPrevious = result.hasPrevious; this.hasNext = result.hasNext; this.loading = false;
         },
@@ -75,7 +77,7 @@ export class UsersPage implements OnInit {
     this.password = ''; this.error = ''; this.success = '';
   }
   cancelEdit(): void {
-    this.editingId = ''; this.name = ''; this.username = ''; this.password = ''; this.role = 'ConsultationUser';
+    this.editingId = ''; this.name = ''; this.username = ''; this.password = ''; this.role = 'VIEWER';
   }
   save(): void {
     if (!this.canManage() || this.saving) return;
@@ -99,7 +101,7 @@ export class UsersPage implements OnInit {
   }
   assignRole(user: UserDto): void {
     const role = this.roleDraft[user.id];
-    if (!this.canManage() || this.saving || !role || role === user.role) return;
+    if (!this.canManage() || this.saving || !role || officialRole(role) === officialRole(user.role)) return;
     if (!window.confirm(`¿Asignar el rol ${this.roleLabel(role)} a ${user.username}?`)) return;
     this.runMutation(this.api.changeRole(user.id, role), 'Rol actualizado correctamente.');
   }
