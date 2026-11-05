@@ -1,0 +1,40 @@
+# Adapted selectively from Walter 22e7fe2 for current phase4 application contracts.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-nginx
+  namespace: vigiarural-phase4
+data:
+  default.conf: "server {\n listen 8081;\n server_tokens off;\n location = /health/live\
+    \ { access_log off; default_type text/plain; return 200 \"live\"; }\n location\
+    \ = /health/ready { access_log off; proxy_pass http://127.0.0.1:8080/health/ready;\
+    \ }\n location / { return 404; }\n}\nserver {\n listen 8443 ssl;\n server_name\
+    \ vigiarural.site;\n server_tokens off;\n ssl_certificate /etc/nginx/tls/tls.crt;\n\
+    \ ssl_certificate_key /etc/nginx/tls/tls.key;\n ssl_protocols TLSv1.2 TLSv1.3;\n\
+    \ access_log off;\n add_header Strict-Transport-Security \"max-age=31536000\"\
+    \ always;\n add_header X-Content-Type-Options nosniff always;\n location /internal/\
+    \ { return 404; }\n location / {\n  proxy_pass http://127.0.0.1:8080;\n  proxy_http_version\
+    \ 1.1;\n  proxy_set_header Host vigiarural.site;\n  proxy_set_header Forwarded\
+    \ \"\";\n  proxy_set_header X-Forwarded-For \"\";\n  proxy_set_header X-Forwarded-Host\
+    \ \"\";\n  proxy_set_header X-Forwarded-Proto $scheme;\n  proxy_connect_timeout\
+    \ 5s;\n  proxy_read_timeout 35s;\n }\n}\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-nginx
+  namespace: vigiarural-phase4
+data:
+  default.conf: "server {\n listen 80;\n server_tokens off;\n root /usr/share/nginx/html;\n\
+    \ index index.html;\n access_log off;\n add_header X-Content-Type-Options nosniff\
+    \ always;\n add_header X-Frame-Options DENY always;\n add_header Referrer-Policy\
+    \ no-referrer always;\n location = /health/live { default_type text/plain; return\
+    \ 200 \"live\"; }\n location = /health/ready { default_type text/plain; if (!-f\
+    \ /usr/share/nginx/html/index.html) { return 503; } return 200 \"ready\"; }\n\
+    \ location = /index.html { add_header Cache-Control no-store always; }\n location\
+    \ ^~ /internal/ { return 404; }\n location ^~ /api/ {\n  proxy_pass https://gateway:443;\n\
+    \  proxy_ssl_server_name on;\n  proxy_ssl_name vigiarural.site;\n  proxy_ssl_verify\
+    \ on;\n  proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;\n \
+    \ proxy_set_header Host vigiarural.site;\n  proxy_set_header X-Forwarded-Proto\
+    \ \"\";\n  proxy_set_header X-Forwarded-For \"\";\n  proxy_read_timeout 35s;\n\
+    \ }\n location / { try_files $uri $uri/ /index.html; }\n}\n"

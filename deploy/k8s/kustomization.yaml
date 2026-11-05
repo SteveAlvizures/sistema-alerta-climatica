@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - mongo-init.yaml
+  - nginx.yaml
+  - storage.yaml
+  - databases.yaml
+  - services.yaml
+  - apps-phase4.yaml
+  - frontend-phase4.yaml
+  - networkpolicy.yaml
+# Ingress/TLS and HPA are deliberately applied after data/image/health verification.
+# secret.example.yaml is documentation only and MUST NOT be applied.

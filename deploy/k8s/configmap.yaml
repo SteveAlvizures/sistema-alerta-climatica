@@ -1,0 +1,22 @@
+# Adapted selectively from Walter 22e7fe2 for current phase4 application contracts.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vigiarural-config
+  namespace: vigiarural-phase4
+data:
+  JWT_ISSUER: climate-alert-api
+  JWT_AUDIENCE: climate-alert-client
+  JWT_EXPIRATION_MINUTES: '60'
+  OAUTH_ENV: production
+  OAUTH_PUBLIC_ORIGIN: https://vigiarural.site
+  AUTH_DATABASE_NAME: climate_auth
+  AUTH_DATABASE_USER: auth_app
+  AUTH_DATABASE_HOST: auth-postgres
+  AUTH_DATABASE_PORT: '5432'
+  REPORT_MONGO_DATABASE: climate_reports
+  REPORT_MONGO_USER: report_app
+  REPORT_MONGO_HOST: report-mongodb
+  AUDIT_MONGO_DATABASE: climate_audit
+  AUDIT_MONGO_USER: audit_app
+  AUDIT_MONGO_HOST: audit-mongodb

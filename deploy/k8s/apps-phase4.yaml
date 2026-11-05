@@ -1,0 +1,969 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+        tier: application
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: auth-service
+        image: vigiarural/auth-service:REPLACE_WITH_COMMIT
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+        env:
+        - name: JWT_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_ISSUER
+        - name: JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_AUDIENCE
+        - name: JWT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: JWT_KEY
+        - name: AUTH_INTERNAL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUTH_INTERNAL_KEY
+        - name: AUTH_SERVICE_URL
+          value: http://auth-service:3000
+        - name: JWT_EXPIRATION_MINUTES
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_EXPIRATION_MINUTES
+        - name: OAUTH_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: OAUTH_ENV
+        - name: OAUTH_PUBLIC_ORIGIN
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: OAUTH_PUBLIC_ORIGIN
+        - name: AUTH_DATABASE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: AUTH_DATABASE_HOST
+        - name: AUTH_DATABASE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: AUTH_DATABASE_PORT
+        - name: AUTH_DATABASE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: AUTH_DATABASE_NAME
+        - name: AUTH_DATABASE_USER
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: AUTH_DATABASE_USER
+        - name: AUTH_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUTH_DATABASE_PASSWORD
+        - name: AUTH_AUDIT_URL
+          value: http://audit-service:8000/internal/auth-events
+        - name: PORT
+          value: '3000'
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: GOOGLE_CLIENT_ID
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: GOOGLE_CLIENT_SECRET
+        - name: GITHUB_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: GITHUB_CLIENT_ID
+        - name: GITHUB_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: GITHUB_CLIENT_SECRET
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3000
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3000
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/live
+            port: 3000
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 36
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: community-service
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: community-service
+  template:
+    metadata:
+      labels:
+        app: community-service
+        tier: application
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: community-service
+        image: vigiarural/community-service:REPLACE_WITH_COMMIT
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: JWT_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_ISSUER
+        - name: JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_AUDIENCE
+        - name: JWT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: JWT_KEY
+        - name: AUTH_INTERNAL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUTH_INTERNAL_KEY
+        - name: AUTH_SERVICE_URL
+          value: http://auth-service:3000
+        - name: ASPNETCORE_ENVIRONMENT
+          value: Production
+        - name: ASPNETCORE_URLS
+          value: http://+:8080
+        - name: ConnectionStrings__CommunityDatabase
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: COMMUNITY_CONNECTION_STRING
+        - name: SENSOR_API_URL
+          value: http://sensor-service:8080
+        - name: ALERT_API_URL
+          value: http://alert-service:3003
+        - name: AUDIT_API_URL
+          value: http://audit-service:8000
+        - name: Database__ApplyMigrationsOnStartup
+          value: 'false'
+        - name: Migration__ImportLegacy
+          value: 'false'
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 36
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sensor-service
+  namespace: vigiarural-phase4
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sensor-service
+  template:
+    metadata:
+      labels:
+        app: sensor-service
+        tier: application
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: sensor-service
+        image: vigiarural/sensor-service:REPLACE_WITH_COMMIT
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: JWT_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_ISSUER
+        - name: JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_AUDIENCE
+        - name: JWT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: JWT_KEY
+        - name: AUTH_INTERNAL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUTH_INTERNAL_KEY
+        - name: AUTH_SERVICE_URL
+          value: http://auth-service:3000
+        - name: ASPNETCORE_ENVIRONMENT
+          value: Production
+        - name: ASPNETCORE_URLS
+          value: http://+:8080
+        - name: SENSOR_SQL_CONNECTION
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: SENSOR_SQL_CONNECTION
+        - name: COMMUNITY_API_URL
+          value: http://community-service:8080
+        - name: ALERT_API_URL
+          value: http://alert-service:3003
+        - name: AUDIT_API_URL
+          value: http://audit-service:8000
+        - name: SIMULATED_READING_INTERVAL_SECONDS
+          value: '0'
+        - name: Database__ApplyMigrationsOnStartup
+          value: 'false'
+        - name: DeviceIngestion__RequireHttps
+          value: 'false'
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/live
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 36
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alert-service
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alert-service
+  template:
+    metadata:
+      labels:
+        app: alert-service
+        tier: application
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: alert-service
+        image: vigiarural/alert-service:REPLACE_WITH_COMMIT
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3003
+        env:
+        - name: JWT_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_ISSUER
+        - name: JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_AUDIENCE
+        - name: JWT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: JWT_KEY
+        - name: AUTH_INTERNAL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUTH_INTERNAL_KEY
+        - name: AUTH_SERVICE_URL
+          value: http://auth-service:3000
+        - name: ALERT_SERVICE_PORT
+          value: '3003'
+        - name: ALERT_DB_HOST
+          value: alert-postgres
+        - name: ALERT_DB_PORT
+          value: '5432'
+        - name: ALERT_DB_NAME
+          value: climate_alerts
+        - name: ALERT_DB_USER
+          value: alert_app
+        - name: ALERT_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: ALERT_DATABASE_PASSWORD
+        - name: COMMUNITY_SERVICE_URL
+          value: http://community-service:8080
+        - name: SENSOR_SERVICE_URL
+          value: http://sensor-service:8080
+        - name: AUDIT_API_URL
+          value: http://audit-service:8000
+        - name: JAVA_TOOL_OPTIONS
+          value: -XX:MaxRAMPercentage=70
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 768Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3003
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3003
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/live
+            port: 3003
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 36
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: report-service
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: report-service
+  template:
+    metadata:
+      labels:
+        app: report-service
+        tier: application
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: report-service
+        image: vigiarural/report-service:REPLACE_WITH_COMMIT
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        env:
+        - name: JWT_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_ISSUER
+        - name: JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_AUDIENCE
+        - name: JWT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: JWT_KEY
+        - name: AUTH_INTERNAL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUTH_INTERNAL_KEY
+        - name: AUTH_SERVICE_URL
+          value: http://auth-service:3000
+        - name: REPORT_MONGO_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: REPORT_MONGO_HOST
+        - name: REPORT_MONGO_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: REPORT_MONGO_DATABASE
+        - name: REPORT_MONGO_USER
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: REPORT_MONGO_USER
+        - name: REPORT_MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: REPORT_MONGO_PASSWORD
+        - name: COMMUNITY_API_URL
+          value: http://community-service:8080
+        - name: SENSOR_API_URL
+          value: http://sensor-service:8080
+        - name: READING_API_URL
+          value: http://sensor-service:8080
+        - name: ALERT_API_URL
+          value: http://alert-service:3003
+        - name: EVENT_API_URL
+          value: http://alert-service:3003
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8000
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8000
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/live
+            port: 8000
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 36
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-service
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: audit-service
+  template:
+    metadata:
+      labels:
+        app: audit-service
+        tier: application
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: audit-service
+        image: vigiarural/audit-service:REPLACE_WITH_COMMIT
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        env:
+        - name: JWT_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_ISSUER
+        - name: JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_AUDIENCE
+        - name: JWT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: JWT_KEY
+        - name: AUTH_INTERNAL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUTH_INTERNAL_KEY
+        - name: AUTH_SERVICE_URL
+          value: http://auth-service:3000
+        - name: AUDIT_MONGO_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: AUDIT_MONGO_HOST
+        - name: AUDIT_MONGO_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: AUDIT_MONGO_DATABASE
+        - name: AUDIT_MONGO_USER
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: AUDIT_MONGO_USER
+        - name: AUDIT_MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUDIT_MONGO_PASSWORD
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8000
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8000
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/live
+            port: 8000
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 36
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+        tier: application
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: backend
+        image: vigiarural/backend:REPLACE_WITH_COMMIT
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: JWT_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_ISSUER
+        - name: JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_AUDIENCE
+        - name: JWT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: JWT_KEY
+        - name: AUTH_INTERNAL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUTH_INTERNAL_KEY
+        - name: AUTH_SERVICE_URL
+          value: http://auth-service:3000
+        - name: ASPNETCORE_ENVIRONMENT
+          value: Production
+        - name: ASPNETCORE_URLS
+          value: http://+:8080
+        - name: SQLSERVER_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: SQLSERVER_CONNECTION_STRING
+        - name: Database__ApplyMigrationsOnStartup
+          value: 'false'
+        - name: DEMO_DATA_SEED_ENABLED
+          value: 'false'
+        - name: SIMULATED_READING_INTERVAL_SECONDS
+          value: '0'
+        - name: DASHBOARD_COMMUNITY_URL
+          value: http://community-service:8080
+        - name: DASHBOARD_SENSOR_URL
+          value: http://sensor-service:8080
+        - name: DASHBOARD_ALERT_URL
+          value: http://alert-service:3003
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          periodSeconds: 10
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 60
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: vigiarural-phase4
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gateway
+  template:
+    metadata:
+      labels:
+        app: gateway
+        tier: application
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: gateway
+        image: vigiarural/gateway:REPLACE_WITH_COMMIT
+        imagePullPolicy: IfNotPresent
+        ports: []
+        env:
+        - name: JWT_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_ISSUER
+        - name: JWT_AUDIENCE
+          valueFrom:
+            configMapKeyRef:
+              name: vigiarural-config
+              key: JWT_AUDIENCE
+        - name: JWT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: JWT_KEY
+        - name: AUTH_INTERNAL_KEY
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUTH_INTERNAL_KEY
+        - name: AUTH_SERVICE_URL
+          value: http://auth-service:3000
+        - name: ASPNETCORE_ENVIRONMENT
+          value: Production
+        - name: ASPNETCORE_URLS
+          value: http://127.0.0.1:8080
+        - name: Gateway__TrustedProxyAddresses__0
+          value: 127.0.0.1
+        - name: Gateway__AllowedOrigins__0
+          value: https://vigiarural.site
+        - name: ReverseProxy__Clusters__monolith__Destinations__backend__Address
+          value: http://backend:8080/
+        - name: ReverseProxy__Clusters__auth__Destinations__auth-service__Address
+          value: http://auth-service:3000/
+        - name: ReverseProxy__Clusters__reports__Destinations__report-service__Address
+          value: http://report-service:8000/
+        - name: ReverseProxy__Clusters__community__Destinations__primary__Address
+          value: http://community-service:8080/
+        - name: ReverseProxy__Clusters__sensor__Destinations__primary__Address
+          value: http://sensor-service:8080/
+        - name: ReverseProxy__Clusters__alert__Destinations__primary__Address
+          value: http://alert-service:3003/
+        - name: ReverseProxy__Clusters__audit__Destinations__primary__Address
+          value: http://audit-service:8000/
+        - name: ReverseProxy__Routes__communities__ClusterId
+          value: community
+        - name: ReverseProxy__Routes__sensors__ClusterId
+          value: sensor
+        - name: ReverseProxy__Routes__sensor-readings__ClusterId
+          value: sensor
+        - name: ReverseProxy__Routes__community-sensors__ClusterId
+          value: sensor
+        - name: ReverseProxy__Routes__alerts__ClusterId
+          value: alert
+        - name: ReverseProxy__Routes__alert-rules__ClusterId
+          value: alert
+        - name: ReverseProxy__Routes__community-alerts__ClusterId
+          value: alert
+        - name: ReverseProxy__Routes__events__ClusterId
+          value: alert
+        - name: ReverseProxy__Routes__audit-actions__ClusterId
+          value: audit
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: '1'
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+        readinessProbe:
+          exec:
+            command:
+            - curl
+            - --fail
+            - --silent
+            - --max-time
+            - '4'
+            - http://127.0.0.1:8080/health/ready
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          exec:
+            command:
+            - curl
+            - --fail
+            - --silent
+            - --max-time
+            - '4'
+            - http://127.0.0.1:8080/health/live
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          exec:
+            command:
+            - curl
+            - --fail
+            - --silent
+            - --max-time
+            - '4'
+            - http://127.0.0.1:8080/health/live
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 36
+      - name: tls-proxy
+        image: nginx@sha256:785835ea65db4bba6f021acc0f3be91b0fef76a53fe41f8588c6698d2aed0606
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: https
+          containerPort: 8443
+        - name: probe
+          containerPort: 8081
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 128Mi
+        volumeMounts:
+        - name: gateway-nginx
+          mountPath: /etc/nginx/conf.d/default.conf
+          subPath: default.conf
+          readOnly: true
+        - name: tls
+          mountPath: /etc/nginx/tls
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8081
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8081
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - CHOWN
+            - SETUID
+            - SETGID
+          seccompProfile:
+            type: RuntimeDefault
+      volumes:
+      - name: gateway-nginx
+        configMap:
+          name: gateway-nginx
+      - name: tls
+        secret:
+          secretName: vigiarural-public-tls

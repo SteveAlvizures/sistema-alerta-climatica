@@ -1,0 +1,16 @@
+# Adapted selectively from Walter 22e7fe2 for current phase4 application contracts.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-init
+  namespace: vigiarural-phase4
+data:
+  init-report.js: "if (process.env.REPORT_MONGO_DATABASE) {\n// This script runs only\
+    \ when initializing Report Service's own empty volume.\ndb = db.getSiblingDB(process.env.REPORT_MONGO_DATABASE);\n\
+    db.createUser({ user: process.env.REPORT_MONGO_USER, pwd: process.env.REPORT_MONGO_PASSWORD,\n\
+    \  roles: [{ role: 'readWrite', db: process.env.REPORT_MONGO_DATABASE }] });\n\
+    \n}\n"
+  init-audit.js: "if (process.env.AUDIT_MONGO_DATABASE) {\nconst database = db.getSiblingDB(process.env.AUDIT_MONGO_DATABASE\
+    \ || 'climate_audit');\ndatabase.createUser({user: process.env.AUDIT_MONGO_USER\
+    \ || 'audit_app', pwd: process.env.AUDIT_MONGO_PASSWORD,\n  roles: [{role:'readWrite',\
+    \ db:database.getName()}]});\n\n}\n"

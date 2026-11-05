@@ -1,0 +1,611 @@
+# Adapted selectively from Walter 22e7fe2 for current phase4 application contracts.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-postgres
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-postgres
+  template:
+    metadata:
+      labels:
+        app: auth-postgres
+        tier: database
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: auth-postgres
+        image: postgres@sha256:1bcc18d81671b02906296aad470ec9778a6b71016ce953092024b680bad007b0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: climate_auth
+        - name: POSTGRES_USER
+          value: auth_app
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUTH_DATABASE_PASSWORD
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 768Mi
+        readinessProbe:
+          exec:
+            command: &id001
+            - sh
+            - -c
+            - pg_isready -U auth_app -d climate_auth
+          timeoutSeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 5432
+          periodSeconds: 20
+        startupProbe:
+          exec:
+            command: *id001
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 60
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: auth-postgres-pvc
+  strategy:
+    type: Recreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-postgres
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: auth-postgres
+  ports:
+  - name: http
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: community-postgres
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: community-postgres
+  template:
+    metadata:
+      labels:
+        app: community-postgres
+        tier: database
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: community-postgres
+        image: postgres@sha256:1bcc18d81671b02906296aad470ec9778a6b71016ce953092024b680bad007b0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: climate_community
+        - name: POSTGRES_USER
+          value: community_app
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: COMMUNITY_DATABASE_PASSWORD
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 768Mi
+        readinessProbe:
+          exec:
+            command: &id001
+            - sh
+            - -c
+            - pg_isready -U community_app -d climate_community
+          timeoutSeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 5432
+          periodSeconds: 20
+        startupProbe:
+          exec:
+            command: *id001
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 60
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: community-postgres-pvc
+  strategy:
+    type: Recreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: community-postgres
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: community-postgres
+  ports:
+  - name: http
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alert-postgres
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alert-postgres
+  template:
+    metadata:
+      labels:
+        app: alert-postgres
+        tier: database
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: alert-postgres
+        image: postgres@sha256:1bcc18d81671b02906296aad470ec9778a6b71016ce953092024b680bad007b0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: climate_alerts
+        - name: POSTGRES_USER
+          value: alert_app
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: ALERT_DATABASE_PASSWORD
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 768Mi
+        readinessProbe:
+          exec:
+            command: &id001
+            - sh
+            - -c
+            - pg_isready -U alert_app -d climate_alerts
+          timeoutSeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 5432
+          periodSeconds: 20
+        startupProbe:
+          exec:
+            command: *id001
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 60
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: alert-postgres-pvc
+  strategy:
+    type: Recreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alert-postgres
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: alert-postgres
+  ports:
+  - name: http
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sensor-sqlserver
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sensor-sqlserver
+  template:
+    metadata:
+      labels:
+        app: sensor-sqlserver
+        tier: database
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: sensor-sqlserver
+        image: mcr.microsoft.com/mssql/server@sha256:ba4c8329f48fb8f02e1416be6a930ebfd71268caee78aa985f3af4315e457c89
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 1433
+        env:
+        - name: ACCEPT_EULA
+          value: Y
+        - name: MSSQL_PID
+          value: Express
+        - name: MSSQL_SA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: SENSOR_SQL_PASSWORD
+        resources:
+          requests:
+            cpu: 100m
+            memory: 2Gi
+          limits:
+            cpu: '1'
+            memory: 3Gi
+        readinessProbe:
+          exec:
+            command: &id001
+            - sh
+            - -c
+            - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD"
+              -C -Q "SELECT 1" -b -o /dev/null
+          timeoutSeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 1433
+          periodSeconds: 20
+        startupProbe:
+          exec:
+            command: *id001
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 60
+        volumeMounts:
+        - name: data
+          mountPath: /var/opt/mssql
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: sensor-sqlserver-pvc
+  strategy:
+    type: Recreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sensor-sqlserver
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: sensor-sqlserver
+  ports:
+  - name: http
+    port: 1433
+    targetPort: 1433
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqlserver
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sqlserver
+  template:
+    metadata:
+      labels:
+        app: sqlserver
+        tier: database
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: sqlserver
+        image: mcr.microsoft.com/mssql/server@sha256:ba4c8329f48fb8f02e1416be6a930ebfd71268caee78aa985f3af4315e457c89
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 1433
+        env:
+        - name: ACCEPT_EULA
+          value: Y
+        - name: MSSQL_PID
+          value: Express
+        - name: MSSQL_SA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: SQLSERVER_PASSWORD
+        resources:
+          requests:
+            cpu: 100m
+            memory: 2Gi
+          limits:
+            cpu: '1'
+            memory: 3Gi
+        readinessProbe:
+          exec:
+            command: &id001
+            - sh
+            - -c
+            - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD"
+              -C -Q "SELECT 1" -b -o /dev/null
+          timeoutSeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 1433
+          periodSeconds: 20
+        startupProbe:
+          exec:
+            command: *id001
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 60
+        volumeMounts:
+        - name: data
+          mountPath: /var/opt/mssql
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: sqlserver-pvc
+  strategy:
+    type: Recreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sqlserver
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: sqlserver
+  ports:
+  - name: http
+    port: 1433
+    targetPort: 1433
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: report-mongodb
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: report-mongodb
+  template:
+    metadata:
+      labels:
+        app: report-mongodb
+        tier: database
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: report-mongodb
+        image: mongo@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 27017
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: report_root
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: REPORT_MONGO_ROOT_PASSWORD
+        - name: REPORT_MONGO_DATABASE
+          value: climate_reports
+        - name: REPORT_MONGO_USER
+          value: report_app
+        - name: REPORT_MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: REPORT_MONGO_PASSWORD
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 768Mi
+        readinessProbe:
+          exec:
+            command: &id001
+            - mongosh
+            - --quiet
+            - --eval
+            - 'quit(db.adminCommand(''ping'').ok ? 0 : 1)'
+          timeoutSeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 27017
+          periodSeconds: 20
+        startupProbe:
+          exec:
+            command: *id001
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 60
+        volumeMounts:
+        - name: data
+          mountPath: /data/db
+        - name: init
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: report-mongodb-pvc
+      - name: init
+        configMap:
+          name: mongo-init
+  strategy:
+    type: Recreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: report-mongodb
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: report-mongodb
+  ports:
+  - name: http
+    port: 27017
+    targetPort: 27017
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audit-mongodb
+  namespace: vigiarural-phase4
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: audit-mongodb
+  template:
+    metadata:
+      labels:
+        app: audit-mongodb
+        tier: database
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
+      containers:
+      - name: audit-mongodb
+        image: mongo@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 27017
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: audit_root
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUDIT_MONGO_ROOT_PASSWORD
+        - name: AUDIT_MONGO_DATABASE
+          value: climate_audit
+        - name: AUDIT_MONGO_USER
+          value: audit_app
+        - name: AUDIT_MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: vigiarural-secrets
+              key: AUDIT_MONGO_PASSWORD
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 768Mi
+        readinessProbe:
+          exec:
+            command: &id001
+            - mongosh
+            - --quiet
+            - --eval
+            - 'quit(db.adminCommand(''ping'').ok ? 0 : 1)'
+          timeoutSeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 27017
+          periodSeconds: 20
+        startupProbe:
+          exec:
+            command: *id001
+          timeoutSeconds: 5
+          periodSeconds: 10
+          failureThreshold: 60
+        volumeMounts:
+        - name: data
+          mountPath: /data/db
+        - name: init
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: audit-mongodb-pvc
+      - name: init
+        configMap:
+          name: mongo-init
+  strategy:
+    type: Recreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audit-mongodb
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: audit-mongodb
+  ports:
+  - name: http
+    port: 27017
+    targetPort: 27017
+  type: ClusterIP

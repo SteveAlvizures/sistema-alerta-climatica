@@ -1,0 +1,5 @@
+# Adapted selectively from Walter 22e7fe2 for current phase4 application contracts.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vigiarural-phase4

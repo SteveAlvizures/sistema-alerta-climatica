@@ -1,0 +1,115 @@
+# Adapted selectively from Walter 22e7fe2 for current phase4 application contracts.
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: auth-service
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: community-service
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: community-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sensor-service
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: sensor-service
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alert-service
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: alert-service
+  ports:
+  - name: http
+    port: 3003
+    targetPort: 3003
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: report-service
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: report-service
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audit-service
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: audit-service
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: vigiarural-phase4
+spec:
+  selector:
+    app: backend
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: vigiarural-phase4
+  annotations:
+    traefik.ingress.kubernetes.io/service.serversscheme: https
+    traefik.ingress.kubernetes.io/service.serverstransport: vigiarural-phase4-gateway-tls@kubernetescrd
+spec:
+  selector:
+    app: gateway
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8443
+  type: ClusterIP
