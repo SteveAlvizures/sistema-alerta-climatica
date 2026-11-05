@@ -16,7 +16,7 @@ export class Database implements OnModuleInit, OnModuleDestroy {
   }
   async onModuleInit(): Promise<void> {
     // Versioned, additive schema creation only in the service's own database.
-    for (const [version,file] of [[1,'001_auth.sql'],[2,'002_oauth.sql']] as const) {
+    for (const [version,file] of [[1,'001_auth.sql'],[2,'002_oauth.sql'],[3,'003_external_legacy_id.sql']] as const) {
     const sql = await readFile(resolve('migrations',file), 'utf8');
     const checksum = createHash('sha256').update(sql).digest('hex');
     await this.transaction(async client => {

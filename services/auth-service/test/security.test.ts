@@ -10,6 +10,15 @@ import { normalizeRole, permissions } from '../src/identity/roles';
 import { validRole, validText, validUsername } from '../src/users/users.service';
 import { ProblemFilter } from '../src/common/problem.filter';
 import { ArgumentsHost } from '@nestjs/common';
+import { LocalIdentityCredentials } from '../src/identity/credential-verifier';
+import { hash } from 'bcryptjs';
+
+test('imported bcrypt accounts retain correct-password verification and reject wrong passwords',async()=>{
+  const stored=await hash('fixture-legacy-password',4),verifier=new LocalIdentityCredentials();
+  assert.equal(await verifier.verify(stored,'fixture-legacy-password'),true);
+  assert.equal(await verifier.verify(stored,'wrong'),false);
+  assert.equal(await verifier.verify('$2b$broken','wrong'),false);
+});
 
 const fixture=JSON.parse(readFileSync('test/fixtures/generated.json','utf8'));
 process.env.JWT_KEY='fixture-only-signing-key-at-least-32-characters';
