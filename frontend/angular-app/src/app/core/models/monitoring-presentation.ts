@@ -11,7 +11,7 @@ export function sensorTitle(sensor: SensorDto): string { return sensor.origin ==
 export function measurementValue(variable: string, value: number | null | undefined, unit: string | null | undefined, code?: string | null): string {
   if (value === null || value === undefined) return 'Sin lectura';
   if (variable === 'RainfallLevel' && (unit === 'estado' || code === 'ESP32-RAIN-01')) return rainState(value);
-  if (variable === 'RiverOrReservoirLevel' && (unit === 'estado' || code === 'ESP32-WATER-LEVEL-01')) return waterReading(value, unit);
+  if (code === 'ESP32-WATER-LEVEL-01' || (variable === 'RiverOrReservoirLevel' && unit === 'estado')) return waterReading(value, unit);
   return `${cleanNumber(value)} ${unitLabel(unit)}`.trim();
 }
 // Ranges are stored at decimal(18,6). Preserve the strict inequality while hiding the storage epsilon.

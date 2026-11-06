@@ -1,11 +1,13 @@
 import { waterPresentation, waterSeverity } from './water-presentation';
 import { formatSensorReading } from './physical-reading';
 import { SensorDto, SensorReadingDto } from './api.model';
+import { measurementValue } from './monitoring-presentation';
 describe('Water category presentation', () => {
   const sensor={code:'ESP32-WATER-LEVEL-01',origin:'Physical',measurementType:'RiverOrReservoirLevel'} as SensorDto;
   for (const [value,label,level] of [[0,'Seco','Green'],[1,'Nivel bajo','Green'],[2,'Nivel medio','Yellow'],[3,'Nivel alto','Orange']] as const) {
     it(`shows ${label} and ${level} despite stale percent metadata`, () => {
       expect(formatSensorReading(sensor,{value,unit:'%'} as SensorReadingDto)).toBe(label);
+      expect(measurementValue('',value,'%',sensor.code)).toBe(label);
       expect(waterSeverity(value)).toBe(level);
       const original={sensorCode:sensor.code,detectedValue:value,unit:'%',level:'Red',message:'> 75 %'};
       const result=waterPresentation(original);
