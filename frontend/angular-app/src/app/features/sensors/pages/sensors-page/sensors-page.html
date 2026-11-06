@@ -79,7 +79,7 @@
         <label class="form-field"><span>Comunidad</span><select name="editCommunity" [(ngModel)]="editCommunityId" required>@for (community of communities; track community.id) { <option [value]="community.id">{{ community.name }}</option> }</select></label>
         <label class="form-field"><span>Código</span><input name="editCode" [(ngModel)]="editCode" required maxlength="80" /></label>
         <label class="form-field"><span>Unidad</span><input name="editUnit" [(ngModel)]="editUnit" required maxlength="20" /></label>
-        <label class="form-field"><span>Instalación</span><input name="editDate" type="date" [(ngModel)]="editInstallationDate" required /></label>
+        <label class="form-field"><span>Instalación</span><input name="editDate" type="date" [(ngModel)]="editInstallationDate" /></label>
         <label class="form-field"><span>Descripción</span><textarea name="editDescription" [(ngModel)]="editDescription" maxlength="1000"></textarea></label>
         <label class="form-field"><span>Estado</span><select name="editActive" [(ngModel)]="editActive"><option [ngValue]="true">Activo</option><option [ngValue]="false">Inactivo</option></select></label>
         <div class="readonly-detail"><span>Sensor</span><strong>{{ editingSensor.name }}</strong></div>

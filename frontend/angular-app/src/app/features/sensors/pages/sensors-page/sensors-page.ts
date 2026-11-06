@@ -209,10 +209,10 @@ export class SensorsPage implements OnInit {
   saveEdit(): void {
     if (!this.canAdminister()) return;
     if (!this.editingSensor || !this.editLocation.trim()) return;
-    if (!this.editName.trim() || !this.editCode.trim() || !this.editCommunityId || !this.editUnit.trim() || !this.editInstallationDate) { this.error = 'Completa los datos administrativos del sensor.'; return; }
+    if (!this.editName.trim() || !this.editCode.trim() || !this.editCommunityId || !this.editUnit.trim()) { this.error = 'Completa los datos administrativos del sensor.'; return; }
     if (this.editCommunityId !== this.editingSensor.communityId && !window.confirm('Este sensor dejará de aparecer en la comunidad anterior y pasará a la nueva comunidad. Su historial se conserva.')) return;
     const request: UpdateSensorRequest = { location: this.editLocation.trim(), name: this.editName.trim(), code: this.editCode.trim(),
-      communityId: this.editCommunityId, type: this.editType, unit: this.editUnit.trim(), installationDate: this.editInstallationDate,
+      communityId: this.editCommunityId, type: this.editType, unit: this.editUnit.trim(), installationDate: this.editInstallationDate || undefined,
       description: this.editDescription.trim(), isActive: this.editActive };
     this.saving = true; this.error = ''; this.success = '';
     this.sensorApi.update(this.editingSensor.id, request).subscribe({

@@ -186,4 +186,12 @@ describe('SensorsPage administration', () => {
     expect(readingApi.createManual).not.toHaveBeenCalled();
   });
 
+  it('reassigns an existing sensor without inventing an installation date', () => {
+    spyOn(window, 'confirm').and.returnValue(true);
+    component.startEdit({...sensor, installationDate:null}); component.editCommunityId = 'santa-fe';
+    sensorApi.update.and.returnValue(of({...sensor,communityId:'santa-fe',installationDate:null}));
+    component.saveEdit();
+    expect(sensorApi.update).toHaveBeenCalledWith(sensor.id, jasmine.objectContaining({communityId:'santa-fe',installationDate:undefined}));
+  });
+
 });
