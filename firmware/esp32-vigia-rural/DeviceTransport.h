@@ -8,6 +8,7 @@
 #include <freertos/queue.h>
 #include <freertos/task.h>
 #include <time.h>
+#include <esp_sntp.h>
 
 #if __has_include("secrets.h")
 #include "secrets.h"
@@ -39,6 +40,52 @@ struct ChannelState {
 QueueHandle_t sensorQueue = nullptr;
 WiFiClientSecure apiTls;
 HTTPClient apiHttp;
+
+// Temporary safe production diagnostics: no request headers or bodies are logged.
+constexpr unsigned long NETWORK_DIAGNOSTIC_RETRY_MS = 30000;
+constexpr unsigned long NTP_SYNC_TIMEOUT_MS = 15000;
+volatile bool ntpSynchronized = false;
+void onNtpSync(struct timeval*) { ntpSynchronized = true; }
+void reportTransportError(WiFiClientSecure& tls, int code) {
+  if (code >= 0) return;
+  Serial.printf("HTTP %d: %s\n", code, HTTPClient::errorToString(code).c_str());
+  char error[192] = {};
+  const int tlsCode = tls.lastError(error, sizeof(error));
+  Serial.printf("TLS ultimo error %d: %s\n", tlsCode, error);
+}
+bool reportNetworkState() {
+  Serial.printf("WiFi estado: %d\n", static_cast<int>(WiFi.status()));
+  Serial.print("IP ESP32: "); Serial.println(WiFi.localIP());
+  IPAddress resolved;
+  const int dnsResult = WiFi.hostByName("vigiarural.site", resolved);
+  Serial.printf("DNS resultado: %s\n", dnsResult == 1 ? "correcto" : "error");
+  if (dnsResult != 1) return false;
+  Serial.println(resolved); // Diagnostic only; HTTPS retains hostname/SNI.
+  return true;
+}
+bool probeProductionHttps(const String& base) {
+  const bool dnsReady = reportNetworkState();
+  const time_t current = time(nullptr);
+  struct tm utc;
+  gmtime_r(&current, &utc);
+  char timestamp[32];
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S UTC", &utc);
+  Serial.printf("NTP sincronizado: %s; hora: %s\n", ntpSynchronized ? "si" : "no", timestamp);
+  if (!dnsReady || !ntpSynchronized || current < 1793491200) return false;
+  HTTPClient health;
+  health.setConnectTimeout(10000); health.setTimeout(10000);
+  health.setReuse(false);
+  health.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
+  if (!health.begin(apiTls, base + "/health")) {
+    Serial.println("Health HTTPS: no se pudo iniciar"); return false;
+  }
+  const int code = health.GET();
+  Serial.printf("Health HTTPS: HTTP %d\n", code);
+  if (code > 0) Serial.println("TLS handshake: correcto (CA y hostname validados)");
+  else reportTransportError(apiTls, code);
+  health.end();
+  return code == 200;
+}
 
 bool isUuid(const char* value) {
   if (strlen(value) != 36) return false;
@@ -76,6 +123,7 @@ int sendReading(const char* sensorId, float value, const char* deviceKey, const 
   // Consume the small response so a validated TLS connection can be reused.
   // Never log bodies, keys, certificates or passwords.
   if (status > 0) apiHttp.getString();
+  else reportTransportError(apiTls, status);
   return status;
 }
 void sensorTransportTask(void*) {
@@ -93,21 +141,25 @@ void sensorTransportTask(void*) {
       } else { s.present = true; Serial.printf("%s: pendiente recuperado con el mismo UUID\n", channels[i].label); }
     }
   }
-  apiTls.setCACert(API_ROOT_CA); apiTls.setHandshakeTimeout(1);
-  apiHttp.setConnectTimeout(800); apiHttp.setTimeout(800); apiHttp.setReuse(true);
+  apiTls.setCACert(API_ROOT_CA); apiTls.setHandshakeTimeout(15);
+  apiHttp.setConnectTimeout(10000); apiHttp.setTimeout(10000); apiHttp.setReuse(true);
   apiHttp.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
   String base(API_BASE_URL); while (base.endsWith("/")) base.remove(base.length()-1);
   if (!apiHttp.begin(apiTls, base + "/api/device-readings")) { vTaskDelete(nullptr); return; }
   WiFi.mode(WIFI_STA); WiFi.setAutoReconnect(false);
   unsigned long lastWifiAttempt = 0, lastCycle = millis();
   bool attemptedWifi = false, connecting = false, wasConnected = false, clockStarted = false, clockNotice = false;
+  bool httpsReady = false, probeAttempted = false;
+  unsigned long lastProbe = 0, lastNtpAttempt = 0;
+  sntp_set_time_sync_notification_cb(onNtpSync);
   size_t firstChannel = 0;
   for (;;) {
     const unsigned long now = millis();
     const bool connected = WiFi.status() == WL_CONNECTED;
     if (!connected) {
-      if (wasConnected) { Serial.println("WiFi desconectado; reconexion controlada"); wasConnected = false; }
+      if (wasConnected) { Serial.println("WiFi desconectado; reconexion controlada"); wasConnected = false; httpsReady = false; probeAttempted = false; apiTls.stop(); }
       if (connecting && now-lastWifiAttempt >= WIFI_CONNECT_TIMEOUT_MS) {
+        Serial.printf("WiFi estado: %d; timeout de conexion\n", static_cast<int>(WiFi.status()));
         WiFi.disconnect(); connecting = false; Serial.println("Timeout WiFi; diagnostico sigue activo");
       }
       if (!connecting && (!attemptedWifi || now-lastWifiAttempt >= WIFI_RETRY_INTERVAL_MS)) {
@@ -116,10 +168,23 @@ void sensorTransportTask(void*) {
       }
     } else {
       connecting = false;
-      if (!wasConnected) { Serial.print("WiFi conectado: "); Serial.println(WiFi.localIP()); wasConnected = true; }
-      if (!clockStarted) { configTime(0,0,"pool.ntp.org","time.cloudflare.com"); clockStarted = true; }
-      if (time(nullptr) < 1793491200) {
+      if (!wasConnected) { Serial.print("WiFi conectado: "); Serial.println(WiFi.localIP()); wasConnected = true; reportNetworkState(); }
+      if (!clockStarted) {
+        configTime(0,0,"pool.ntp.org","time.cloudflare.com","time.google.com");
+        clockStarted = true; lastNtpAttempt = now;
+      }
+      if (!ntpSynchronized || time(nullptr) < 1793491200) {
         if (!clockNotice) Serial.println("Esperando hora NTP para validar TLS"); clockNotice = true;
+        if (now-lastNtpAttempt >= NTP_SYNC_TIMEOUT_MS) {
+          Serial.println("Timeout NTP; HTTPS bloqueado, reintentando sincronizacion");
+          reportNetworkState();
+          clockStarted = false;
+        }
+      } else if (!httpsReady) {
+        if (!probeAttempted || now-lastProbe >= NETWORK_DIAGNOSTIC_RETRY_MS) {
+          httpsReady = probeProductionHttps(base);
+          lastProbe = millis(); probeAttempted = true;
+        }
       } else if (now-lastCycle >= API_SEND_INTERVAL_MS) {
         lastCycle = now;
         SensorSample sample{};
@@ -145,12 +210,14 @@ void sensorTransportTask(void*) {
           s.lastAttempt = attemptAt; s.attempted = true;
           const int status = sendReading(s.pending.sensorId, s.pending.tenthsC/10.0f, channels[i].key, s.pending.messageId);
           Serial.printf("%s -> HTTP %d\n", channels[i].label, status);
+          if (status < 0) { httpsReady = false; probeAttempted = false; }
           if (status == 200 || status == 201) {
             Serial.println(status == 201 ? "Lectura creada" : "Reintento idempotente aceptado");
             if (s.storage.remove("pending")) s.present = false; else s.paused = true;
           } else {
             Serial.printf("%s: valor/UUID conservados\n", channels[i].label);
             if (status >= 300 && status < 500 && status != 408 && status != 429) s.paused = true;
+            if (status < 0) break;
           }
         }
         Serial.println("Ciclo completado");

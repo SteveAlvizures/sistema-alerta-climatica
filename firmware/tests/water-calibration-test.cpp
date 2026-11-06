@@ -11,7 +11,16 @@ int main() {
   assert(capture.add(90));assert(capture.average()==45);assert(capture.minimum==0);assert(capture.maximum==90);assert(!capture.active);
   assert(!capture.add(200));assert(capture.start(0));assert(capture.count==0);
 
-  assert(!waterCalibrationReady()); // Unmeasured firmware retains previous calibration.
+  assert(waterCalibrationReady());
+  const int demo[] = {0, 364, 728, 1091, 1455};
+  for (int i = 0; i < 5; ++i) {
+    assert(WATER_CALIBRATION_RAW[i] == demo[i]);
+    assert(interpolateWaterPercent(demo[i]) == i * 25);
+  }
+  assert(interpolateWaterPercent(-1) == 0);
+  assert(interpolateWaterPercent(4095) == 100);
+  for (int raw = 1; raw <= 4095; ++raw)
+    assert(interpolateWaterPercent(raw) >= interpolateWaterPercent(raw - 1));
   const int fixture[] = {100, 500, 1300, 1900, 2700}; // Synthetic test data only.
   assert(validWaterCalibration(fixture));
   for (int i = 0; i < 5; ++i) assert(interpolateWaterPercent(fixture[i], fixture) == i * 25);

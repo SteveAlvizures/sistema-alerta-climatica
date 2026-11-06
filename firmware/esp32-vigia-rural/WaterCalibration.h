@@ -1,12 +1,11 @@
 #pragma once
 
-// -1 means unmeasured. The previous calibration remains active until all five
-// measured values are nonnegative, increasing and within the ESP32 ADC range.
-constexpr int WATER_RAW_0 = -1;
-constexpr int WATER_RAW_25 = -1;
-constexpr int WATER_RAW_50 = -1;
-constexpr int WATER_RAW_75 = -1;
-constexpr int WATER_RAW_100 = -1;
+// Linear demonstration calibration, rounded from RAW 0..1455.
+constexpr int WATER_RAW_0 = 0;
+constexpr int WATER_RAW_25 = 364;
+constexpr int WATER_RAW_50 = 728;
+constexpr int WATER_RAW_75 = 1091;
+constexpr int WATER_RAW_100 = 1455;
 constexpr int WATER_CALIBRATION_RAW[] = {WATER_RAW_0, WATER_RAW_25, WATER_RAW_50, WATER_RAW_75, WATER_RAW_100};
 
 inline bool validWaterCalibration(const int* points) {
