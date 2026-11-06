@@ -1,7 +1,16 @@
 #include <cassert>
+#include "../esp32-vigia-rural/LevelSampling.h"
 #include "../esp32-vigia-rural/WaterCalibration.h"
 
 int main() {
+  const int noisy[] = {0,20,40,30,10}; assert(averageWaterRaw(noisy,5)==20);
+  const int zero[] = {0,0,0}; assert(averageWaterRaw(zero,3)==0);
+  LevelCalibrationCapture capture;
+  assert(!capture.start(33)); assert(capture.start(50));
+  for(int i=0;i<9;++i) assert(!capture.add(i*10));
+  assert(capture.add(90));assert(capture.average()==45);assert(capture.minimum==0);assert(capture.maximum==90);assert(!capture.active);
+  assert(!capture.add(200));assert(capture.start(0));assert(capture.count==0);
+
   assert(!waterCalibrationReady()); // Unmeasured firmware retains previous calibration.
   const int fixture[] = {100, 500, 1300, 1900, 2700}; // Synthetic test data only.
   assert(validWaterCalibration(fixture));
