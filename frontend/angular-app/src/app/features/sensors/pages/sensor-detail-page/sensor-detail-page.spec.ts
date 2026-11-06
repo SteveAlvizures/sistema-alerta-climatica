@@ -14,6 +14,20 @@ import { SensorReadingApiService } from '../../../../core/services/sensor-readin
 import { SensorDetailPage } from './sensor-detail-page';
 
 describe('SensorDetailPage', () => {
+  it('shows four water categories and their configured alert severity', () => {
+    const component = fixture.componentInstance as any;
+    component.sensor = {...sensor,origin:'Physical',code:'ESP32-WATER-LEVEL-01',measurementType:'RiverOrReservoirLevel',unit:'estado'};
+    component.data = [0,1,2,3].map(value => ({...readings[0],id:'level-'+value,variable:'RiverOrReservoirLevel',value,unit:'estado'}));
+    component.latest = component.data[3];
+    component.rules = [{...rule('medium',2,'Yellow'),unit:'estado',comparisonOperator:'>=',usesRange:true,lowerLimit:2,upperLimit:2}, {...rule('high',3,'Red'),unit:'estado',comparisonOperator:'>=',usesRange:true,lowerLimit:3,upperLimit:3}];
+    fixture.detectChanges();
+    for (const label of ['Seco','Nivel bajo','Nivel medio','Nivel alto']) expect(fixture.nativeElement.textContent).toContain(label);
+    expect(component.condition(component.data[0])).toBe('Normal');
+    expect(component.condition(component.data[1])).toBe('Normal');
+    expect(component.condition(component.data[2])).toBe('Precaución');
+    expect(component.condition(component.data[3])).toBe('Alerta');
+    expect(fixture.nativeElement.textContent).not.toContain('%');
+  });
   let fixture: ComponentFixture<SensorDetailPage>;
   let history: jasmine.Spy;
   const sensor: SensorDto = { id: 'sensor-1', communityId: 'community-1', code: 'TEMP-01', name: 'Sensor central', measurementType: 'Temperature', origin: 'Simulated', status: 'Active', location: 'Centro', deviceCode: null, lastCommunicationAt: null, createdAt: '2026-08-26T00:00:00Z' };

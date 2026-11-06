@@ -14,7 +14,7 @@
       <div class="chart-head"><div><h2>Tendencia</h2><p>Lecturas reales del periodo seleccionado. Actualización automática.</p></div><nav aria-label="Periodo de la gráfica">@for (option of periods; track option.value) { <button type="button" [class.active]="period === option.value" [attr.aria-pressed]="period === option.value" (click)="selectPeriod(option.value)">{{ option.label }}</button> }</nav></div>
       @if (data.length) {
         <svg viewBox="0 0 840 390" role="img" [attr.aria-label]="'Gráfica histórica de ' + variableLabel()">
-          @if (!isRain()) { <text x="22" y="190" class="axis-title" transform="rotate(-90 22 190)">{{ axisLabel() }}</text> }
+          @if (!isCategorical()) { <text x="22" y="190" class="axis-title" transform="rotate(-90 22 190)">{{ axisLabel() }}</text> }
           @for (tick of yTicks(); track $index) { <line x1="72" [attr.y1]="valueY(tick)" x2="800" [attr.y2]="valueY(tick)" class="grid"/><text x="62" [attr.y]="valueY(tick) + 4" class="y-label">{{ tickLabel(tick) }}</text> }
           @for (rule of visibleRules(); track rule.id) { <line x1="72" [attr.y1]="valueY(rule.activationPoint)" x2="800" [attr.y2]="valueY(rule.activationPoint)" [class]="'threshold ' + rule.dangerLevel.toLowerCase()"/><text x="795" [attr.y]="valueY(rule.activationPoint) - 5" class="threshold-label">{{ levelLabel(rule.dangerLevel) }} · {{ ruleValue(rule) }}</text> }
           <polyline [attr.points]="points()" class="series"/>

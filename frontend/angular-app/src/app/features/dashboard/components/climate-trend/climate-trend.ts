@@ -1,6 +1,6 @@
 import { cleanNumber, unitLabel } from '../../../../core/models/monitoring-presentation';
 import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, computed, input, signal, ChangeDetectionStrategy } from '@angular/core';
-import { rainState } from '../../../../core/models/physical-reading';
+import { rainState, waterState } from '../../../../core/models/physical-reading';
 import { ClimateTrendSeries, TrendMetric } from '../../../../core/models/climate-dashboard.model';
 
 @Component({ selector: 'app-climate-trend', templateUrl: './climate-trend.html', changeDetection: ChangeDetectionStrategy.Eager,
@@ -27,7 +27,7 @@ export class ClimateTrend implements AfterViewInit, OnDestroy {
   });
   protected readonly scale = computed(() => {
     const metric = this.activeSeries()?.metric;
-    if (this.activeSeries()?.categorical) return { minimum: 0, maximum: 2 };
+    if (this.activeSeries()?.categorical) return { minimum: 0, maximum: this.activeSeries()?.metric === 'river' ? 3 : 2 };
     if (metric === 'humidity') return { minimum: 0, maximum: 100 };
     const values = [...this.values(), ...(this.activeSeries()?.activationPoints?.map(point => point.value) ?? [])];
     if (!values.length) return { minimum: 0, maximum: 1 };
@@ -36,7 +36,7 @@ export class ClimateTrend implements AfterViewInit, OnDestroy {
     return { minimum: Math.floor(dataMinimum - margin), maximum: Math.ceil(dataMaximum + margin) };
   });
   protected readonly yTicks = computed(() => {
-    if (this.activeSeries()?.categorical) return [2, 1, 0].map(value => ({ value, y: this.pointY(value), label: rainState(value) }));
+    if (this.activeSeries()?.categorical) return (this.activeSeries()?.metric === 'river' ? [3,2,1,0] : [2,1,0]).map(value => ({ value, y: this.pointY(value), label: this.activeSeries()?.metric === 'river' ? waterState(value) : rainState(value) }));
     const { minimum, maximum } = this.scale();
     return Array.from({ length: 5 }, (_, index) => {
       const value = maximum - index * (maximum - minimum) / 4;
@@ -45,7 +45,7 @@ export class ClimateTrend implements AfterViewInit, OnDestroy {
   });
   protected readonly axisLabel = computed(() => {
     const series = this.activeSeries(); if (!series) return '';
-    if (series.categorical) return 'Superficie de lluvia';
+    if (series.categorical) return series.label;
     return series.metric === 'rain' ? `Precipitación (${series.unit})` : `${series.label} (${series.unit})`;
   });
   protected readonly path = computed(() => this.values().map((value, index) =>
@@ -71,7 +71,7 @@ export class ClimateTrend implements AfterViewInit, OnDestroy {
     const date = point.timestamp ? new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(point.timestamp)) : point.label;
     return `${date} · ${series.label}: ${this.displayValue(point.value)}`;
   }
-  protected displayValue(value: number | undefined): string { if (value === undefined) return 'Sin lectura'; return this.activeSeries()?.categorical ? rainState(value) : `${cleanNumber(value)} ${unitLabel(this.activeSeries()?.unit)}`; }
+  protected displayValue(value: number | undefined): string { if (value === undefined) return 'Sin lectura'; return this.activeSeries()?.categorical ? (this.activeSeries()?.metric === 'river' ? waterState(value) : rainState(value)) : `${cleanNumber(value)} ${unitLabel(this.activeSeries()?.unit)}`; }
   protected thresholdClass(level: string): string { return `trend-panel__threshold trend-panel__threshold--${level.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`; }
   private formatTick(value: number): string { return Number.isInteger(value) ? value.toString() : value.toFixed(1); }
   private xLabel(index: number): string {

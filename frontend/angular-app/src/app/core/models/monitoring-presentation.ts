@@ -1,5 +1,5 @@
 import { AlertDto, AlertRuleDto, ClimateVariable, SensorDto } from './api.model';
-import { rainState } from './physical-reading';
+import { rainState, waterState, waterReading } from './physical-reading';
 
 export const measurementNames: Record<ClimateVariable, string> = {
   Temperature: 'Temperatura', RelativeHumidity: 'Humedad relativa', RainfallLevel: 'Superficie de lluvia',
@@ -11,6 +11,7 @@ export function sensorTitle(sensor: SensorDto): string { return sensor.origin ==
 export function measurementValue(variable: string, value: number | null | undefined, unit: string | null | undefined, code?: string | null): string {
   if (value === null || value === undefined) return 'Sin lectura';
   if (variable === 'RainfallLevel' && (unit === 'estado' || code === 'ESP32-RAIN-01')) return rainState(value);
+  if (variable === 'RiverOrReservoirLevel' && (unit === 'estado' || code === 'ESP32-WATER-LEVEL-01')) return waterReading(value, unit);
   return `${cleanNumber(value)} ${unitLabel(unit)}`.trim();
 }
 // Ranges are stored at decimal(18,6). Preserve the strict inequality while hiding the storage epsilon.
@@ -21,6 +22,7 @@ export function boundary(value: number, lower = true): string {
 }
 export function thresholdLabel(rule: Pick<AlertRuleDto, 'activationPoint' | 'comparisonOperator' | 'unit' | 'variable'>): string {
   if (rule.variable === 'RainfallLevel' && rule.unit === 'estado') return rainState(rule.activationPoint);
+  if (rule.variable === 'RiverOrReservoirLevel' && rule.unit === 'estado') return waterState(rule.activationPoint);
   const operator = rule.comparisonOperator;
   const text = operator === '>=' ? boundary(rule.activationPoint) : operator === '<=' ? boundary(rule.activationPoint, false) : `${operator} ${cleanNumber(rule.activationPoint)}`;
   return `${text} ${unitLabel(rule.unit)}`;

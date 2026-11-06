@@ -2,6 +2,15 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ClimateTrend } from './climate-trend';
 
 describe('ClimateTrend', () => {
+  it('shows four water states on axes and tooltips without percentages', () => {
+    fixture.componentRef.setInput('series', [{metric:'river',label:'Nivel de agua',unit:'estado',categorical:true,
+      points:[0,1,2,3].map(value => ({label:'12:00',value}))}]);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect([...el.querySelectorAll('.trend-panel__grid text')].map(t => t.textContent)).toEqual(['Nivel alto','Nivel medio','Nivel bajo','Seco']);
+    expect([...el.querySelectorAll('circle title')].at(-1)?.textContent).toContain('Nivel alto');
+    expect(el.textContent).not.toContain('%');
+  });
   let fixture: ComponentFixture<ClimateTrend>;
 
   beforeEach(async () => {

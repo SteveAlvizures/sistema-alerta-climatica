@@ -43,7 +43,7 @@ export class AlertRulesPage implements OnInit {
   protected applyRuleFilters():void{this.activeFilters={...this.filterDraft};this.filtersApplied=true}
   protected clearRuleFilters():void{this.filterDraft=emptyRuleFilters();this.activeFilters=emptyRuleFilters();this.filtersApplied=false}
   protected rangeLabel(rule:AlertRuleDto):string {
-    if (rule.variable === 'RainfallLevel' && rule.unit === 'estado') return measurementValue(rule.variable,rule.activationPoint,rule.unit);
+    if (['RainfallLevel','RiverOrReservoirLevel'].includes(rule.variable) && rule.unit === 'estado') return measurementValue(rule.variable,rule.activationPoint,rule.unit);
     if (!rule.usesRange) return thresholdLabel(rule).replace(' '+rule.unit,'');
     return this.formatRange(rule.minValue ?? rule.lowerLimit, rule.maxValue ?? rule.upperLimit);
   }

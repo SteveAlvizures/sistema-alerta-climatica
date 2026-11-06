@@ -8,6 +8,7 @@ export const levelLabels: Record<ApiDangerLevel, string> = { Green: 'Normal', Ye
 export const variableLabels: Record<ClimateVariable, string> = { SmokeConcentration: 'Humo/incendio', OtherEnvironmental: 'Otro sensor ambiental', Temperature: 'Temperatura', RelativeHumidity: 'Humedad relativa', WindSpeed: 'Velocidad del viento', RainfallLevel: 'Nivel de lluvia', RiverOrReservoirLevel: 'Nivel de río o reservorio' };
 
 export function conditionLabel(alert: AlertDto): string {
+  if (alert.sensorCode === 'ESP32-WATER-LEVEL-01') return measurementValue(alert.variable,alert.detectedValue,'estado',alert.sensorCode);
   if (alert.usesRange) {
     const min = alert.minValue ?? null, max = alert.maxValue ?? null;
     if (alert.variable === 'RainfallLevel' && alert.unit === 'estado') return measurementValue(alert.variable,min ?? max,alert.unit);
