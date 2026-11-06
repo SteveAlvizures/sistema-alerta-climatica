@@ -23,7 +23,7 @@ describe('AlertsPage', () => {
       http.expectOne('/api/alerts?page=1&pageSize=20').flush({ data: [{ ...alertTestData, status }], pageIndex: 1, pageSize: 20, totalCount: 1, totalPages: 1, hasPrevious: false, hasNext: false, preventiveCount: 1, highCount: 0, criticalCount: 0 });
       fixture.detectChanges(); const text = fixture.nativeElement.textContent;
       expect(text).toContain({ Open: 'Activa', Acknowledged: 'Atendida', Closed: 'Cerrada' }[status]);
-      expect(text).toContain('Pluviómetro central'); expect(text).toContain('Inundación'); expect(text).toContain('10 a 20 mm');
+      expect(text).toContain('Pluviómetro central'); expect(text).toContain('Inundación'); expect(text).toContain('\u2265 10 y \u2264 20 mm');
       expect(fixture.nativeElement.querySelector('.detail-link').getAttribute('href')).toBe('/alerts/alert-1');
       expect(fixture.nativeElement.querySelector('.attend')).toBeNull(); expect(fixture.nativeElement.querySelector('.close')).toBeNull();
     });

@@ -1,3 +1,4 @@
+import { eventTitle, alertValue, measurementValue } from '../../../../core/models/monitoring-presentation';
 import { Component, DestroyRef, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -24,6 +25,7 @@ export class EventsPage implements OnInit {
   page = 1; pageSize = 20; loading = false; error = ''; communityError = '';
   readonly phenomena = Object.entries(phenomenonLabels);
   readonly levels = Object.entries(levelLabels);
+  readonly eventTitle = eventTitle; readonly alertValue = alertValue; readonly measurementValue = measurementValue;
   readonly phenomenonLabels = phenomenonLabels; readonly levelLabels = levelLabels;
   readonly statusLabels = eventStatusLabels; readonly formatDate = formatEventDate;
 

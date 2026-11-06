@@ -23,10 +23,10 @@
     <section aria-label="Listado de eventos" class="records">
       @for (event of data.data; track event.id) {
         <article class="panel event-card">
-          <div class="topline"><h2>{{ phenomenonLabels[event.phenomenon] }}</h2><span [class]="'level ' + event.level.toLowerCase()">{{ levelLabels[event.level] }}</span><span>{{ statusLabels[event.status] }}</span></div>
+          <div class="topline"><h2>{{ eventTitle(event,phenomenonLabels[event.phenomenon]) }}</h2><span [class]="'level ' + event.level.toLowerCase()">{{ levelLabels[event.level] }}</span><span>{{ statusLabels[event.status] }}</span></div>
           <p>{{ formatDate(event.occurredAt) }} · {{ event.communityName }}</p>
           <p>{{ event.description }}</p>
-          <dl><div><dt>Sensor principal</dt><dd>{{ event.sensorName || 'Sin sensor histórico' }} {{ event.sensorCode ? '(' + event.sensorCode + ')' : '' }}</dd></div><div><dt>Valor representativo</dt><dd>{{ event.value ?? 'Sin valor histórico' }} {{ event.unit }}</dd></div><div><dt>Responsable {{ event.responsibility === 'Closure' ? 'del cierre' : event.responsibility === 'Attention' ? 'de atención' : '' }}</dt><dd>{{ event.responsibleUserName || 'Sin responsable' }}</dd></div><div><dt>Alertas relacionadas</dt><dd>{{ event.alertCount }}</dd></div></dl>
+          <dl><div><dt>Sensor principal</dt><dd>{{ event.sensorName || 'Sin sensor histórico' }} {{ event.sensorCode ? '(' + event.sensorCode + ')' : '' }}</dd></div><div><dt>Valor representativo</dt><dd>{{ measurementValue(event.sensorCode === 'ESP32-RAIN-01' ? 'RainfallLevel' : '',event.value,event.unit,event.sensorCode) }}</dd></div><div><dt>Responsable {{ event.responsibility === 'Closure' ? 'del cierre' : event.responsibility === 'Attention' ? 'de atención' : '' }}</dt><dd>{{ event.responsibleUserName || 'Sin responsable' }}</dd></div><div><dt>Alertas relacionadas</dt><dd>{{ event.alertCount }}</dd></div></dl>
           <a [routerLink]="['/events', event.id]">Ver detalle del evento</a>
         </article>
       } @empty { <p class="panel">No hay eventos para los filtros seleccionados.</p> }

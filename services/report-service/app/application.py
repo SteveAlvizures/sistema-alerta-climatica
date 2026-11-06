@@ -1,6 +1,7 @@
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from statistics import mean
+from app.monitoring_presentation import reading_value, threshold, categorical, event_title
 
 from app.integrations import AlertClient, CommunityClient, EventClient, ReadingClient, SensorClient
 from app.models import ReportRequest, ReportType, TITLES
@@ -100,21 +101,20 @@ def context_for(request: ReportRequest, data, user, correlation):
         rows = data["readings"]
         tables.append(table("Registro de mediciones", ["Sensor", "Comunidad", "Fecha y hora UTC", "Variable", "Valor", "Unidad", "Estado al medir"],
             [[r["sensorCode"] + " / " + r["sensorName"], r["communityName"], r["measuredAt"], r["variable"],
-              r["value"], r["unit"], r.get("sensorStatusAtMeasurement")] for r in rows]))
+              reading_value(r), "" if categorical(r) else r["unit"], r.get("sensorStatusAtMeasurement")] for r in rows]))
         kpis = [("Lecturas", len(rows)), ("Sensores con datos", len({r["sensorId"] for r in rows}))]
     elif kind == ReportType.alerts:
         rows = data["alerts"]
         tables.append(table("Detalle de alertas", ["Fecha UTC / comunidad", "Sensor / fenómeno", "Nivel", "Valor", "Umbral", "Mensaje", "Estado"],
             [[display(r["detectedAt"]) + " / " + r["communityName"], r["sensorCode"] + " / " + display(r["phenomenon"]),
-              r["level"], f"{r['detectedValue']} {r['unit']}",
-              (f"{display(r.get('minValue'))} - {display(r.get('maxValue'))}" if r.get("usesRange") else
-               f"{r.get('comparisonOperator') or ''} {r['activationPoint']}") + " " + r["unit"], r["message"], r["status"]] for r in rows]))
+              r["level"], reading_value(r,"detectedValue"),
+              threshold(r), r["message"], r["status"]] for r in rows]))
         kpis = [("Alertas", len(rows)), ("Abiertas", sum(r["status"] == "Open" for r in rows))]
     elif kind == ReportType.events:
         rows = data["events"]
         tables.append(table("Historial operativo", ["Fecha UTC", "Comunidad / sensor", "Fenómeno / nivel", "Descripción", "Estado", "Alertas asociadas"],
             [[r["occurredAt"], r["communityName"] + " / " + display(r.get("sensorCode")),
-              display(r["phenomenon"]) + " / " + display(r["level"]), r["description"], r["status"], r["alertCount"]] for r in rows]))
+              event_title(r,display(r["phenomenon"])) + " / " + display(r["level"]), r["description"], r["status"], r["alertCount"]] for r in rows]))
         kpis = [("Eventos", len(rows)), ("Abiertos", sum(r["status"] == "Open" for r in rows))]
     elif kind == ReportType.sensor_status:
         latest = {}
@@ -124,7 +124,7 @@ def context_for(request: ReportRequest, data, user, correlation):
         rows = data["sensors"]
         tables.append(table("Disponibilidad de sensores", ["Sensor", "Comunidad", "Tipo", "Estado", "Última comunicación UTC", "Última lectura UTC / valor"],
             [[r["code"] + " / " + r["name"], r.get("communityName"), r.get("type"), r["status"],
-              r.get("lastCommunicationAt"), (f"{display(latest[r['id']]['measuredAt'])} / {latest[r['id']]['value']} {latest[r['id']]['unit']}"
+              r.get("lastCommunicationAt"), (f"{display(latest[r['id']]['measuredAt'])} / {reading_value(latest[r['id']])}"
                                             if r["id"] in latest else None)] for r in rows]))
         kpis = [("Sensores", len(rows)), ("Sin comunicación registrada", sum(not r.get("lastCommunicationAt") for r in rows))]
         notes.append("No se infiere conectividad actual a partir del estado administrativo. Última lectura en el conjunto consultado.")
@@ -133,10 +133,14 @@ def context_for(request: ReportRequest, data, user, correlation):
         for r in data["readings"]:
             groups[(r["variable"], r["unit"])].append(r["value"])
         stats = [[variable, unit, len(values), mean(values), min(values), max(values)]
-                 for (variable, unit), values in sorted(groups.items())]
+                 for (variable, unit), values in sorted(groups.items()) if not (variable == "RainfallLevel" and unit == "estado")]
         for variable in ("Temperature", "RelativeHumidity", "WindSpeed", "RainfallLevel", "RiverOrReservoirLevel"):
             if not any(k[0] == variable for k in groups):
                 stats.append([variable, None, 0, None, None, None])
+        states = [r for r in data["readings"] if categorical(r)]
+        if states:
+            counts = Counter(reading_value(r) for r in states)
+            tables.append(table("Superficie de lluvia", ["Estado", "Lecturas"], [[label, counts[label]] for label in ["Seco", "Mojado leve", "Muy mojado"]]))
         tables.append(table("Indicadores climáticos observados", ["Variable", "Unidad", "Muestras", "Promedio", "Mínimo", "Máximo"], stats))
         tables.append(table("Distribución de alertas", ["Nivel", "Cantidad"], sorted(Counter(r["level"] for r in data["alerts"]).items())))
         kpis = [("Lecturas analizadas", len(data["readings"])), ("Alertas", len(data["alerts"])), ("Lluvia acumulada", "N/D")]

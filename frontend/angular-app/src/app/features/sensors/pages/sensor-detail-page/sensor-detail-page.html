@@ -2,22 +2,19 @@
   <a routerLink="/sensors">← Volver a sensores</a>
   @if (loading) { <p>Cargando detalle…</p> }
   @else if (sensor) {
-    <header><p>Monitoreo individual</p><h1>{{ sensor.name }}</h1><span>{{ sensor.code }} · {{ community?.name }} · {{ sensor.location }}</span></header>
-    <dl><dt>SensorId</dt><dd>{{ sensor.id }}</dd><dt>Comunidad</dt><dd>{{ community?.name }}</dd><dt>Tipo</dt><dd>{{ sensorTypeLabel() }}</dd><dt>Unidad</dt><dd>{{ sensor.unit }}</dd><dt>Fuente</dt><dd>{{ sensor.origin === 'Physical' ? 'Físico' : 'Simulado' }}</dd><dt>Última comunicación</dt><dd>{{ sensor.lastCommunicationAt ? format(sensor.lastCommunicationAt) : 'Sin comunicación registrada' }}</dd></dl>
-    @if (sensor.origin === 'Physical') { <app-device-credentials [sensorId]="sensor.id" /> }
-    <div class="summary">
-      <article class="summary__primary"><span>Valor actual</span><strong>{{ readingLabel(data.at(-1)) }}</strong><small>{{ data.at(-1) ? format(data.at(-1)!.measuredAt) : 'Sin lectura registrada' }}</small></article>
+    <header><p>Monitoreo</p><h1>{{ titleFor(sensor) }}</h1><span>{{ community?.name }} · {{ sensor.origin === 'Physical' ? 'Sensor físico' : 'Sensor simulado' }} · {{ sensor.status === 'Active' ? 'Activo' : 'Inactivo' }}</span><small class="update-time">Última lectura: {{ latest ? formatTime(latest.measuredAt) : 'Sin registro' }} · {{ communicationLabel() }}</small></header>
+    <div class="summary" aria-label="Monitoreo actual">
+      <article class="summary__primary"><span>Valor actual</span><strong>{{ readingLabel(latest ?? data.at(-1)) }}</strong><small>{{ latest ? format(latest.measuredAt) : 'Sin lectura registrada' }}</small></article>
       <article [class]="'level ' + currentLevel().toLowerCase()"><span>Nivel de alerta</span><strong>{{ currentLevel() }}</strong><small>Según puntos de activación activos</small></article>
-      <article><span>Variable</span><strong>{{ variableLabel() }}</strong><small>{{ data.at(-1)?.unit }}</small></article>
+      <article><span>Medición</span><strong>{{ variableLabel() }}</strong><small>{{ unitFor(sensor.unit) }}</small></article>
       <article><span>Estado operativo</span><strong>{{ sensor.status === 'Active' ? 'Activo' : 'Inactivo' }}</strong><small>{{ sensor.origin === 'Physical' ? 'Sensor físico' : 'Sensor simulado' }}</small></article>
       <article class="summary__activation"><span>Próximo punto de activación</span><strong>{{ nextActivation() }}</strong><small>Umbral siguiente según la configuración</small></article>
     </div>
-    <section class="rules"><h2>Datos administrativos</h2><p>Tipo: {{ sensorTypeLabel() }}</p><p>Código: {{ sensor.code }} · Comunidad: {{ sensor.communityName || community?.name }}</p><p>Ubicación: {{ sensor.location }} · Unidad: {{ sensor.unit || data.at(-1)?.unit }}</p><p>Instalación: {{ sensor.installationDate || 'Sin fecha histórica registrada' }}</p><p>{{ sensor.description || 'Sin descripción registrada' }}</p></section>
     <section class="chart">
-      <div class="chart-head"><div><h2>Tendencia del sensor</h2><p>{{ period === 'recent' ? 'Las mismas 15 lecturas recientes utilizadas por la tarjeta del Dashboard.' : 'Lecturas almacenadas del sensor y puntos de activación próximos.' }}</p></div><nav aria-label="Periodo de la gráfica">@for (option of periods; track option.value) { <button type="button" [class.active]="period === option.value" (click)="selectPeriod(option.value)">{{ option.label }}</button> }</nav></div>
+      <div class="chart-head"><div><h2>Tendencia</h2><p>Lecturas reales del periodo seleccionado. Actualización automática.</p></div><nav aria-label="Periodo de la gráfica">@for (option of periods; track option.value) { <button type="button" [class.active]="period === option.value" [attr.aria-pressed]="period === option.value" (click)="selectPeriod(option.value)">{{ option.label }}</button> }</nav></div>
       @if (data.length) {
         <svg viewBox="0 0 840 390" role="img" [attr.aria-label]="'Gráfica histórica de ' + variableLabel()">
-          <text x="22" y="190" class="axis-title" transform="rotate(-90 22 190)">{{ axisLabel() }}</text>
+          @if (!isRain()) { <text x="22" y="190" class="axis-title" transform="rotate(-90 22 190)">{{ axisLabel() }}</text> }
           @for (tick of yTicks(); track $index) { <line x1="72" [attr.y1]="valueY(tick)" x2="800" [attr.y2]="valueY(tick)" class="grid"/><text x="62" [attr.y]="valueY(tick) + 4" class="y-label">{{ tickLabel(tick) }}</text> }
           @for (rule of visibleRules(); track rule.id) { <line x1="72" [attr.y1]="valueY(rule.activationPoint)" x2="800" [attr.y2]="valueY(rule.activationPoint)" [class]="'threshold ' + rule.dangerLevel.toLowerCase()"/><text x="795" [attr.y]="valueY(rule.activationPoint) - 5" class="threshold-label">{{ levelLabel(rule.dangerLevel) }} · {{ ruleValue(rule) }}</text> }
           <polyline [attr.points]="points()" class="series"/>
@@ -30,8 +27,12 @@
         <div class="current-value"><small>Valor actual</small><strong>{{ readingLabel(data.at(-1)) }}</strong></div>
       } @else { <p class="empty">Sin lecturas para este periodo.</p> }
     </section>
-    <section class="rules"><h2>Puntos de activación aplicables</h2>@for (rule of rules; track rule.id) { <span [class]="'rule ' + rule.dangerLevel.toLowerCase()">{{ levelLabel(rule.dangerLevel) }} · {{ rule.comparisonOperator }} {{ ruleValue(rule) }}</span> } @empty { <p>Este sensor no tiene puntos de activación configurados.</p> }</section>
+    <section class="rules"><h2>Puntos de activación aplicables</h2>@for (rule of rules; track rule.id) { <span [class]="'rule ' + rule.dangerLevel.toLowerCase()">{{ levelLabel(rule.dangerLevel) }} · {{ ruleValue(rule) }}</span> } @empty { <p>Este sensor no tiene puntos de activación configurados.</p> }</section>
     <section class="readings"><h2>Últimas lecturas</h2><div class="table-wrap"><table><thead><tr><th>Hora</th><th>Valor</th><th>Condición</th></tr></thead><tbody>@for (reading of data.slice(-10).reverse(); track reading.id) { <tr><td><strong>{{ formatTime(reading.measuredAt) }}</strong><small>{{ format(reading.measuredAt) }}</small></td><td>{{ readingLabel(reading) }}</td><td>{{ condition(reading) }}</td></tr> }</tbody></table></div></section>
+    <section class="rules"><h2>Eventos recientes en la comunidad</h2>@if (eventsUnavailable) { <p>No fue posible actualizar los eventos. Se reintentará automáticamente.</p> }@for (event of events; track event.id) { <p><a [routerLink]="['/events', event.id]">{{ eventLabel(event) }}</a> · {{ levelLabel(event.level) }} · {{ format(event.occurredAt) }}</p> } @empty { @if (!eventsUnavailable) { <p>Sin eventos recientes registrados.</p> } }</section>
+    <section class="rules"><h2>Información general</h2><dl class="info-grid"><div><dt>Comunidad</dt><dd>{{ community?.name }}</dd></div><div><dt>Ubicación</dt><dd>{{ sensor.location }}</dd></div><div><dt>Tipo de medición</dt><dd>{{ variableLabel() }}</dd></div><div><dt>Unidad</dt><dd>{{ unitFor(sensor.unit) }}</dd></div><div><dt>Fuente</dt><dd>{{ sensor.origin === 'Physical' ? 'Físico' : 'Simulado' }}</dd></div><div><dt>Instalación</dt><dd>{{ sensor.installationDate || 'No registrada' }}</dd></div><div><dt>Descripción</dt><dd>{{ sensor.description || 'Sin descripción' }}</dd></div></dl></section>
+    <details class="rules technical"><summary>Información técnica</summary><dl class="info-grid"><div><dt>Código</dt><dd>{{ sensor.code }}</dd></div><div><dt>ID del sensor</dt><dd>{{ sensor.id }}</dd></div><div><dt>Última comunicación</dt><dd>{{ sensor.lastCommunicationAt ? format(sensor.lastCommunicationAt) : 'Sin registro' }}</dd></div></dl></details>
+    @if (sensor.origin === 'Physical') { <app-device-credentials [sensorId]="sensor.id" /> }
   }
   @if (error) { <p class="error">{{ error }}</p> }
 </section>

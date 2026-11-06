@@ -157,14 +157,14 @@
               </div>
             </div>
 
-            <h3>{{ sensor.name }}</h3>
+            <h3>{{ titleFor(sensor) }}</h3>
             <p class="sensor-card__code">{{ sensor.code }}</p>
 
             <dl class="sensor-details">
               <div><dt>Tipo</dt><dd>{{ typeLabel(sensor) }}</dd></div>
               <div><dt>Comunidad</dt><dd>{{ sensor.communityName || communityName(sensor) }}</dd></div>
-              <div><dt>Unidad</dt><dd>{{ sensor.unit || unitFor(sensor.measurementType) }}</dd></div>
-              <div><dt>Instalación</dt><dd>{{ sensor.installationDate || 'Sin fecha histórica registrada' }}</dd></div>
+              <div><dt>Unidad</dt><dd>{{ displayUnit(sensor.unit || unitFor(sensor.measurementType)) }}</dd></div>
+              <div><dt>Instalación</dt><dd>{{ sensor.installationDate || 'No registrada' }}</dd></div>
               <div><dt>Descripción</dt><dd>{{ sensor.description || 'Sin descripción' }}</dd></div>
               <div><dt>Ubicación</dt><dd>{{ sensor.location }}</dd></div>
               <div><dt>Fuente</dt><dd>{{ sensor.origin === 'Simulated' ? 'Simulado' : 'Físico' }}</dd></div>

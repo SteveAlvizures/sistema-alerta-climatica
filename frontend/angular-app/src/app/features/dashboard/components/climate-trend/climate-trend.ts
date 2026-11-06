@@ -1,3 +1,4 @@
+import { cleanNumber, unitLabel } from '../../../../core/models/monitoring-presentation';
 import { AfterViewInit, Component, ElementRef, OnDestroy, ViewChild, computed, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { rainState } from '../../../../core/models/physical-reading';
 import { ClimateTrendSeries, TrendMetric } from '../../../../core/models/climate-dashboard.model';
@@ -70,7 +71,7 @@ export class ClimateTrend implements AfterViewInit, OnDestroy {
     const date = point.timestamp ? new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(point.timestamp)) : point.label;
     return `${date} · ${series.label}: ${this.displayValue(point.value)}`;
   }
-  protected displayValue(value: number | undefined): string { if (value === undefined) return 'Sin lectura'; return this.activeSeries()?.categorical ? rainState(value) : `${value} ${this.activeSeries()?.unit ?? ''}`; }
+  protected displayValue(value: number | undefined): string { if (value === undefined) return 'Sin lectura'; return this.activeSeries()?.categorical ? rainState(value) : `${cleanNumber(value)} ${unitLabel(this.activeSeries()?.unit)}`; }
   protected thresholdClass(level: string): string { return `trend-panel__threshold trend-panel__threshold--${level.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}`; }
   private formatTick(value: number): string { return Number.isInteger(value) ? value.toString() : value.toFixed(1); }
   private xLabel(index: number): string {

@@ -1,3 +1,5 @@
+import { AlertNotifications } from './alert-notifications.service';
+import { finalize } from 'rxjs';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { AlertDto, ApiDangerLevel } from '../models/api.model';
 import { AlertApiService } from './alert-api.service';
@@ -6,6 +8,8 @@ const severity: Record<ApiDangerLevel, number> = { Green: 0, Yellow: 1, Orange: 
 
 @Injectable({ providedIn: 'root' })
 export class ActiveAlertsService {
+  private busy = false;
+  private readonly notifications = inject(AlertNotifications);
   private readonly api = inject(AlertApiService);
   readonly alerts = signal<AlertDto[]>([]);
   readonly loadError = signal(false);
@@ -15,8 +19,10 @@ export class ActiveAlertsService {
   );
 
   refresh(): void {
-    this.api.getAll('Open').subscribe({
+    if (this.busy) return; this.busy = true;
+    this.api.getAll('Open').pipe(finalize(() => this.busy = false)).subscribe({
       next: (alerts) => {
+        this.notifications.observe(alerts);
         this.alerts.set(alerts.filter((alert) => alert.status === 'Open' && alert.level !== 'Green'));
         this.loadError.set(false);
       },

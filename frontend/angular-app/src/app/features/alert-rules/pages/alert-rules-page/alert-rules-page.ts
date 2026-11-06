@@ -1,3 +1,4 @@
+import { boundary, cleanNumber, measurementValue, thresholdLabel } from '../../../../core/models/monitoring-presentation';
 import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -42,10 +43,11 @@ export class AlertRulesPage implements OnInit {
   protected applyRuleFilters():void{this.activeFilters={...this.filterDraft};this.filtersApplied=true}
   protected clearRuleFilters():void{this.filterDraft=emptyRuleFilters();this.activeFilters=emptyRuleFilters();this.filtersApplied=false}
   protected rangeLabel(rule:AlertRuleDto):string {
-    if (!rule.usesRange) return `${this.conditionLabel(rule.comparisonOperator)} ${rule.activationPoint}`;
+    if (rule.variable === 'RainfallLevel' && rule.unit === 'estado') return measurementValue(rule.variable,rule.activationPoint,rule.unit);
+    if (!rule.usesRange) return thresholdLabel(rule).replace(' '+rule.unit,'');
     return this.formatRange(rule.minValue ?? rule.lowerLimit, rule.maxValue ?? rule.upperLimit);
   }
-  protected formatRange(min:number|null,max:number|null):string { return min!==null && max!==null ? `${min} a ${max}` : min!==null ? `${min} o más` : max!==null ? `${max} o menos` : 'Define un rango'; }
+  protected formatRange(min:number|null,max:number|null):string { return min!==null && max!==null ? `${boundary(min)} y ${boundary(max,false)}` : min!==null ? boundary(min) : max!==null ? boundary(max,false) : 'Define un rango'; }
   protected phenomenonLabel(value:AlertRuleDto['phenomenon']):string{return phenomena[value]}
   protected preview():string{return `${this.variableLabel(this.variable)}: ${this.formatRange(this.minValue,this.maxValue)} ${this.unit()} (${this.levelLabel(this.dangerLevel)})`}
   protected edit(rule:AlertRuleDto):void {

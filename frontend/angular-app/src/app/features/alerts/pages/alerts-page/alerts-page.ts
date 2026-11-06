@@ -8,7 +8,7 @@ import { AlertApiService, AlertFilters } from '../../../../core/services/alert-a
 import { CommunityApiService } from '../../../../core/services/community-api.service';
 import { SensorApiService } from '../../../../core/services/sensor-api.service';
 import { AlertActions } from '../../components/alert-actions/alert-actions';
-import { alertStatusLabels, conditionLabel, formatAlertDate, levelLabels, phenomenonLabels, variableLabels } from '../../alert-presentation';
+import { alertTitle, alertValue, contextTitle, alertStatusLabels, conditionLabel, formatAlertDate, levelLabels, phenomenonLabels, variableLabels } from '../../alert-presentation';
 
 @Component({ selector: 'app-alerts-page', imports: [FormsModule, RouterLink, AlertActions], templateUrl: './alerts-page.html', changeDetection: ChangeDetectionStrategy.Eager,
  styleUrl: './alerts-page.scss' })
@@ -50,6 +50,9 @@ export class AlertsPage implements OnInit {
   readonly phenomenonLabel = (value: ApiClimatePhenomenon) => phenomenonLabels[value];
   readonly statusLabel = (value: ApiAlertStatus) => alertStatusLabels[value];
   readonly formatDate = formatAlertDate;
+  readonly alertTitle = alertTitle;
+  readonly alertValue = alertValue;
+  readonly contextTitle = contextTitle;
   readonly conditionLabel = conditionLabel;
 
   ngOnInit(): void {

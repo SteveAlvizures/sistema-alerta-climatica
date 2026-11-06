@@ -1,3 +1,4 @@
+import { sensorTitle, unitLabel } from '../../../../core/models/monitoring-presentation';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import { Component, DestroyRef, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
@@ -32,6 +33,8 @@ export class SensorsPage implements OnInit {
   private readonly sensorReadingApi = inject(SensorReadingApiService);
   protected readonly auth = inject(AuthService);
 
+  readonly titleFor = sensorTitle;
+  readonly displayUnit = unitLabel;
   communities: CommunityDto[] = [];
   sensors: SensorDto[] = [];
   latestReadings: Record<string, SensorReadingDto | null> = {};

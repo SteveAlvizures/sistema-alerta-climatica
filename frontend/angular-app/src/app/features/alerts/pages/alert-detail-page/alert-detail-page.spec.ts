@@ -23,7 +23,7 @@ describe('AlertDetailPage', () => {
   it('loads complete detail and traceability with the official active status', () => {
     http.expectOne('/api/alerts/alert-1').flush(alertTestData); fixture.detectChanges();
     const text = fixture.nativeElement.textContent;
-    for (const value of ['Activa', 'El Pinar', 'Pluviómetro central', 'Inundación', 'Precaución', '15 mm', '10 a 20 mm', 'reading-1', 'event-1', 'rule-1']) expect(text).toContain(value);
+    for (const value of ['Activa', 'El Pinar', 'Pluviómetro central', 'Inundación', 'Precaución', '15 mm', '\u2265 10 y \u2264 20 mm', 'reading-1', 'event-1', 'rule-1']) expect(text).toContain(value);
     expect(fixture.nativeElement.querySelector('.attend')).toBeNull();
   });
   it('shows attended and closed dates and responsible users', () => {
@@ -41,7 +41,7 @@ describe('AlertDetailPage', () => {
     http.expectOne('/api/alerts/alert-1').flush({ ...alertTestData, status: 'Closed', usesRange: null, closedAt: '2026-10-06T12:10:00Z' });
     fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Sistema automático o cierre histórico');
     expect(fixture.nativeElement.textContent).toContain('umbral histórico');
-    expect(conditionLabel({ ...alertTestData, minValue: null })).toBe('20 o menos mm');
-    expect(conditionLabel({ ...alertTestData, maxValue: null })).toBe('10 o más mm');
+    expect(conditionLabel({ ...alertTestData, minValue: null })).toBe('\u2264 20 mm');
+    expect(conditionLabel({ ...alertTestData, maxValue: null })).toBe('\u2265 10 mm');
   });
 });

@@ -5,7 +5,7 @@ import { switchMap } from 'rxjs';
 import { AlertDto } from '../../../../core/models/api.model';
 import { AlertApiService } from '../../../../core/services/alert-api.service';
 import { AlertActions } from '../../components/alert-actions/alert-actions';
-import { alertStatusLabels, conditionLabel, formatAlertDate, levelLabels, phenomenonLabels, variableLabels } from '../../alert-presentation';
+import { alertTitle, alertValue, contextTitle, alertStatusLabels, conditionLabel, formatAlertDate, levelLabels, phenomenonLabels, variableLabels } from '../../alert-presentation';
 
 @Component({ selector: 'app-alert-detail-page', imports: [RouterLink, AlertActions], templateUrl: './alert-detail-page.html', changeDetection: ChangeDetectionStrategy.Eager,
  styleUrl: './alert-detail-page.scss' })
@@ -17,6 +17,9 @@ export class AlertDetailPage implements OnInit {
   readonly error = signal('');
   readonly loading = signal(true);
   readonly statusLabel = (alert: AlertDto) => alertStatusLabels[alert.status];
+  readonly alertTitle = alertTitle;
+  readonly alertValue = alertValue;
+  readonly contextTitle = contextTitle;
   readonly conditionLabel = conditionLabel;
   readonly formatDate = formatAlertDate;
   readonly levelLabels = levelLabels;

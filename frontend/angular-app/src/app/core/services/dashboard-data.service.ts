@@ -1,3 +1,5 @@
+import { AlertNotifications } from './alert-notifications.service';
+import { sensorTitle, measurementNames, cleanNumber, thresholdLabel, contextTitle, eventTitle } from '../models/monitoring-presentation';
 import { DashboardApiService, DashboardSummary } from './dashboard-api.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
@@ -59,7 +61,7 @@ const indicatorDefinitions: ReadonlyArray<{
   { variable: 'RelativeHumidity', key: 'humidity', name: 'Humedad relativa' },
   { variable: 'WindSpeed', key: 'wind', name: 'Velocidad del viento' },
   { variable: 'RainfallLevel', key: 'rain', name: 'Nivel de lluvia' },
-  { variable: 'RiverOrReservoirLevel', key: 'river', name: 'Nivel de río o reservorio' },
+  { variable: 'RiverOrReservoirLevel', key: 'river', name: 'Nivel de agua' },
 ];
 
 const measurementLabels: Record<ClimateVariable, string> = {
@@ -69,7 +71,7 @@ const measurementLabels: Record<ClimateVariable, string> = {
   RainfallLevel: 'Nivel de lluvia',
   SmokeConcentration: 'Humo/incendio',
   OtherEnvironmental: 'Otro sensor ambiental',
-  RiverOrReservoirLevel: 'Nivel de río o reservorio',
+  RiverOrReservoirLevel: 'Nivel de agua',
 };
 
 const dangerLevelLabels: Record<ApiDangerLevel, DangerLevel> = {
@@ -91,6 +93,7 @@ const alertStatusLabels: Record<ApiAlertStatus, string> = {
 
 @Injectable({ providedIn: 'root' })
 export class DashboardDataService {
+  private readonly notifications = inject(AlertNotifications);
   private readonly dashboardApi = inject(DashboardApiService);
   private readonly communityApi = inject(CommunityApiService);
   private readonly alertApi = inject(AlertApiService);
@@ -350,6 +353,7 @@ export class DashboardDataService {
       .sort((left, right) => dangerLevelPriority[right.level] - dangerLevelPriority[left.level]
         || Date.parse(right.updatedAt) - Date.parse(left.updatedAt));
     const highestAlert = activeAlerts[0];
+    this.notifications.observe(activeAlerts.map(a => ({...a,communityName:community.name})));
     const mappedActiveAlerts = activeAlerts.map(alert => this.mapAlert(alert, community, items));
     const mappedHighestAlert = mappedActiveAlerts[0] ?? null;
     const updateCandidates = [
@@ -379,11 +383,11 @@ export class DashboardDataService {
           .sort((left, right) => Date.parse(left.measuredAt) - Date.parse(right.measuredAt)).slice(-15);
         return {
           key: definition.key,
-          name: isEsp32Rain(sensor) ? 'Superficie de lluvia' : measurementLabels[sensor.measurementType], sensorId: sensor.id,
-          value: reading ? formatSensorReading(sensor, reading) : 'Sin lectura', detail: sensor.name,
+          name: sensor.origin === 'Physical' ? measurementNames[sensor.measurementType] : measurementLabels[sensor.measurementType], sensorId: sensor.id,
+          value: reading ? formatSensorReading(sensor, reading) : 'Sin lectura', detail: sensorTitle(sensor),
           status, tone: matchingRule ? dangerLevelTones[matchingRule.dangerLevel] : 'green',
           lastReading: reading ? this.formatDateTime(reading.measuredAt) : 'Sin lectura registrada',
-          nextActivation: nextRule ? `${dangerLevelLabels[nextRule.dangerLevel]} · ${isEsp32Rain(sensor) ? rainState(nextRule.activationPoint) : nextRule.activationPoint + ' ' + nextRule.unit}` : 'Sin otro punto configurado',
+          nextActivation: nextRule ? `${dangerLevelLabels[nextRule.dangerLevel]} · ${isEsp32Rain(sensor) ? rainState(nextRule.activationPoint) : thresholdLabel(nextRule)}` : 'Sin otro punto configurado',
           categorical: isEsp32Rain(sensor),
           trend: sensorTrend.filter(item => item.value !== null && item.value !== undefined).map(item => ({ label: this.formatDateTime(item.measuredAt), value: item.value, unit: item.unit, displayValue: formatSensorReading(sensor, item) })),
         };
@@ -392,7 +396,7 @@ export class DashboardDataService {
       alert: mappedHighestAlert,
       activeAlerts: mappedActiveAlerts,
       recentEvents: (summary?.recentEvents ?? []).map(event => ({
-        id: event.id, title: `${phenomenonLabels[event.phenomenon]} \u00b7 ${dangerLevelLabels[event.level]}`,
+        id: event.id, title: `${eventTitle(event, phenomenonLabels[event.phenomenon])} \u00b7 ${dangerLevelLabels[event.level]}`,
         detail: `${event.communityName} \u00b7 ${event.status === 'Open' ? 'Activo' : 'Cerrado'} \u00b7 ${event.description}`,
         occurredAt: this.formatDateTime(event.occurredAt), tone: dangerLevelTones[event.level],
       })),
@@ -406,7 +410,7 @@ export class DashboardDataService {
       { variable: 'RelativeHumidity', metric: 'humidity', label: 'Humedad relativa' },
       { variable: 'WindSpeed', metric: 'wind', label: 'Velocidad del viento' },
       { variable: 'RainfallLevel', metric: 'rain', label: 'Nivel de lluvia' },
-      { variable: 'RiverOrReservoirLevel', metric: 'river', label: 'Nivel de río o reservorio' },
+      { variable: 'RiverOrReservoirLevel', metric: 'river', label: 'Nivel de agua' },
     ];
     return definitions.flatMap((definition) => {
       const values = readings.filter((reading) => reading.variable === definition.variable)
@@ -426,7 +430,7 @@ export class DashboardDataService {
     return {
       id: alert.id,
       level: dangerLevelLabels[alert.level],
-      phenomenon: phenomenonLabels[alert.phenomenon],
+      phenomenon: contextTitle(alert.variable, alert.level, alert.detectedValue),
       message: alert.message,
       occurredAt: `Actualizada ${this.formatDateTime(alert.updatedAt)}`,
       status: alertStatusLabels[alert.status],
@@ -434,7 +438,7 @@ export class DashboardDataService {
       tone: dangerLevelTones[alert.level],
       hasEvent: alert.eventId !== null,
       community: community?.name,
-      sensor: sensor?.name,
+      sensor: sensor ? sensorTitle(sensor) : undefined,
       variable: measurementLabels[alert.variable],
       value: alert.variable === 'RainfallLevel' && alert.unit === 'estado' ? rainState(alert.detectedValue) : `${alert.detectedValue} ${alert.unit}`,
     };
@@ -442,7 +446,7 @@ export class DashboardDataService {
 
   private mapSensor(sensor: SensorDto, reading: SensorReadingDto | null): ClimateSensor {
     return {
-      name: sensor.name,
+      name: sensorTitle(sensor),
       measurementType: measurementLabels[sensor.measurementType],
       status: sensor.status === 'Active' ? 'Activo' : 'Inactivo',
       origin: sensor.origin,

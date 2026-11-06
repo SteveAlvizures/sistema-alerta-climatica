@@ -17,7 +17,7 @@ describe('EventDetailPage', () => {
   it('shows complete evidence, sensors, related alerts, captured condition and trace links', () => {
     const fixture = TestBed.createComponent(EventDetailPage); fixture.detectChanges(); http.expectOne('/api/events/event-1').flush(eventDetail); fixture.detectChanges();
     const text = fixture.nativeElement.textContent;
-    for (const value of ['La Isla', 'Inundación', 'Alerta', 'Activo', 'RIVER-01', '2.5', 'Incidente persistido', 'Sin responsable', 'Regla de río', 'rule-1', 'reading-1', 'sensor-1', '2 a 3 m', 'Operadora', 'Atendida']) expect(text).toContain(value);
+    for (const value of ['La Isla', 'Inundación', 'Alerta', 'Activo', 'RIVER-01', '2.5', 'Incidente persistido', 'Sin responsable', 'Regla de río', 'rule-1', 'reading-1', 'sensor-1', '\u2265 2 y \u2264 3 m', 'Operadora', 'Atendida']) expect(text).toContain(value);
     const links = Array.from(fixture.nativeElement.querySelectorAll('a') as NodeListOf<HTMLAnchorElement>).map(a => a.getAttribute('href'));
     expect(links).toContain('/alerts/alert-1'); expect(links).toContain('/sensors/sensor-1'); expect(links).toContain('/events');
   });
@@ -30,7 +30,7 @@ describe('EventDetailPage', () => {
   it('preserves legacy events with missing evidence and responsibility', () => {
     const fixture = TestBed.createComponent(EventDetailPage); fixture.detectChanges();
     http.expectOne('/api/events/event-1').flush({ event: { ...eventDetail.event, sensorId: null, sensorName: null, sensorCode: null, value: null, unit: null, representativeAlertId: null, alertCount: 0 }, sensors: [], alerts: [] }); fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Sin sensor histórico'); expect(fixture.nativeElement.textContent).toContain('Sin valor histórico');
+    expect(fixture.nativeElement.textContent).toContain('Sin sensor histórico'); expect(fixture.nativeElement.textContent).toContain('Sin lectura');
     expect(fixture.nativeElement.textContent).toContain('Sin responsable'); expect(fixture.nativeElement.textContent).toContain('Sin alertas históricas');
   });
   for (const status of [401, 403, 404]) {

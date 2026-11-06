@@ -30,7 +30,7 @@
     >
       <title>Evolución de {{ activeSeries().label }}</title>
       <desc>Serie de hasta treinta lecturas recientes para la comunidad seleccionada.</desc>
-      <text class="trend-panel__axis-title" x="18" y="103" transform="rotate(-90 18 103)">{{ axisLabel() }}</text>
+      @if (!activeSeries().categorical) { <text class="trend-panel__axis-title" x="18" y="103" transform="rotate(-90 18 103)">{{ axisLabel() }}</text> }
       <g class="trend-panel__grid" aria-hidden="true">
         @for (tick of yTicks(); track tick.value) {
           <line x1="72" [attr.y1]="tick.y" x2="612" [attr.y2]="tick.y" />

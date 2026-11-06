@@ -1,3 +1,4 @@
+import { eventTitle, alertValue, measurementValue } from '../../../../core/models/monitoring-presentation';
 import { Component, DestroyRef, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -14,6 +15,7 @@ export class EventDetailPage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   detail: RiskEventDetailDto | null = null;
   loading = true; error = '';
+  readonly eventTitle = eventTitle; readonly alertValue = alertValue; readonly measurementValue = measurementValue;
   readonly phenomenonLabels = phenomenonLabels; readonly levelLabels = levelLabels;
   readonly statusLabels = eventStatusLabels; readonly alertStatusLabels = alertStatusLabels;
   readonly formatDate = formatEventDate; readonly condition = conditionLabel;

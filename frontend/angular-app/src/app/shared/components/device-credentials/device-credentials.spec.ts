@@ -21,7 +21,7 @@ describe('DeviceCredentials', () => {
     http.expectOne('/api/device-credentials').flush({ key: 'one-time-test-key' });
     http.expectOne('/api/device-credentials?sensorId=sensor').flush([{ id: 'credential', isActive: true, name: 'ESP32' }]);
     f.detectChanges();
-    expect(f.nativeElement.textContent).toContain('Guarde esta clave ahora. No podrá volver a consultarse.');
+    expect(f.nativeElement.textContent).toContain('Guarde esta clave ahora. Por seguridad no podrá volver a consultarse.');
     expect(f.nativeElement.textContent).toContain('one-time-test-key');
     f.componentInstance.dismissKey(); f.detectChanges();
     expect(f.nativeElement.textContent).not.toContain('one-time-test-key');

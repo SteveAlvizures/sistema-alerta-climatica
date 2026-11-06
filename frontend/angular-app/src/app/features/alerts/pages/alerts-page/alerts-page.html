@@ -29,9 +29,9 @@
               <p>{{ alert.message }}</p>
               <div class="references">
                 <span>Sensor <strong>{{ sensorName(alert) }}</strong></span>
-                <span>Fenómeno <strong>{{ phenomenonLabel(alert.phenomenon) }}</strong></span>
+                <span>Fenómeno <strong>{{ alertTitle(alert,phenomenonLabel(alert.phenomenon)) }}</strong></span>
                 <span>Variable <strong>{{ variableLabel(alert.variable) }}</strong></span>
-                <span>Valor detectado <strong>{{ alert.detectedValue }} {{ alert.unit }}</strong></span>
+                <span>Valor detectado <strong>{{ alertValue(alert) }}</strong></span>
                 <span>Umbral / rango <strong>{{ conditionLabel(alert) }}</strong></span>
                 <a [routerLink]="['/sensors', alert.sensorId]">Ver sensor</a>
                 <a class="detail-link" [routerLink]="['/alerts', alert.id]">Ver detalle</a>

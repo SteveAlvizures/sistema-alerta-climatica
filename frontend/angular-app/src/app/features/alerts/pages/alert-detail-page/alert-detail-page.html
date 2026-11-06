@@ -11,10 +11,10 @@
         <div><dt>Fecha y hora de detección</dt><dd>{{ formatDate(item.detectedAt) }}</dd></div>
         <div><dt>Última actualización</dt><dd>{{ formatDate(item.updatedAt) }}</dd></div>
         <div><dt>Sensor</dt><dd><a [routerLink]="['/sensors', item.sensorId]">{{ item.sensorName || item.sensorId }}</a><small>{{ item.sensorCode }}</small></dd></div>
-        <div><dt>Fenómeno</dt><dd>{{ phenomenonLabels[item.phenomenon] }}</dd></div>
+        <div><dt>Fenómeno</dt><dd>{{ alertTitle(item,phenomenonLabels[item.phenomenon]) }}</dd></div>
         <div><dt>Nivel</dt><dd>{{ levelLabels[item.level] }}</dd></div>
         <div><dt>Variable</dt><dd>{{ variableLabels[item.variable] }}</dd></div>
-        <div><dt>Valor detectado</dt><dd>{{ item.detectedValue }} {{ item.unit }}</dd></div>
+        <div><dt>Valor detectado</dt><dd>{{ alertValue(item) }}</dd></div>
         <div><dt>Umbral / rango detectado</dt><dd>{{ conditionLabel(item) }}</dd></div>
         <div><dt>Regla</dt><dd>{{ item.ruleName || item.ruleId }}<small>{{ item.ruleCode }} · {{ item.ruleId }}</small></dd></div>
         <div><dt>Lectura de soporte</dt><dd>{{ item.supportingReadingId }}</dd></div>
