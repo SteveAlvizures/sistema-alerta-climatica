@@ -27,7 +27,7 @@ import { ClimateAlert, DangerLevel } from '../models/climate-alert.model';
 import { ClimateDashboardState, ClimateTrendSeries, TrendMetric } from '../models/climate-dashboard.model';
 import { ClimateIndicator } from '../models/climate-indicator.model';
 import { ClimateSensor } from '../models/sensor.model';
-import { formatSensorReading, isEsp32Rain } from '../models/physical-reading';
+import { formatSensorReading, isEsp32Rain, rainState } from '../models/physical-reading';
 import { CommunityApiService } from './community-api.service';
 import { AlertApiService } from './alert-api.service';
 import { SensorApiService } from './sensor-api.service';
@@ -368,7 +368,7 @@ export class DashboardDataService {
         const definition = indicatorDefinitions.find(item => item.variable === sensor.measurementType)!;
         const relativeDevice = sensor.origin === 'Physical' && ['ESP32-RAIN-01', 'ESP32-WATER-LEVEL-01'].includes(sensor.code);
         const sensorRules = rules.filter(rule => rule.variable === sensor.measurementType && (!rule.sensorId || rule.sensorId === sensor.id)
-          && (!relativeDevice || rule.unit === (reading?.unit ?? sensor.unit))
+          && (!relativeDevice || rule.sensorId === sensor.id || rule.unit === (reading?.unit ?? sensor.unit))
           && (!reading || this.ruleIsEnabled(rule, reading.measuredAt)));
         const matchingRule = reading ? sensorRules.filter(rule => this.ruleMatches(rule, reading.value))
           .sort((left, right) => dangerLevelPriority[right.dangerLevel] - dangerLevelPriority[left.dangerLevel])[0] : undefined;
@@ -383,8 +383,9 @@ export class DashboardDataService {
           value: reading ? formatSensorReading(sensor, reading) : 'Sin lectura', detail: sensor.name,
           status, tone: matchingRule ? dangerLevelTones[matchingRule.dangerLevel] : 'green',
           lastReading: reading ? this.formatDateTime(reading.measuredAt) : 'Sin lectura registrada',
-          nextActivation: nextRule ? `${dangerLevelLabels[nextRule.dangerLevel]} · ${nextRule.activationPoint} ${nextRule.unit}` : 'Sin otro punto configurado',
-          trend: isEsp32Rain(sensor) ? [] : sensorTrend.map(item => ({ label: this.formatDateTime(item.measuredAt), value: item.value, unit: item.unit })),
+          nextActivation: nextRule ? `${dangerLevelLabels[nextRule.dangerLevel]} · ${isEsp32Rain(sensor) ? rainState(nextRule.activationPoint) : nextRule.activationPoint + ' ' + nextRule.unit}` : 'Sin otro punto configurado',
+          categorical: isEsp32Rain(sensor),
+          trend: sensorTrend.filter(item => item.value !== null && item.value !== undefined).map(item => ({ label: this.formatDateTime(item.measuredAt), value: item.value, unit: item.unit, displayValue: formatSensorReading(sensor, item) })),
         };
       }),
       sensors: items.map(({ sensor, reading }) => this.mapSensor(sensor, reading)),
@@ -395,11 +396,11 @@ export class DashboardDataService {
         detail: `${event.communityName} \u00b7 ${event.status === 'Open' ? 'Activo' : 'Cerrado'} \u00b7 ${event.description}`,
         occurredAt: this.formatDateTime(event.occurredAt), tone: dangerLevelTones[event.level],
       })),
-      trend: this.createTrend(history.filter(r => !items.some(item => item.sensor.id === r.sensorId && isEsp32Rain(item.sensor))), rules),
+      trend: this.createTrend(history, rules, items.map(item => item.sensor)),
     };
   }
 
-  private createTrend(readings: SensorReadingDto[], rules: AlertRuleDto[]): ClimateTrendSeries[] {
+  private createTrend(readings: SensorReadingDto[], rules: AlertRuleDto[], sensors: SensorDto[] = []): ClimateTrendSeries[] {
     const definitions: Array<{ variable: ClimateVariable; metric: TrendMetric; label: string }> = [
       { variable: 'Temperature', metric: 'temperature', label: 'Temperatura' },
       { variable: 'RelativeHumidity', metric: 'humidity', label: 'Humedad relativa' },
@@ -411,10 +412,11 @@ export class DashboardDataService {
       const values = readings.filter((reading) => reading.variable === definition.variable)
         .sort((left, right) => Date.parse(left.measuredAt) - Date.parse(right.measuredAt)).slice(-30);
       if (!values.length) return [];
-      const activationPoints = rules.filter((rule) => rule.variable === definition.variable && rule.dangerLevel !== 'Green')
+      const categorical = definition.metric === 'rain' && values.every(reading => sensors.some(sensor => sensor.id === reading.sensorId && isEsp32Rain(sensor)));
+      const activationPoints = rules.filter((rule) => rule.variable === definition.variable && rule.isActive && rule.dangerLevel !== 'Green' && (!rule.sensorId || values.some(reading => reading.sensorId === rule.sensorId)))
         .sort((left, right) => dangerLevelPriority[left.dangerLevel] - dangerLevelPriority[right.dangerLevel])
         .map((rule) => ({ level: dangerLevelLabels[rule.dangerLevel] as 'Precaución' | 'Alerta' | 'Emergencia', value: rule.activationPoint }));
-      return [{ metric: definition.metric, label: definition.label, unit: values.at(-1)!.unit,
+      return [{ metric: definition.metric, label: categorical ? 'Superficie de lluvia' : definition.label, unit: values.at(-1)!.unit, categorical,
         points: values.map((reading) => ({ label: new Intl.DateTimeFormat('es-GT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(reading.measuredAt)), value: reading.value, timestamp: reading.measuredAt })), activationPoints }];
     });
   }
@@ -434,7 +436,7 @@ export class DashboardDataService {
       community: community?.name,
       sensor: sensor?.name,
       variable: measurementLabels[alert.variable],
-      value: `${alert.detectedValue} ${alert.unit}`,
+      value: alert.variable === 'RainfallLevel' && alert.unit === 'estado' ? rainState(alert.detectedValue) : `${alert.detectedValue} ${alert.unit}`,
     };
   }
 

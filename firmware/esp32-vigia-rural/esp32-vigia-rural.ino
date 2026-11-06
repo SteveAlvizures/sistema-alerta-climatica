@@ -2,6 +2,7 @@
 #include <DHT.h>
 #include <WiFi.h>
 #include "DeviceTransport.h"
+#include "WaterCalibration.h"
 
 constexpr uint8_t DHT_PIN = 4;
 constexpr uint8_t RAIN_PIN = 34;
@@ -28,6 +29,7 @@ int readRainRaw() {
 }
 
 int waterPercent(int raw) {
+  if (waterCalibrationReady()) return interpolateWaterPercent(raw);
   if (raw <= 100) return 0;
   const long percent = (static_cast<long>(raw) - WATER_EMPTY) * 100L /
                        (WATER_FULL - WATER_EMPTY);

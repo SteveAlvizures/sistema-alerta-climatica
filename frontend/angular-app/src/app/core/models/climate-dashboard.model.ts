@@ -11,6 +11,7 @@ export interface ClimateTrendPoint {
 }
 
 export interface ClimateTrendSeries {
+  categorical?: boolean;
   metric: TrendMetric;
   label: string;
   unit: string;

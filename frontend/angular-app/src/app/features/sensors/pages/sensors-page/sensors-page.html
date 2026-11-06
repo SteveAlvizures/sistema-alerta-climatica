@@ -34,6 +34,7 @@
       </label>
 
       <label class="form-field"><span>Tipo *</span><select name="measurementType" [(ngModel)]="sensorType" (ngModelChange)="selectType()">@for (type of types; track type.value) { <option [value]="type.value">{{ type.label }}</option> }</select></label>
+      <label class="form-field"><span>Fuente *</span><select name="origin" [(ngModel)]="origin"><option value="Physical">Físico</option><option value="Simulated">Simulado</option></select></label>
       <label class="form-field"><span>Nombre (automático si se omite)</span><input name="name" [(ngModel)]="name" maxlength="150" /></label>
       <label class="form-field"><span>Código (automático si se omite)</span><input name="code" [(ngModel)]="code" maxlength="80" /></label>
       <label class="form-field"><span>Unidad *</span><input name="unit" [(ngModel)]="unit" [placeholder]="unitFor(measurementType)" maxlength="30" /></label>
@@ -72,8 +73,15 @@
 
   @if (canAdminister() && editingSensor) {
     <section class="form-panel edit-panel" aria-labelledby="edit-sensor-title">
-      <div class="section-heading"><div><p class="section-heading__eyebrow">Configuración administrativa</p><h2 id="edit-sensor-title">Editar sensor</h2></div><p>El código, la variable, el origen y el historial se conservan.</p></div>
+      <div class="section-heading"><div><p class="section-heading__eyebrow">Configuración administrativa</p><h2 id="edit-sensor-title">Editar sensor</h2></div><p>El SensorId, la variable, la fuente y el historial se conservan.</p></div>
       <form class="sensor-form" (ngSubmit)="saveEdit()">
+        <label class="form-field"><span>Nombre</span><input name="editName" [(ngModel)]="editName" required maxlength="150" /></label>
+        <label class="form-field"><span>Comunidad</span><select name="editCommunity" [(ngModel)]="editCommunityId" required>@for (community of communities; track community.id) { <option [value]="community.id">{{ community.name }}</option> }</select></label>
+        <label class="form-field"><span>Código</span><input name="editCode" [(ngModel)]="editCode" required maxlength="80" /></label>
+        <label class="form-field"><span>Unidad</span><input name="editUnit" [(ngModel)]="editUnit" required maxlength="20" /></label>
+        <label class="form-field"><span>Instalación</span><input name="editDate" type="date" [(ngModel)]="editInstallationDate" required /></label>
+        <label class="form-field"><span>Descripción</span><textarea name="editDescription" [(ngModel)]="editDescription" maxlength="1000"></textarea></label>
+        <label class="form-field"><span>Estado</span><select name="editActive" [(ngModel)]="editActive"><option [ngValue]="true">Activo</option><option [ngValue]="false">Inactivo</option></select></label>
         <div class="readonly-detail"><span>Sensor</span><strong>{{ editingSensor.name }}</strong></div>
         <div class="readonly-detail"><span>Código</span><strong>{{ editingSensor.code }}</strong></div>
         <label class="form-field"><span>Ubicación o referencia</span><input #editLocationInput name="editLocation" [(ngModel)]="editLocation" required minlength="3" maxlength="200" /></label>
@@ -111,6 +119,7 @@
   <form class="sensor-form form-panel" (ngSubmit)="applyFilters()" aria-label="Filtros de sensores">
     <label class="form-field"><span>Comunidad</span><select name="filterCommunity" [(ngModel)]="selectedCommunityId"><option value="">Todas</option>@for (community of communities; track community.id) { <option [value]="community.id">{{ community.name }}{{ community.isActive ? '' : ' (inactiva)' }}</option> }</select></label>
     <label class="form-field"><span>Tipo</span><select name="typeFilter" [(ngModel)]="typeFilter"><option value="">Todos</option>@for (type of types; track type.value) { <option [value]="type.value">{{ type.label }}</option> }</select></label>
+    <label class="form-field"><span>Fuente</span><select name="originFilter" [(ngModel)]="originFilter"><option value="">Todas</option><option value="Physical">Físico</option><option value="Simulated">Simulado</option></select></label>
     <label class="form-field"><span>Estado</span><select name="statusFilter" [(ngModel)]="statusFilter"><option value="">Todos</option><option value="true">Activo</option><option value="false">Inactivo</option></select></label>
     <label class="form-field"><span>Código</span><input name="codeFilter" [(ngModel)]="codeFilter" /></label>
     <label class="form-field"><span>Buscar</span><input name="search" [(ngModel)]="search" /></label>
@@ -158,14 +167,15 @@
               <div><dt>Instalación</dt><dd>{{ sensor.installationDate || 'Sin fecha histórica registrada' }}</dd></div>
               <div><dt>Descripción</dt><dd>{{ sensor.description || 'Sin descripción' }}</dd></div>
               <div><dt>Ubicación</dt><dd>{{ sensor.location }}</dd></div>
-              <div><dt>Origen</dt><dd>{{ sensor.origin === 'Simulated' ? 'Simulado' : 'Físico' }}</dd></div>
+              <div><dt>Fuente</dt><dd>{{ sensor.origin === 'Simulated' ? 'Simulado' : 'Físico' }}</dd></div>
+              <div><dt>Última comunicación</dt><dd>{{ sensor.lastCommunicationAt ? formatDate(sensor.lastCommunicationAt) : 'Sin comunicación registrada' }}</dd></div>
               <div><dt>Estado</dt><dd>{{ sensor.status === 'Active' ? 'Activo' : 'Inactivo' }}</dd></div>
             </dl>
 
             <div class="latest-reading">
               <span class="latest-reading__label">Última lectura</span>
               @if (latestReadings[sensor.id]; as reading) {
-                <strong>{{ reading.value }} <small>{{ reading.unit }}</small></strong>
+                <strong>{{ formatReading(sensor, reading) }}</strong>
                 <span>{{ variableLabel(reading.variable) }}</span>
               } @else {
                 <strong class="latest-reading__empty">Sin lecturas</strong>
@@ -177,7 +187,7 @@
                 <a class="status-button status-button--secondary" [routerLink]="['/sensors', sensor.id]">Ver detalle</a>
             @if (canAdminister()) {
                 <button class="status-button" type="button" (click)="startEdit(sensor)">Editar</button>
-                <button class="status-button status-button--secondary" type="button" (click)="startManualReading(sensor)" [disabled]="sensor.status !== 'Active'">Registrar lectura</button>
+                @if (sensor.origin === 'Simulated') { <button class="status-button status-button--secondary" type="button" (click)="startManualReading(sensor)" [disabled]="sensor.status !== 'Active'">Registrar lectura</button> }
                 <button class="status-button" type="button" (click)="restartMonitoring(sensor)">Reiniciar monitoreo</button>
                 <button class="status-button" [class.status-button--deactivate]="sensor.status === 'Active'" type="button" (click)="changeStatus(sensor)">{{ sensor.status === 'Active' ? 'Desactivar' : 'Activar' }}</button>
             }
@@ -187,5 +197,5 @@
       </div>
     }
   </section>
-  <nav class="form-actions" aria-label="Páginación de sensores"><button class="primary-button" type="button" [disabled]="loading || page <= 1" (click)="goToPage(page - 1)">Anterior</button><span>Página {{ page }} de {{ totalPages || 1 }} ? {{ totalCount }} resultados</span><button class="primary-button" type="button" [disabled]="loading || page >= totalPages" (click)="goToPage(page + 1)">Siguiente</button></nav>
+  <nav class="form-actions" aria-label="Páginación de sensores"><button class="primary-button" type="button" [disabled]="loading || page <= 1" (click)="goToPage(page - 1)">Anterior</button><span>Página {{ page }} de {{ totalPages || 1 }} · {{ totalCount }} resultados</span><button class="primary-button" type="button" [disabled]="loading || page >= totalPages" (click)="goToPage(page + 1)">Siguiente</button></nav>
 </section>

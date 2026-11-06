@@ -149,7 +149,7 @@
   </section>
   <nav class="form-actions" aria-label="Páginación de comunidades">
     <button type="button" class="secondary-button" [disabled]="loading || page <= 1" (click)="goToPage(page - 1)">Anterior</button>
-    <span>Página {{ page }} de {{ totalPages || 1 }} ? {{ totalCount }} resultados</span>
+    <span>Página {{ page }} de {{ totalPages || 1 }} · {{ totalCount }} resultados</span>
     <button type="button" class="secondary-button" [disabled]="loading || page >= totalPages" (click)="goToPage(page + 1)">Siguiente</button>
   </nav>
 </section>

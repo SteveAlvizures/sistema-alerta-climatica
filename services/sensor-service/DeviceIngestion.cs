@@ -90,6 +90,14 @@ public static class DeviceIngestion
 
     public static void MapDeviceIngestion(this WebApplication app)
     {
+        app.MapGet("/api/device-credentials", async (Guid sensorId, SensorDb db, HttpContext context) =>
+        {
+            context.Response.Headers.CacheControl = "no-store";
+            var credentials = await db.Set<DeviceCredential>().AsNoTracking().Where(d => d.SensorId == sensorId)
+                .Select(d => new { d.Id, d.Name, d.SensorId, d.IsActive, d.CreatedAt, d.LastUsedAt }).ToListAsync();
+            return Results.Ok(credentials.OrderByDescending(d => d.CreatedAt));
+        }).RequireAuthorization("ManageDevices");
+
         app.MapPost("/api/device-credentials", async (CreateDeviceInput input, SensorDb db, HttpContext context) =>
         {
             context.Response.Headers.CacheControl = "no-store";
@@ -98,10 +106,14 @@ public static class DeviceIngestion
             var sensor = await db.Sensors.FindAsync(input.SensorId);
             if (sensor is null) return Results.NotFound();
             if (sensor.Origin != "Physical") return Results.Conflict(new { detail = "A physical sensor is required." });
+            await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+            if (await db.Set<DeviceCredential>().AnyAsync(d => d.SensorId == sensor.Id && d.IsActive))
+                return Results.Conflict(new { detail = "Revoke the active credential before generating another." });
             string key = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             var device = new DeviceCredential { Name = input.Name.Trim(), SensorId = sensor.Id, KeyHash = Hash(key) };
             db.Add(device);
             await db.SaveChangesAsync();
+            await tx.CommitAsync();
             return Results.Created($"/api/device-credentials/{device.Id}", new { device.Id, device.Name, device.SensorId, key });
         }).RequireAuthorization("ManageDevices");
 

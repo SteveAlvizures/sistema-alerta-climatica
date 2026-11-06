@@ -60,11 +60,16 @@ app.MapPost("/api/sensors",async(SensorInput body,SensorDb db,IHttpClientFactory
     var item=new SensorRecord {CommunityId=body.CommunityId,CommunityName=community.GetProperty("name").GetString()};
     Apply(item,body);db.Sensors.Add(item);await db.SaveChangesAsync();return Results.Created("/api/sensors/"+item.Id,item);
 }).RequireAuthorization("Operate");
-app.MapPut("/api/sensors/{id:guid}",async(Guid id,SensorInput body,SensorDb db)=>{
+app.MapPut("/api/sensors/{id:guid}",async(Guid id,SensorInput body,SensorDb db,IHttpClientFactory factory,IConfiguration config)=>{
     var item=await Required(db,id);
-    if ((body.CommunityId!=Guid.Empty && body.CommunityId!=item.CommunityId) || (body.Type!=null && body.Type!=item.Type))
-        throw new InvalidOperationException("Changing community or variable requires a coordinated migration.");
-    Apply(item,body);await db.SaveChangesAsync();return Results.Ok(item);
+    if ((body.Type!=null && body.Type!=item.Type) || (body.MeasurementType!=null && body.MeasurementType!=item.MeasurementType)
+        || (body.Origin!=null && body.Origin!=item.Origin))
+        throw new InvalidOperationException("The variable and origin of an existing sensor cannot change.");
+    if (body.CommunityId!=Guid.Empty && body.CommunityId!=item.CommunityId) {
+        var community=await factory.CreateClient("internal").GetFromJsonAsync<JsonElement>(config["COMMUNITY_API_URL"]!.TrimEnd('/')+"/api/communities/"+body.CommunityId);
+        item.CommunityId=body.CommunityId;item.CommunityName=community.GetProperty("name").GetString();
+    }
+    Apply(item,body with { Unit=body.Unit??item.Unit, Type=body.Type??item.Type });await db.SaveChangesAsync();return Results.Ok(item);
 }).RequireAuthorization("Operate");
 app.MapPatch("/api/sensors/{id:guid}/status",async(Guid id,StatusInput body,SensorDb db)=>{
     var item=await Required(db,id);item.Status=body.IsActive?"Active":"Inactive";await db.SaveChangesAsync();return Results.Ok(item);
@@ -78,6 +83,16 @@ app.MapPost("/api/sensor-readings",async(ReadingInput body,SensorDb db)=>{
 }).RequireAuthorization("Operate");
 app.MapGet("/api/sensors/{id:guid}/readings/latest",async(Guid id,SensorDb db)=>Results.Ok(await db.Readings.Where(r=>r.SensorId==id).OrderByDescending(r=>r.MeasuredAt).ThenByDescending(r=>r.Id).FirstOrDefaultAsync() ?? throw new KeyNotFoundException("No reading")));
 app.MapGet("/api/sensors/{id:guid}/readings",async(Guid id,HttpRequest req,SensorDb db)=>Results.Ok(await Page(db.Readings.Where(r=>r.SensorId==id).OrderByDescending(r=>r.MeasuredAt).ThenByDescending(r=>r.Id),req)));
+// At most 120 real observations across the selected window, never synthetic averages for rain states.
+app.MapGet("/api/sensors/{id:guid}/readings/trend",async(Guid id,int hours,SensorDb db)=>{
+    if (hours is not (1 or 6 or 24 or 168)) throw new ArgumentException("Invalid history window");
+    var from=DateTimeOffset.UtcNow.AddHours(-hours);
+    int bucketSeconds=Math.Max(1,hours*3600/120);
+    var readings=db.Readings.AsNoTracking().Where(r=>r.SensorId==id && r.MeasuredAt>=from);
+    var sampled=await readings.GroupBy(r=>EF.Functions.DateDiffSecond(from,r.MeasuredAt)/bucketSeconds)
+        .Select(g=>g.OrderByDescending(r=>r.MeasuredAt).ThenByDescending(r=>r.Id).First()).ToListAsync();
+    return Results.Ok(sampled.OrderBy(r=>r.MeasuredAt));
+});
 app.MapGet("/api/sensor-readings",async(HttpRequest req,SensorDb db)=>await History(req,db,false));
 app.MapGet("/api/sensor-readings/latest",async(HttpRequest req,SensorDb db)=>await History(req,db,true));
 app.MapGet("/internal/dashboard-readings",async(Guid communityId,HttpRequest req,SensorDb db,IConfiguration config)=>{
@@ -114,8 +129,8 @@ static IQueryable<SensorRecord> Filter(IQueryable<SensorRecord> q,HttpRequest re
         q=q.Where(s=>s.CommunityId==community);
     }
     if(req.Query.TryGetValue("isActive",out var active)){string state=bool.Parse(active!)?"Active":"Inactive";q=q.Where(s=>s.Status==state);}
-    foreach(var key in new[]{"type","variable","code","search"}) if(req.Query.TryGetValue(key,out var value)){
-        string text=value.ToString();q=key switch{"type"=>q.Where(s=>s.Type==text),"variable"=>q.Where(s=>s.MeasurementType==text),"code"=>q.Where(s=>s.Code.Contains(text)),_=>q.Where(s=>s.Code.Contains(text)||s.Name.Contains(text)||s.Location.Contains(text))};}
+    foreach(var key in new[]{"type","variable","origin","code","search"}) if(req.Query.TryGetValue(key,out var value)){
+        string text=value.ToString();q=key switch{"origin"=>q.Where(s=>s.Origin==text),"type"=>q.Where(s=>s.Type==text),"variable"=>q.Where(s=>s.MeasurementType==text),"code"=>q.Where(s=>s.Code.Contains(text)),_=>q.Where(s=>s.Code.Contains(text)||s.Name.Contains(text)||s.Location.Contains(text))};}
     return q;
 }
 static async Task<object> Page<T>(IQueryable<T> q,HttpRequest req)
@@ -138,7 +153,7 @@ static void Apply(SensorRecord item,SensorInput input)
     item.MeasurementType=variable;item.Type=input.Type??spec.Type;item.Unit=input.Unit??spec.Unit;item.Name=input.Name?.Trim()??item.Name;
     if(item.Name.Length==0)item.Name=variable;item.Code=input.Code?.Trim()??(item.Code.Length>0?item.Code:"SEN-"+item.Id.ToString("N")[..12]);
     if(item.Code.Length is <1 or >80 || item.Name.Length>150)throw new ArgumentException("Invalid name/code");
-    item.Location=input.Location.Trim();item.InstallationDate=input.InstallationDate;item.Description=input.Description;item.DeviceCode=input.DeviceCode;
+    item.Location=input.Location.Trim();item.InstallationDate=input.InstallationDate??item.InstallationDate;item.Description=input.Description??item.Description;item.DeviceCode=input.DeviceCode??item.DeviceCode;
     item.Origin=input.Origin??item.Origin;if(input.IsActive.HasValue)item.Status=input.IsActive.Value?"Active":"Inactive";
 }
 static async Task<IResult> History(HttpRequest req,SensorDb db,bool latest)

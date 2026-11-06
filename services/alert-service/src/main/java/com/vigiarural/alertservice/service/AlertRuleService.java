@@ -145,6 +145,7 @@ public class AlertRuleService {
             rule.disable();
         }
 
+        rule.setUnit(request.unit());
         repository.save(rule);
         audit.record("ReglaCreada","AlertRule",rule.getId());
 
@@ -375,7 +376,7 @@ public class AlertRuleService {
                 rule.getCreatedAt(),
                 rule.getComparisonOperator(),
                 rule.getActivationPoint(),
-                unitFor(rule.getVariable()),
+                rule.getUnit() != null ? rule.getUnit() : unitFor(rule.getVariable()),
                 rule.getLowerLimit(),
                 rule.getUpperLimit(),
                 rule.getMessage(),

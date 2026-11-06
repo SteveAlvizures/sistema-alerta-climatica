@@ -31,7 +31,7 @@ public sealed class DeviceIngestionTests : IAsyncLifetime
         connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
         app = await SensorApplication.Build(["--environment=Development", "--JWT_KEY=" + JwtKey,
-            "--SENSOR_SQL_CONNECTION=unused", "--AUTH_SERVICE_URL=http://auth.test"], builder =>
+            "--SENSOR_SQL_CONNECTION=unused", "--COMMUNITY_API_URL=http://community.test", "--AUTH_SERVICE_URL=http://auth.test"], builder =>
         {
             builder.Logging.ClearProviders();
             builder.WebHost.UseUrls("http://127.0.0.1:0");
@@ -242,6 +242,8 @@ public sealed class DeviceIngestionTests : IAsyncLifetime
         client.DefaultRequestHeaders.Authorization = new("Bearer", Token("Operator"));
         Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/device-credentials", new { name = "new", sensorId })).StatusCode);
         client.DefaultRequestHeaders.Authorization = new("Bearer", Token("Administrator"));
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/device-credentials", new { name = "new", sensorId })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/api/device-credentials/" + deviceId)).StatusCode);
         var response = await client.PostAsJsonAsync("/api/device-credentials", new { name = "new", sensorId });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         Assert.Contains("no-store", response.Headers.CacheControl!.ToString());
@@ -284,10 +286,71 @@ public sealed class DeviceIngestionTests : IAsyncLifetime
         Assert.Single(await scope.ServiceProvider.GetRequiredService<SensorDb>().Readings.ToListAsync());
     }
 
+    [Theory]
+    [InlineData("Physical")]
+    [InlineData("Simulated")]
+    public async Task CreatesMultipleTemperatureSensorsInDifferentCommunities(string origin)
+    {
+        client.DefaultRequestHeaders.Authorization = new("Bearer", Token("Administrator"));
+        var firstCommunity = Guid.NewGuid(); var secondCommunity = Guid.NewGuid();
+        var ids = new List<Guid>();
+        foreach (var communityId in new[] { firstCommunity, secondCommunity }) {
+            var response = await client.PostAsJsonAsync("/api/sensors", new { communityId, location = "Test location", origin, type = "Temperature", measurementType = "Temperature", code = "SAME-CODE", name = "Test" });
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+            var sensor = (await response.Content.ReadFromJsonAsync<SensorRecord>())!;
+            Assert.Equal(communityId, sensor.CommunityId); Assert.Equal(origin, sensor.Origin); ids.Add(sensor.Id);
+        }
+        Assert.NotEqual(ids[0], ids[1]);
+        var page = await client.GetFromJsonAsync<JsonElement>($"/api/sensors?communityId={firstCommunity}&origin={origin}");
+        Assert.Equal(1, page.GetProperty("totalCount").GetInt32());
+    }
+
+    [Fact]
+    public async Task ReassignmentPreservesReadingCredentialAndReceipt()
+    {
+        var messageId = Guid.NewGuid();
+        Assert.Equal(HttpStatusCode.Created, (await Send(new { sensorId, value = 25, messageId })).StatusCode);
+        client.DefaultRequestHeaders.Authorization = new("Bearer", Token("Administrator"));
+        var communityId = Guid.NewGuid();
+        var response = await client.PutAsJsonAsync("/api/sensors/" + sensorId, new { communityId, location = "Santa Fe", name = "Temperature", type = "Temperature" });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var sensor = (await response.Content.ReadFromJsonAsync<SensorRecord>())!;
+        Assert.Equal(sensorId, sensor.Id); Assert.Equal(communityId, sensor.CommunityId); Assert.Equal("Physical", sensor.Origin);
+        await using var scope = app.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<SensorDb>();
+        Assert.Equal(sensorId, (await db.Readings.SingleAsync()).SensorId);
+        Assert.Equal(DeviceIngestion.Hash(DeviceKey), (await db.Set<DeviceCredential>().SingleAsync()).KeyHash);
+        Assert.Equal(messageId, (await db.Set<DeviceReadingReceipt>().SingleAsync()).MessageId);
+        Assert.Equal(HttpStatusCode.OK, (await Send(new { sensorId, value = 25, messageId })).StatusCode);
+    }
+
+    [Theory]
+    [InlineData("Administrator", 200)]
+    [InlineData("Operator", 403)]
+    [InlineData("ConsultationUser", 403)]
+    [InlineData(null, 401)]
+    public async Task CredentialStatusNeverReturnsKeyOrHash(string? role, int status)
+    {
+        if (role != null) client.DefaultRequestHeaders.Authorization = new("Bearer", Token(role));
+        var result = await client.GetAsync("/api/device-credentials?sensorId=" + sensorId);
+        Assert.Equal(status, (int)result.StatusCode);
+        var json = await result.Content.ReadAsStringAsync();
+        Assert.DoesNotContain(DeviceKey, json); Assert.DoesNotContain("keyHash", json); Assert.DoesNotContain("\"key\"", json);
+    }
+
+    [Fact]
+    public async Task CannotChangeExistingOriginOrVariable()
+    {
+        client.DefaultRequestHeaders.Authorization = new("Bearer", Token("Administrator"));
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PutAsJsonAsync("/api/sensors/"+sensorId, new { location="Test", origin="Simulated" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PutAsJsonAsync("/api/sensors/"+sensorId, new { location="Test", measurementType="RelativeHumidity" })).StatusCode);
+    }
+
     private sealed class IdentityStub : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
+            if (request.RequestUri!.AbsolutePath.StartsWith("/api/communities/"))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { id = Guid.Parse(request.RequestUri.Segments.Last()), name = "Test community" }) });
             var token = new JwtSecurityTokenHandler().ReadJwtToken(request.Headers.Authorization!.Parameter);
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new
             {

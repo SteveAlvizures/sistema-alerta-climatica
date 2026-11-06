@@ -162,4 +162,28 @@ describe('SensorsPage administration', () => {
     });
   }
 
+  for (const origin of ['Physical', 'Simulated'] as const) {
+    it(`creates a ${origin} sensor through the web contract`, () => {
+      component.origin = origin; component.location = 'Santa Fe'; sensorApi.create.and.returnValue(of({...sensor, origin}));
+      component.createSensor();
+      expect(sensorApi.create).toHaveBeenCalledWith(jasmine.objectContaining({ origin, communityId: community.id }));
+    });
+  }
+  it('submits origin and community filters together', () => {
+    component.originFilter = 'Physical'; component.applyFilters();
+    expect(sensorApi.getPage).toHaveBeenCalledWith(jasmine.objectContaining({ origin: 'Physical', communityId: community.id }));
+  });
+  it('requires confirmation before reassigning the same sensor id', () => {
+    const confirm = spyOn(window, 'confirm').and.returnValue(false);
+    component.startEdit(sensor); component.editCommunityId = 'santa-fe'; component.saveEdit();
+    expect(sensorApi.update).not.toHaveBeenCalled();
+    confirm.and.returnValue(true); sensorApi.update.and.returnValue(of({...sensor, communityId:'santa-fe'})); component.saveEdit();
+    expect(sensorApi.update).toHaveBeenCalledWith(sensor.id, jasmine.objectContaining({ communityId: 'santa-fe' }));
+    expect(confirm).toHaveBeenCalledWith('Este sensor dejará de aparecer en la comunidad anterior y pasará a la nueva comunidad. Su historial se conserva.');
+  });
+  it('does not register manual readings on a physical sensor', () => {
+    component.startManualReading({...sensor, origin:'Physical'}); expect(component.readingSensor).toBeNull();
+    expect(readingApi.createManual).not.toHaveBeenCalled();
+  });
+
 });

@@ -35,6 +35,10 @@ export class SensorReadingApiService {
     );
   }
 
+  getTrend(sensorId: string, hours: number): Observable<SensorReadingDto[]> {
+    return this.http.get<SensorReadingDto[]>(`${this.baseUrl}/sensors/${sensorId}/readings/trend`, { params: new HttpParams().set('hours', hours) });
+  }
+
   createManual(sensorId: string, value: number): Observable<SensorReadingDto> {
     return this.http.post<SensorReadingDto>(`${this.baseUrl}/sensor-readings`, { sensorId, value });
   }

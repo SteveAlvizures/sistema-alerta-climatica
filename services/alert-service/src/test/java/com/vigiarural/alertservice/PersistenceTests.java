@@ -33,4 +33,17 @@ class PersistenceTests {
         assertEquals(0,new BigDecimal("36").compareTo(after.getFirst().getDetectedValue()));
         assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM audit_outbox WHERE payload->>'affectedRecordId'=?",Integer.class,first.readingId().toString()));
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"Temperature,31,Yellow,C", "RelativeHumidity,92,Orange,%", "RiverOrReservoirLevel,80,Red,%", "RainfallLevel,0,Green,estado", "RainfallLevel,1,Yellow,estado", "RainfallLevel,2,Orange,estado"})
+    void prototypeReadingCreatesExpectedAlertAndEvent(ClimateVariable variable, BigDecimal value, DangerLevel expected, String unit) {
+        var at=OffsetDateTime.now();var community=UUID.randomUUID();var sensor=UUID.randomUUID();
+        var rule=new AlertRule(community,sensor,"PROTO-"+UUID.randomUUID(),"Prototype","Academic prototype",ClimatePhenomenon.Flood,
+            variable,expected,value,value,at.minusMinutes(1),null,at);rule.setUnit(unit);rules.save(rule);
+        var reading=new EvaluateReadingRequest(UUID.randomUUID(),sensor,community,variable,value,at,at,true);
+        evaluator.evaluate(reading); evaluator.evaluate(reading);
+        var saved=alerts.findByCommunityIdOrderByDetectedAtDesc(community);
+        if(expected==DangerLevel.Green) assertTrue(saved.isEmpty());
+        else { assertEquals(1,saved.size());assertEquals(expected,saved.getFirst().getLevel());assertNotNull(saved.getFirst().getEventId()); }
+    }
+
 }

@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { rainState } from '../../../../core/models/physical-reading';
 import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ClimateVariable, CommunityDto, HistoryReadingDto, SensorDto } from '../../../../core/models/api.model';
@@ -20,6 +21,7 @@ export class HistoryPage implements OnInit {
   protected get lastReading(): HistoryReadingDto | undefined { return this.items[0]; }
   protected get variableSummary(): string { return this.selectedVariable ? this.variableLabel(this.selectedVariable as ClimateVariable) : 'Todas'; }
   protected get querySummary(): string { return this.communities.find(item => item.id === this.selectedCommunityId)?.name ?? 'Todas las comunidades'; }
+  protected readingLabel(reading: HistoryReadingDto): string { return reading.variable === 'RainfallLevel' && reading.unit === 'estado' ? rainState(reading.value) : `${reading.value} ${reading.unit}`; }
   protected variableLabel(variable: ClimateVariable): string { return variableLabels[variable]; }
   protected originLabel(origin: string): string { return origin === 'Simulated' ? 'Simulado' : origin === 'Physical' ? 'Físico' : origin === 'Manual' ? 'Manual' : 'Desconocido'; }
   protected sensorStateLabel(status: string | null | undefined): string { return status === 'Active' ? 'Activo' : status === 'Inactive' ? 'Inactivo' : 'No registrado (histórico)'; }

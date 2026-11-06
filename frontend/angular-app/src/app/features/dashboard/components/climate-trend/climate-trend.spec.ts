@@ -61,4 +61,16 @@ describe('ClimateTrend', () => {
     expect(fixture.nativeElement.querySelector('.trend-panel__axis-title').textContent).toContain('Humedad relativa (%)');
     expect(fixture.nativeElement.querySelector('.trend-panel__legend strong').textContent).toContain('72 %');
   });
+  it('shows categorical rain axes, tooltips and current state including zero', () => {
+    fixture.componentRef.setInput('series', [{ metric:'rain', label:'Superficie de lluvia', unit:'estado', categorical:true,
+      points: [{label:'10:00',value:2},{label:'11:00',value:1},{label:'12:00',value:0}] }]);
+    fixture.detectChanges();
+    const el: HTMLElement = fixture.nativeElement;
+    expect([...el.querySelectorAll('.trend-panel__grid text')].map(t => t.textContent)).toEqual(['Muy mojado','Mojado leve','Seco']);
+    expect(el.querySelectorAll('circle').length).toBe(3);
+    expect(el.querySelector('.trend-panel__legend strong')?.textContent).toContain('Seco');
+    expect([...el.querySelectorAll('circle title')].at(-1)?.textContent).toContain('Seco');
+    expect(el.textContent).not.toContain('0 estado');
+  });
+
 });

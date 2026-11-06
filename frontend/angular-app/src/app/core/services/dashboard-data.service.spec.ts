@@ -332,6 +332,23 @@ describe('DashboardDataService', () => {
     service.stopRefreshing(); expect(stopped.observed).toBeFalse();
   });
 
+
+  it('keeps four physical Santa Fe indicators and real categorical rain history including zero', () => {
+    const santaFe = {...community, name:'Santa Fe Zona 13'};
+    const sensors: SensorDto[] = [
+      {...sensor,id:'temp',measurementType:'Temperature',code:'ESP32-TEMP',origin:'Physical',unit:'C'},
+      {...sensor,id:'hum',measurementType:'RelativeHumidity',code:'ESP32-HUM',origin:'Physical',unit:'%'},
+      {...sensor,id:'rain',measurementType:'RainfallLevel',code:'ESP32-RAIN-01',origin:'Physical',unit:'estado'},
+      {...sensor,id:'level',measurementType:'RiverOrReservoirLevel',code:'ESP32-WATER-LEVEL-01',origin:'Physical',unit:'%'},
+    ];
+    const readings: SensorReadingDto[] = sensors.flatMap(s => [0,1,2].map(value => ({ id:s.id+value,sensorId:s.id,variable:s.measurementType,value,unit:s.unit!,measuredAt:community.createdAt,receivedAt:community.createdAt,origin:'Physical' as const })));
+    const service = create(of([santaFe]),of(sensors),of(readings[0]),of([]),of(page(readings)));
+    const dashboard = service.dashboard()!;
+    expect(dashboard.indicators.length).toBe(4); expect(dashboard.trend.length).toBe(4);
+    expect(dashboard.indicators.find(i => i.key === 'rain')!.trend!.map(p => p.displayValue)).toContain('Seco');
+    const rain = dashboard.trend.find(s => s.metric === 'rain')!;
+    expect(rain.categorical).toBeTrue(); expect(rain.label).toBe('Superficie de lluvia'); expect(rain.points.map(p => p.value)).toContain(0);
+  });
   it('does not apply legacy millimetre rules to categorical ESP32 rain', () => {
     const rain = {...sensor,code:'ESP32-RAIN-01',origin:'Physical' as const,measurementType:'RainfallLevel' as const,unit:'estado'};
     const reading: SensorReadingDto = {id:'rain',sensorId:rain.id,variable:'RainfallLevel',value:2,unit:'estado',measuredAt:community.createdAt,receivedAt:community.createdAt,origin:'Physical'};

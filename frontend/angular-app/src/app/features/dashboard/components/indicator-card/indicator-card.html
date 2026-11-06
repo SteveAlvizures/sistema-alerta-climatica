@@ -17,7 +17,7 @@
     <svg class="indicator-card__trend" viewBox="0 0 220 62" role="img" [attr.aria-label]="'Tendencia reciente de ' + indicator().name">
       <line x1="4" y1="58" x2="216" y2="58" /><polyline [attr.points]="trendPoints()" />
       @for (point of indicator().trend!; track $index; let index = $index; let last = $last) {
-        <circle [attr.cx]="pointX(index)" [attr.cy]="pointY(point.value)" [attr.r]="last ? 3.5 : 2" [class.is-last]="last"><title>{{ point.label }} · {{ indicator().name }} · {{ point.value }} {{ point.unit }}</title></circle>
+        <circle [attr.cx]="pointX(index)" [attr.cy]="pointY(point.value)" [attr.r]="last ? 3.5 : 2" [class.is-last]="last"><title>{{ point.label }} · {{ indicator().name }} · {{ point.displayValue ?? (point.value + ' ' + point.unit) }}</title></circle>
       }
     </svg>
   } @else { <div class="indicator-card__empty">Sin historial reciente</div> }

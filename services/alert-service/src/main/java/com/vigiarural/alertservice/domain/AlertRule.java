@@ -75,6 +75,14 @@ public class AlertRule {
     @Column(name = "uses_range", nullable = false)
     private boolean usesRange;
 
+    @Column(length = 20)
+    private String unit;
+    public String getUnit() { return unit; }
+    public void setUnit(String unit) {
+        if (unit != null && unit.length() > 20) throw new IllegalArgumentException("Unit too long.");
+        this.unit = unit;
+    }
+
     protected AlertRule() {
     }
 

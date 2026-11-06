@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { AuthService } from '../../../../core/services/auth.service';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
@@ -18,7 +20,7 @@ describe('SensorDetailPage', () => {
 
   beforeEach(async () => {
     history = jasmine.createSpy().and.returnValue(of({ data: [...readings, { ...readings[0], id: 'foreign', sensorId: 'sensor-other' }], pageIndex: 1, pageSize: 100, totalPages: 1, totalCount: 13, hasPrevious: false, hasNext: false }));
-    await TestBed.configureTestingModule({ imports: [SensorDetailPage], providers: [provideRouter([]), { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: sensor.id }) } } }, { provide: SensorApiService, useValue: { getById: () => of(sensor) } }, { provide: SensorReadingApiService, useValue: { getHistory: history } }, { provide: AlertRuleApiService, useValue: { getAll: () => of([rule('near', 30, 'Yellow'), rule('far', 100, 'Red')]) } }, { provide: CommunityApiService, useValue: { getAll: () => of([{ id: sensor.communityId, name: 'El Pinar', location: 'Alta Verapaz', description: null, isActive: true, createdAt: '2026-01-01T00:00:00Z' }]) } }] }).compileComponents();
+    await TestBed.configureTestingModule({ imports: [SensorDetailPage], providers: [provideHttpClient(), {provide:AuthService,useValue:{canViewAudit:()=>false}}, provideRouter([]), { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id: sensor.id }) } } }, { provide: SensorApiService, useValue: { getById: () => of(sensor) } }, { provide: SensorReadingApiService, useValue: { getHistory: history, getTrend: () => of(readings) } }, { provide: AlertRuleApiService, useValue: { getAll: () => of([rule('near', 30, 'Yellow'), rule('far', 100, 'Red')]) } }, { provide: CommunityApiService, useValue: { getAll: () => of([{ id: sensor.communityId, name: 'El Pinar', location: 'Alta Verapaz', description: null, isActive: true, createdAt: '2026-01-01T00:00:00Z' }]) } }] }).compileComponents();
     fixture = TestBed.createComponent(SensorDetailPage); fixture.detectChanges();
   });
   afterEach(() => fixture.destroy());
@@ -49,6 +51,22 @@ describe('SensorDetailPage', () => {
   it('reloads the same sensor when the period changes', () => {
     (fixture.componentInstance as any).selectPeriod(6);
     expect((fixture.componentInstance as any).period).toBe(6);
-    expect(history).toHaveBeenCalledTimes(2);
+    expect(history).toHaveBeenCalledTimes(1);
   });
+  it('shows physical credentials and categorical zero rain history without exposing numbers', () => {
+    const component = fixture.componentInstance as any;
+    component.sensor = {...sensor, origin:'Physical', code:'ESP32-RAIN-01', measurementType:'RainfallLevel', unit:'estado'};
+    component.data = [0,1,2].map(value => ({...readings[0],id:'rain-'+value,variable:'RainfallLevel',value,unit:'estado'}));
+    component.rules = []; fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-device-credentials')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('Seco');
+    expect(fixture.nativeElement.textContent).toContain('Mojado leve');
+    expect(fixture.nativeElement.textContent).toContain('Muy mojado');
+    expect(fixture.nativeElement.querySelectorAll('.data-point').length).toBe(3);
+    expect(fixture.nativeElement.textContent).not.toContain('0 estado');
+  });
+  it('hides physical credentials on simulated sensors', () => {
+    expect(fixture.nativeElement.querySelector('app-device-credentials')).toBeNull();
+  });
+
 });

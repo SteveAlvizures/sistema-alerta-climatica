@@ -219,6 +219,7 @@ public class AlertService {
         var sensor=sensors.getById(alert.getSensorId(),authorization);
         var rule=rules.findById(alert.getRuleId()).orElseThrow();
         String unit=switch(alert.getVariable()) {case Temperature->"\u00b0C";case RelativeHumidity->"%";case WindSpeed->"km/h";case RainfallLevel->"mm";case RiverOrReservoirLevel->"m";case SmokeConcentration->"ppm";default->"";};
+        if (rule.getUnit() != null) unit = rule.getUnit();
         return new AlertResponse(
                 alert.getId(),
                 alert.getCommunityId(),

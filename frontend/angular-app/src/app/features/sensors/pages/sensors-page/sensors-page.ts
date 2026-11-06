@@ -13,6 +13,7 @@ import { CommunityDto, SensorDto, SensorReadingDto, SensorType } from '../../../
 import { SensorReadingApiService } from '../../../../core/services/sensor-reading-api.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { sensorTypes } from '../../../../core/models/sensor-types';
+import { formatSensorReading } from '../../../../core/models/physical-reading';
 import { RouterLink } from '@angular/router';
 
 @Component({
@@ -48,10 +49,13 @@ export class SensorsPage implements OnInit {
   installationDate = new Date().toISOString().slice(0, 10); description = '';
   editName = ''; editCode = ''; editCommunityId = ''; editType: SensorType = 'Temperature';
   editUnit = ''; editInstallationDate = ''; editDescription = ''; editActive = true;
+  origin: 'Physical' | 'Simulated' = 'Simulated';
+  originFilter = '';
+  readonly formatReading = formatSensorReading;
   typeFilter = ''; statusFilter = ''; codeFilter = ''; search = '';
   page = 1; pageSize = 20; totalCount = 0; totalPages = 0;
-  private appliedFilters = { communityId: '', type: '', isActive: '', code: '', search: '' };
-  applyFilters(): void { this.page = 1; this.appliedFilters = { communityId: this.selectedCommunityId, type: this.typeFilter, isActive: this.statusFilter, code: this.codeFilter.trim(), search: this.search.trim() }; this.fetchPage(); }
+  private appliedFilters = { communityId: '', origin: '', type: '', isActive: '', code: '', search: '' };
+  applyFilters(): void { this.page = 1; this.appliedFilters = { communityId: this.selectedCommunityId, origin: this.originFilter, type: this.typeFilter, isActive: this.statusFilter, code: this.codeFilter.trim(), search: this.search.trim() }; this.fetchPage(); }
   goToPage(page: number): void { if (this.loading || page < 1 || page > this.totalPages) return; this.page = page; this.fetchPage(); }
   typeLabel(sensor: SensorDto): string { return this.types.find(t => t.value === sensor.type)?.label ?? this.variableLabel(sensor.measurementType); }
   selectType(): void { const type = this.types.find(t => t.value === this.sensorType)!; this.measurementType = type.variable; this.unit = type.unit; }
@@ -122,6 +126,7 @@ export class SensorsPage implements OnInit {
 
     const request: CreateSensorRequest = {
       communityId: this.selectedCommunityId,
+      origin: this.origin,
       measurementType: this.measurementType,
       location: this.location.trim(),
       isActive: this.initialActive,
@@ -171,6 +176,7 @@ export class SensorsPage implements OnInit {
     });
   }
 
+  formatDate(value: string): string { return new Intl.DateTimeFormat('es-GT', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
   canAdminister(): boolean { return this.auth.canOperate(); }
   variableLabel(value: string): string { return ({ Temperature: 'Temperatura', RelativeHumidity: 'Humedad relativa', WindSpeed: 'Velocidad del viento', RainfallLevel: 'Nivel de lluvia', RiverOrReservoirLevel: 'Nivel de río o reservorio' } as Record<string, string>)[value] ?? value; }
   unitFor(value: string): string { return ({ Temperature: '°C', RelativeHumidity: '%', WindSpeed: 'km/h', RainfallLevel: 'mm', SmokeConcentration: 'ppm', OtherEnvironmental: 'u', RiverOrReservoirLevel: 'm' } as Record<string, string>)[value] ?? ''; }
@@ -204,6 +210,7 @@ export class SensorsPage implements OnInit {
     if (!this.canAdminister()) return;
     if (!this.editingSensor || !this.editLocation.trim()) return;
     if (!this.editName.trim() || !this.editCode.trim() || !this.editCommunityId || !this.editUnit.trim() || !this.editInstallationDate) { this.error = 'Completa los datos administrativos del sensor.'; return; }
+    if (this.editCommunityId !== this.editingSensor.communityId && !window.confirm('Este sensor dejará de aparecer en la comunidad anterior y pasará a la nueva comunidad. Su historial se conserva.')) return;
     const request: UpdateSensorRequest = { location: this.editLocation.trim(), name: this.editName.trim(), code: this.editCode.trim(),
       communityId: this.editCommunityId, type: this.editType, unit: this.editUnit.trim(), installationDate: this.editInstallationDate,
       description: this.editDescription.trim(), isActive: this.editActive };
@@ -220,6 +227,7 @@ export class SensorsPage implements OnInit {
       this.error = 'El sensor está inactivo. Actívalo antes de registrar una lectura.';
       return;
     }
+    if (sensor.origin === 'Physical') { this.error = 'Las lecturas de este sensor llegan desde su dispositivo físico.'; return; }
     this.readingSensor = sensor; this.manualValue = null; this.editingSensor = null; this.error = ''; this.success = '';
   }
 
@@ -227,6 +235,7 @@ export class SensorsPage implements OnInit {
 
   registerManualReading(): void {
     if (!this.canAdminister()) return;
+    if (this.readingSensor?.origin === 'Physical') return;
     if (!this.readingSensor || this.manualValue === null || !Number.isFinite(this.manualValue)) {
       this.error = 'Ingresa un valor numérico válido.'; return;
     }

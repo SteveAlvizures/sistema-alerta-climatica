@@ -53,7 +53,8 @@ public final class AlertRuleDtos {
             @Size(max = 1000)
             String message,
 
-            Boolean isActive
+            Boolean isActive,
+            @Size(max = 20) String unit
     ) {
     }
 

@@ -8,5 +8,6 @@ export interface ClimateIndicator {
   tone?: 'green' | 'yellow' | 'orange' | 'red';
   lastReading?: string;
   nextActivation?: string;
-  trend?: Array<{ label: string; value: number; unit: string }>;
+  categorical?: boolean;
+  trend?: Array<{ label: string; value: number; unit: string; displayValue?: string }>;
 }

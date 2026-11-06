@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../config/api.config';
 import { SensorDto, PagedResponse, SensorType } from '../models/api.model';
 
 export interface CreateSensorRequest {
+  origin?: 'Physical' | 'Simulated';
   name?: string;
   code?: string;
   type?: SensorType;
@@ -33,7 +34,7 @@ export class SensorApiService {
 
   getAll(): Observable<SensorDto[]> { return this.http.get<SensorDto[]>(`${this.baseUrl}/sensors`); }
 
-  getPage(filters: { page: number; pageSize: number; communityId?: string; type?: string; isActive?: string; code?: string; search?: string }): Observable<PagedResponse<SensorDto>> {
+  getPage(filters: { page: number; pageSize: number; communityId?: string; origin?: string; type?: string; isActive?: string; code?: string; search?: string }): Observable<PagedResponse<SensorDto>> {
     let params = new HttpParams();
     Object.entries(filters).forEach(([key, value]) => { if (value !== '') params = params.set(key, value); });
     return this.http.get<PagedResponse<SensorDto>>(`${this.baseUrl}/sensors`, { params });
