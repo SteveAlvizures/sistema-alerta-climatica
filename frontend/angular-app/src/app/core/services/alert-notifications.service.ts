@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { AlertDto } from '../models/api.model';
-import { alertValue, contextTitle } from '../models/monitoring-presentation';
+import { alertValue, contextTitle, alertTitle } from '../models/monitoring-presentation';
 
 const rank: Record<string, number> = { Green: 0, Yellow: 1, Orange: 2, Red: 3 };
 export interface MonitoringNotice { id: string; level: string; title: string; detail: string; timestamp: string; }
@@ -26,7 +26,7 @@ export class AlertNotifications {
       if (alert.eventId) this.events.set(alert.id,alert.eventId);
       if (rank[alert.level] <= previous) continue;
       const level = ({Yellow:'Precaución',Orange:'Alerta',Red:'Emergencia'} as Record<string,string>)[alert.level];
-      const notice = { id: alert.id, level: alert.level, title: `${level} · ${contextTitle(alert.variable, alert.level, alert.detectedValue)}`,
+      const notice = { id: alert.id, level: alert.level, title: `${level} · ${alertTitle(alert,contextTitle(alert.variable, alert.level, alert.detectedValue))}${alert.sensorCode === 'ESP32-WATER-LEVEL-01' ? ' en ' + (alert.communityName ?? 'Santa Fe Zona 13') : ''}`,
         detail: `${alert.communityName ?? 'Comunidad seleccionada'} · ${alertValue(alert)}`, timestamp: alert.updatedAt };
       this.notices.update(items => [...items.filter(n => n.id !== alert.id), notice].slice(-4));
     }

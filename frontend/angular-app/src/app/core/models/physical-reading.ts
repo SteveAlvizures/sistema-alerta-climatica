@@ -9,7 +9,7 @@ export function isEsp32Water(sensor: SensorDto): boolean {
   return sensor.origin === 'Physical' && sensor.code === 'ESP32-WATER-LEVEL-01' && sensor.measurementType === 'RiverOrReservoirLevel';
 }
 export function waterState(value: number): string {
-  return (['Seco', 'Nivel bajo', 'Nivel medio', 'Nivel alto'][value]) ?? 'Estado desconocido';
+  return (['Seco', 'Nivel bajo', 'Nivel alto'][value]) ?? 'Estado desconocido';
 }
 export function waterReading(value: number, unit: string | null | undefined): string {
   return waterState(value);

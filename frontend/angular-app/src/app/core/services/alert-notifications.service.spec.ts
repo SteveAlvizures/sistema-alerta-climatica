@@ -1,6 +1,16 @@
 import { AlertDto } from '../models/api.model';
 import { AlertNotifications } from './alert-notifications.service';
 describe('Session alert notifications',()=>{
+  it('shows a real water high alert once and retains its server identity',()=>{
+    const service=new AlertNotifications();
+    const high={id:'water-alert',eventId:'water-event',status:'Open',level:'Orange',variable:'RiverOrReservoirLevel',sensorCode:'ESP32-WATER-LEVEL-01',detectedValue:2,unit:'estado',communityName:'Santa Fe Zona 13',updatedAt:'2026-11-06T08:00:00Z'} as AlertDto;
+    service.observe([high]);
+    expect(service.notices()[0].title).toBe('Alerta · Nivel de agua alto en Santa Fe Zona 13');
+    expect(service.notices()[0].detail).toContain('Nivel alto');
+    service.dismiss(high.id);
+    for(let i=0;i<10;i++) service.observe([high]);
+    expect(service.notices().length).toBe(0);
+  });
   beforeEach(()=>sessionStorage.removeItem('vigia-monitoring-notices-v1'));
   afterEach(()=>sessionStorage.removeItem('vigia-monitoring-notices-v1'));
   const alert={id:'a',eventId:'e',status:'Open',level:'Yellow',variable:'RainfallLevel',detectedValue:0,unit:'estado',communityName:'Santa Fe Zona 13',updatedAt:'2026-11-05T12:00:00Z'} as AlertDto;

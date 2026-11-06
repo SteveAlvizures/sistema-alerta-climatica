@@ -29,6 +29,7 @@ export function thresholdLabel(rule: Pick<AlertRuleDto, 'activationPoint' | 'com
 }
 export function alertValue(alert: AlertDto): string { return measurementValue(alert.variable, alert.detectedValue, alert.unit, alert.sensorCode); }
 export function alertTitle(alert: AlertDto, fallback: string): string {
+  if (alert.sensorCode === 'ESP32-WATER-LEVEL-01' && alert.detectedValue >= 2) return 'Nivel de agua alto';
   return alert.sensorCode?.startsWith('ESP32-') || alert.ruleCode?.startsWith('DEMO-SF13-') || alert.unit === 'estado'
     ? contextTitle(alert.variable, alert.level, alert.detectedValue) : fallback;
 }
@@ -44,5 +45,5 @@ export function eventTitle(event: { description: string; level: string; sensorCo
   const hint = `${event.sensorCode ?? ''} ${event.description}`;
   const variable = /(?:DHT11-TEMP|SF13-TEMP)/.test(hint) ? 'Temperature' : /(?:DHT11-HUM|SF13-HUM)/.test(hint) ? 'RelativeHumidity'
     : /(?:WATER-LEVEL|SF13-LEVEL)/.test(hint) ? 'RiverOrReservoirLevel' : /(?:ESP32-RAIN|SF13-RAIN)/.test(hint) ? 'RainfallLevel' : '';
-  return variable ? contextTitle(variable, event.level, event.value) : fallback;
+  return variable === 'RiverOrReservoirLevel' && event.value != null && event.value >= 2 ? 'Nivel de agua alto' : variable ? contextTitle(variable, event.level, event.value) : fallback;
 }

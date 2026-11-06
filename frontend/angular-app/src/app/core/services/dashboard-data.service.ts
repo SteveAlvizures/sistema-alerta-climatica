@@ -1,4 +1,3 @@
-import { waterSeverity } from '../models/water-presentation';
 import { AlertNotifications } from './alert-notifications.service';
 import { measurementValue, sensorTitle, measurementNames, cleanNumber, thresholdLabel, contextTitle, eventTitle } from '../models/monitoring-presentation';
 import { DashboardApiService, DashboardSummary } from './dashboard-api.service';
@@ -378,19 +377,18 @@ export class DashboardDataService {
           && (!reading || this.ruleIsEnabled(rule, reading.measuredAt)));
         const matchingRule = reading ? sensorRules.filter(rule => this.ruleMatches(rule, reading.value))
           .sort((left, right) => dangerLevelPriority[right.dangerLevel] - dangerLevelPriority[left.dangerLevel])[0] : undefined;
-        const waterLevel = isEsp32Water(sensor) && reading ? waterSeverity(reading.value) : undefined;
-        const status = waterLevel ? dangerLevelLabels[waterLevel] : matchingRule ? dangerLevelLabels[matchingRule.dangerLevel] : 'Normal';
+        const status = matchingRule ? dangerLevelLabels[matchingRule.dangerLevel] : 'Normal';
         const nextRule = reading ? sensorRules.filter(rule => !this.ruleMatches(rule, reading.value))
           .sort((left, right) => Math.abs(left.activationPoint - reading.value) - Math.abs(right.activationPoint - reading.value))[0] : undefined;
-        const sensorTrend = history.filter(item => item.sensorId === sensor.id && (!isEsp32Water(sensor) || [0,1,2,3].includes(item.value)))
+        const sensorTrend = history.filter(item => item.sensorId === sensor.id && (!isEsp32Water(sensor) || [0,1,2].includes(item.value)))
           .sort((left, right) => Date.parse(left.measuredAt) - Date.parse(right.measuredAt)).slice(-15);
         return {
           key: definition.key,
           name: sensor.origin === 'Physical' ? measurementNames[sensor.measurementType] : measurementLabels[sensor.measurementType], sensorId: sensor.id,
           value: reading ? formatSensorReading(sensor, reading) : 'Sin lectura', detail: sensorTitle(sensor),
-          status, tone: waterLevel ? dangerLevelTones[waterLevel] : matchingRule ? dangerLevelTones[matchingRule.dangerLevel] : 'green',
+          status, tone: matchingRule ? dangerLevelTones[matchingRule.dangerLevel] : 'green',
           lastReading: reading ? this.formatDateTime(reading.measuredAt) : 'Sin lectura registrada',
-          nextActivation: isEsp32Water(sensor) ? 'Precaución · Nivel medio; Alerta · Nivel alto' : nextRule ? `${dangerLevelLabels[nextRule.dangerLevel]} · ${isEsp32Water(sensor) ? waterState(nextRule.activationPoint) : isEsp32Rain(sensor) ? rainState(nextRule.activationPoint) : thresholdLabel(nextRule)}` : 'Sin otro punto configurado',
+          nextActivation: nextRule ? `${dangerLevelLabels[nextRule.dangerLevel]} · ${isEsp32Water(sensor) ? waterState(nextRule.activationPoint) : isEsp32Rain(sensor) ? rainState(nextRule.activationPoint) : thresholdLabel(nextRule)}` : 'Sin otro punto configurado',
           categorical: isEsp32Rain(sensor) || isEsp32Water(sensor),
           trend: sensorTrend.filter(item => item.value !== null && item.value !== undefined).map(item => ({ label: this.formatDateTime(item.measuredAt), value: item.value, unit: item.unit, displayValue: formatSensorReading(sensor, item) })),
         };
@@ -416,7 +414,7 @@ export class DashboardDataService {
       { variable: 'RiverOrReservoirLevel', metric: 'river', label: 'Nivel de agua' },
     ];
     return definitions.flatMap((definition) => {
-      const values = readings.filter((reading) => reading.variable === definition.variable && (!sensors.some(s => s.id === reading.sensorId && isEsp32Water(s)) || [0,1,2,3].includes(reading.value)))
+      const values = readings.filter((reading) => reading.variable === definition.variable && (!sensors.some(s => s.id === reading.sensorId && isEsp32Water(s)) || [0,1,2].includes(reading.value)))
         .sort((left, right) => Date.parse(left.measuredAt) - Date.parse(right.measuredAt)).slice(-30);
       if (!values.length) return [];
       const categorical = ['rain','river'].includes(definition.metric) && values.every(reading => sensors.some(sensor => sensor.id === reading.sensorId && (isEsp32Rain(sensor) || isEsp32Water(sensor))));

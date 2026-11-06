@@ -4,6 +4,7 @@
 #include "DeviceTransport.h"
 #include "WaterCalibration.h"
 #include "LevelSampling.h"
+#include "WaterLevelState.h"
 
 constexpr uint8_t DHT_PIN = 4;
 constexpr uint8_t RAIN_PIN = 34;
@@ -30,7 +31,7 @@ int readRainRaw() {
 }
 
 // Serial calibration is nonblocking. Enter 0, 25, 50, 75 or 100 followed by newline.
-constexpr bool WATER_CALIBRATION_MODE = true;
+constexpr bool WATER_CALIBRATION_MODE = false; // Categorical level has no percentage calibration.
 LevelCalibrationCapture levelCapture;
 void readCalibrationCommand() {
   if (!WATER_CALIBRATION_MODE) return;
@@ -98,7 +99,7 @@ void loop() {
     Serial.printf("CALIBRACION NIVEL %d %%\nMuestras: %d\nRAW promedio: %d\nRAW min: %d\nRAW max: %d\n", levelCapture.target,levelCapture.count,levelCapture.average(),levelCapture.minimum,levelCapture.maximum);
   }
   const int rainValue = rainRaw >= RAIN_DRY_THRESHOLD ? 0 : (rainRaw >= RAIN_LIGHT_THRESHOLD ? 1 : 2);
-  publishSensorSample(temperature, humidity, rainValue, waterPercent(waterLevelRaw), now);
+  publishSensorSample(temperature, humidity, rainValue, waterLevelState(waterLevelRaw), now);
 
   if (isnan(temperature)) {
     Serial.println("Temperatura: ERROR DHT11");
@@ -123,8 +124,8 @@ void loop() {
   Serial.print(rainRaw);
   Serial.println(")");
   Serial.print("Nivel: ");
-  Serial.print(waterPercent(waterLevelRaw));
-  Serial.print(" % (RAW: ");
+  Serial.print(waterLevelLabel(waterLevelRaw));
+  Serial.print(" (RAW: ");
   Serial.print(waterLevelRaw);
   Serial.println(")");
   Serial.println();

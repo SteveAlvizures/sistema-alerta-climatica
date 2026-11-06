@@ -27,7 +27,7 @@ export class ClimateTrend implements AfterViewInit, OnDestroy {
   });
   protected readonly scale = computed(() => {
     const metric = this.activeSeries()?.metric;
-    if (this.activeSeries()?.categorical) return { minimum: 0, maximum: this.activeSeries()?.metric === 'river' ? 3 : 2 };
+    if (this.activeSeries()?.categorical) return { minimum: 0, maximum: 2 };
     if (metric === 'humidity') return { minimum: 0, maximum: 100 };
     const values = [...this.values(), ...(this.activeSeries()?.activationPoints?.map(point => point.value) ?? [])];
     if (!values.length) return { minimum: 0, maximum: 1 };
@@ -36,7 +36,7 @@ export class ClimateTrend implements AfterViewInit, OnDestroy {
     return { minimum: Math.floor(dataMinimum - margin), maximum: Math.ceil(dataMaximum + margin) };
   });
   protected readonly yTicks = computed(() => {
-    if (this.activeSeries()?.categorical) return (this.activeSeries()?.metric === 'river' ? [3,2,1,0] : [2,1,0]).map(value => ({ value, y: this.pointY(value), label: this.activeSeries()?.metric === 'river' ? waterState(value) : rainState(value) }));
+    if (this.activeSeries()?.categorical) return [2,1,0].map(value => ({ value, y: this.pointY(value), label: this.activeSeries()?.metric === 'river' ? waterState(value) : rainState(value) }));
     const { minimum, maximum } = this.scale();
     return Array.from({ length: 5 }, (_, index) => {
       const value = maximum - index * (maximum - minimum) / 4;
